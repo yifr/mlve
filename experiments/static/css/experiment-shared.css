@@ -1,0 +1,10 @@
+.row-prompt {
+    margin: 0em 0em;
+    text-align: left;
+}
+
+.demo-instruction {
+    text-align: left;
+    display: block;
+    color: red;
+}
