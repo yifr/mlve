@@ -4,9 +4,6 @@ By default, a complete list of stimuli is provided in with each experiment confi
 
 ### Uploading: partition stimuli into batches => mongo
 
-For prior_elicitation, this is handled in the CA repo.
-@will will move it to lax
-
 Upload to dbname: `stimuli`, in any collection.
 These are designed to be temporary. Use a single collection for a single experiment, and update your config as described below.
 
@@ -16,8 +13,8 @@ The basic idea is that a single entry in your collection should include all info
 
 We assume that stimuli are in the mongo instance where data are being stored, but in a database called `stimuli`.
 Stimulus loading is triggered when `stimColName` has been set to a value in config.
-  
-  NOTE: This currently bypasses functions for handling separate trial types- ideally we will combine these functions in the future, but for now stim loading from mongo is only possible when there is a single block of trials of the same type.
+
+NOTE: This currently bypasses functions for handling separate trial types- ideally we will combine these functions in the future, but for now stim loading from mongo is only possible when there is a single block of trials of the same type.
 
 Stimulus metadata is downloaded in `getStimListFromMongo`, in `experimentSetup.js`. It emits a `getStim` message to mongo, triggering app.js to fetch the mongo entry with the smallest number of entries in the `games` column.
 
