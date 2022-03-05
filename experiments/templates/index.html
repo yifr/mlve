@@ -5,6 +5,8 @@
     <title>Gestalt Experiment</title>
     <script src="/static/js/jspsych/dist/jspsych.js"></script>
     <script src="/static/js/jspsych/dist/plugin-html-keyboard-response.js"></script>
+    <script src="/static/js/jspsych/dist/plugin-preload.js"></script>
+    <script src="/static/js/jspsych/dist/plugin-probe-detection-task.js"></script>
     <script src="/static/js/jquery/dist/jquery.min.js"></script>
     <link
       href="/static/js/jspsych/dist/jspsych.css"
@@ -21,15 +23,31 @@
       dataType: "json",
       success: function (data) {
         console.log(data);
+        const jsPsych = initJsPsych();
+        trials = [];
+        var preload = {
+          type: jsPsychPreload,
+          auto_preload: true,
+          show_progress_bar: true,
+        };
+        trials.push(preload);
+        const hello_trial = {
+          type: jsPsychHtmlKeyboardResponse,
+          stimulus: "Hello world!",
+        };
+        trials.push(hello_trial);
+        for (let i = 0; i < data.length; i++) {
+          const trial = {
+            type: jsPsychProbeDetectionTask,
+            stimulus: data[i].image_url,
+            probe_location: data[i].probe_location,
+            probe_touching: data[i].probe_touching,
+            bounding_box: data[i].bounding_box,
+          };
+          trials.push(trial);
+        }
+        jsPsych.run(trials);
       },
     });
-    const jsPsych = initJsPsych();
-
-    const hello_trial = {
-      type: jsPsychHtmlKeyboardResponse,
-      stimulus: "Hello world!",
-    };
-
-    jsPsych.run([hello_trial]);
   </script>
 </html>

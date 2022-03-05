@@ -1,4 +1,2 @@
-BASE_IMAGE_URLS = (
-    "/Users/yoni/Projects/CommonFate/scenes/gestalt_masks_multiscene/scene_*"
-)
+BASE_IMAGE_URLS = "static/media/gestalt_masks_multiscene/scene_*"
 LOCAL_IMAGES = True

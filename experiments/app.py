@@ -72,6 +72,7 @@ def trial_data_wrapper():
     experiment_type = data.get("experiment")
     domain = data.get("domain")
     batch = data.get("batch")
+    stimuli_index = data.get("stimuli_index")
     trial_data = get_trial_data("detection", "static", 0)
     return jsonify(trial_data)
 
