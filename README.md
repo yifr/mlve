@@ -1,6 +1,6 @@
-## LAX (Language and Abstraction Experiments)
+## MLVE (Mid-level visual (psychophysics) experiments)
 
-This repository is the official implementation for the Language and Abstraction Experiments.
+This repository is the official implementation for the Mid-level visual experiments.
 
 It contains the following key subdirectories:
 
@@ -8,7 +8,7 @@ It contains the following key subdirectories:
 - `experiments`: This contains the human experiment code. See below (human experiments) for details on developing and running experiments.
 - `model`: This will contain the model.
 - `results`: This contains CSV results with the raw, cleaned, deanonymized data from human experiments. These are generated automatically by running `download_mongo_result.py`.
-- `stimuli`: This does not contain our stimuli. The drawing stimuli are generated at a separate repo, [here](https://github.com/CatherineWong/drawingtasks).
+- `stimuli`: This does not contain our stimuli. The drawing stimuli are generated at a separate repo, [here](https://github.com/yifr/CommonFate).
 - `utils`: This contains helper functions for loading from the databases.
 
 ---
@@ -20,10 +20,10 @@ The human experiments setup has been tested on Node version: v10.16.3 and npm ve
 
 ### Developing a new human experiment.
 
-The LAX repository uses a modular, config-based setup to quickly set up and reproduce individual human experiments.
+The MLVE repository uses a modular, config-based setup to quickly set up and reproduce individual human experiments.
 This section describes how to develop a new human experiment.
 
-1. _Write an experiment config._ Experiment configs contain the full information to launch an experiment, and determine the live URL for a running experiment. Experiment configs are housed at `experiments/{experiment_Group}/configs/{configId}` (e.g `experiments/prior_elicitation/configs` contains all of the configs for prior elicitation experiments in both domains; `experiments/prepost_language_production/configs` contains configs for pre-post language experiments. An experiment config generally contains the following parameters (aside from the obvious name and metadata:):
+1. _Write an experiment config._ Experiment configs contain the full information to launch an experiment, and determine the live URL for a running experiment. Experiment configs are housed at `experiments/{experiment_Group}/configs/{configId}` (e.g `experiments/static_segmentation/configs` contains all of the configs for static segmentation experiments in both domains. An experiment config generally contains the following parameters (aside from the obvious name and metadata:):
 
 ```
 {
