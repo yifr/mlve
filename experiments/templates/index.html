@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Gestalt Experiment</title>
+    <script src="/static/js/jspsych/dist/jspsych.js"></script>
+    <script src="/static/js/jspsych/dist/plugin-html-keyboard-response.js"></script>
+    <script src="/static/js/jquery/dist/jquery.min.js"></script>
+    <link
+      href="/static/js/jspsych/dist/jspsych.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+  </head>
+  <body></body>
+  <script>
+    $.ajax({
+      type: "POST",
+      url: "/get_trial_data",
+      data: { experiment: "detection", domain: "static" },
+      dataType: "json",
+      success: function (data) {
+        console.log(data);
+      },
+    });
+    const jsPsych = initJsPsych();
+
+    const hello_trial = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: "Hello world!",
+    };
+
+    jsPsych.run([hello_trial]);
+  </script>
+</html>
