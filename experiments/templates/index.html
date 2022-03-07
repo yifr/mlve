@@ -8,27 +8,49 @@
     <script src="/static/js/jspsych/dist/plugin-preload.js"></script>
     <script src="/static/js/jspsych/dist/plugin-probe-detection-task.js"></script>
     <script src="/static/js/jquery/dist/jquery.min.js"></script>
+    <link rel="stylesheet" href="/static/css/styles.css" />
     <link
       href="/static/js/jspsych/dist/jspsych.css"
       rel="stylesheet"
       type="text/css"
     />
   </head>
-  <body></body>
+
+  <body
+    class="jspsych-content-wrapper jspsych-display-element"
+    tabindex="0"
+    style="margin: 0px; height: 100%; width: 100%"
+  >
+    <div class="jspsych-content-wrapper">
+      <div id="jspsych-content" class="jspsych-content">
+        <div style="margin: 50px 0 0 -50px">
+          Please wait momentarily while the experiment loads...
+        </div>
+        <figure>
+          <div class="dot white"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+      </figure>
+    </div>
+  </body>
   <script>
+    const jsPsych = initJsPsych({
+      show_progress_bar: true,
+      auto_update_progress_bar: true,
+    });
+
     $.ajax({
       type: "POST",
       url: "/get_trial_data",
       data: { experiment: "detection", domain: "static" },
       dataType: "json",
       success: function (data) {
-        console.log(data);
-        const jsPsych = initJsPsych();
         trials = [];
         var preload = {
           type: jsPsychPreload,
           auto_preload: true,
-          show_progress_bar: true,
         };
         trials.push(preload);
         const hello_trial = {
@@ -40,9 +62,13 @@
           const trial = {
             type: jsPsychProbeDetectionTask,
             stimulus: data[i].image_url,
+            stimulus_index: data[i].stimulus_index,
             probe_location: data[i].probe_location,
             probe_touching: data[i].probe_touching,
             bounding_box: data[i].bounding_box,
+            experiment_type: "detection",
+            domain: "static",
+            batch: 0,
           };
           trials.push(trial);
         }
