@@ -39,13 +39,13 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
       stimulus_height: {
         type: jspsych.ParameterType.INT,
         pretty_name: "Image height",
-        default: null,
+        default: 512,
       },
       /** Set the image width in pixels */
       stimulus_width: {
         type: jspsych.ParameterType.INT,
         pretty_name: "Image width",
-        default: null,
+        default: 512,
       },
       /** Maintain the aspect ratio after setting width or height */
       maintain_aspect_ratio: {
@@ -144,6 +144,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
 
         // create canvas element and image
         var canvas = document.createElement("canvas");
+        document.body.style.backgroundColor = "#fff";
         canvas.id = "jspsych-image-button-response-stimulus";
         canvas.style.margin = "0";
         canvas.style.padding = "0";
@@ -405,7 +406,13 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             img.src = trial.stimulus;
 
             // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
-            ctx.drawImage(img, 0, 0, 512, 512);
+            ctx.drawImage(
+              img,
+              0,
+              0,
+              trial.stimulus_height,
+              trial.stimulus_width
+            );
 
             // Draw probe on canvas
             ctx.beginPath();

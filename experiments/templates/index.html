@@ -19,20 +19,24 @@
   <body
     class="jspsych-content-wrapper jspsych-display-element"
     tabindex="0"
-    style="margin: 0px; height: 100%; width: 100%"
+    style="margin: 0px; height: 100%; width: 100%;"
   >
     <div class="jspsych-content-wrapper">
       <div id="jspsych-content" class="jspsych-content">
         <div style="margin: 50px 0 0 -50px">
           Please wait momentarily while the experiment loads...
         </div>
-        <figure>
+        <div id="loader">
+          <div id="shadow"></div>
+          <div id="box"></div>
+        </div>
+        <!-- <figure>
           <div class="dot white"></div>
           <div class="dot"></div>
           <div class="dot"></div>
           <div class="dot"></div>
           <div class="dot"></div>
-      </figure>
+      </figure> -->
     </div>
   </body>
   <script>
@@ -51,11 +55,15 @@
         var preload = {
           type: jsPsychPreload,
           auto_preload: true,
+          on_start: function() {
+            document.body.style.backgroundColor = "#fff";          
+          }
         };
         trials.push(preload);
         const hello_trial = {
           type: jsPsychHtmlKeyboardResponse,
           stimulus: "Hello world!",
+          
         };
         trials.push(hello_trial);
         for (let i = 0; i < data.length; i++) {
