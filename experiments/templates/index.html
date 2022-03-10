@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <title>Gestalt Experiment</title>
     <script src="/static/js/jspsych/dist/jspsych.js"></script>
-    <script src="/static/js/jspsych/dist/plugin-html-keyboard-response.js"></script>
     <script src="/static/js/jspsych/dist/plugin-preload.js"></script>
+    <script src="/static/js/jspsych/dist/plugin-instructions.js"></script>
     <script src="/static/js/plugin-probe-detection-task.js"></script>
     <script src="/static/js/jquery/dist/jquery.min.js"></script>
     <link rel="stylesheet" href="/static/css/styles.css" />
@@ -60,12 +60,28 @@
           }
         };
         trials.push(preload);
-        const hello_trial = {
-          type: jsPsychHtmlKeyboardResponse,
-          stimulus: "Hello world!",
-          
-        };
-        trials.push(hello_trial);
+        const instructions = {
+          type: jsPsychInstructions,
+          pages: ["Thank you for participating in this experiment. To continue reading the instructions please hit the right arrow key.",
+
+                  "In this experiment, you will be asked to determine whether or not a probe dot is touching an object. \
+                  The objects will be camoflauged against the background, but look like these kinds of shapes: <br><br> \
+                  <img height=450, width=800, src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/all_stims.gif'></img>",
+                  
+                  "Objects can appear anywhere in a scene. If the center (red part) of a probe is touching an object, click yes, and draw a box around \
+                  visible part of the object it is touching. For example, on the example trial below, the probe is touching an object so the answer is 'Yes'. \
+                  <br> <br>After clicking yes, we can draw a box around that object, and hit 'Submit' to continue. To draw a box, click one time to start the drawing, and one time to stop. \
+                  <br><br> \
+                  <video src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/example_trial.mp4' type='video/mp4' width=500, height=500 controls autoplay> \
+                    </video>",
+
+                  "Ready? The experiment will start on the next page. To review any of the instructions, just hit the back arrow to return to a previous page.",
+                  ],
+                  show_clickable_nav: true
+                };
+        
+        trials.push(instructions);
+
         for (let i = 0; i < data.length; i++) {
           const trial = {
             type: jsPsychProbeDetectionTask,
