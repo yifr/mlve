@@ -42,7 +42,9 @@ def generate_probe_location(masks, probe_touching):
 
 
 # @app.route("/get_probe_location", methods=["POST"])
-def get_probe_location(experiment_type, domain, batch, scene_index, image_index):
+def get_probe_location(
+    experiment_type, domain, batch, scene_index, image_index, randomize_contact=True
+):
 
     if experiment_type == "detection":
         if domain == "static":
@@ -51,9 +53,12 @@ def get_probe_location(experiment_type, domain, batch, scene_index, image_index)
             masks = np.array(Image.open(mask_url).convert("L"))
 
             # Generate probe location
-            probe_touching = (
-                np.random.rand() >= 0.5
-            )  # TO-DO Evenly Balance out each experiment?
+            if randomize_contact:
+                probe_touching = (
+                    np.random.rand() >= 0.5
+                )  # TO-DO Evenly Balance out each experiment?
+            else:
+                probe_touching = True
 
             probe_location, mask = generate_probe_location(masks, probe_touching)
             # Compute bounding boxes
