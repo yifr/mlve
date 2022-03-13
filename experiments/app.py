@@ -37,8 +37,8 @@ def generate_probe_location(masks, probe_touching):
             # Avoid overlapping edge of probe with shape
             for y_b, x_b in zip(y_buffer, x_buffer):
                 if (
-                    np.sqrt((loc[1] - y_b) ** 2) > 2.5
-                    and np.sqrt((loc[0] - x_b) ** 2) > 2.5
+                    np.sqrt((loc[1] - y_b) ** 2) < 5
+                    and np.sqrt((loc[0] - x_b) ** 2) < 5
                 ):
                     return [int(l) for l in loc], None
 
