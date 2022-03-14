@@ -1,5 +1,6 @@
 import boto3
 from botocore.exceptions import ClientError
+from tqdm import tqdm
 import os
 from glob import glob
 import logging
@@ -36,23 +37,22 @@ def main():
         logging.error(e)
 
     b.Acl().put(ACL="public-read")
-    root_path = "/om2/user/yyf/CommonFate/scenes"
+    root_path = "/om/user/yyf/CommonFate/scenes"
     data_path = root_path + "/test_*/**/*/*/*" # Upload PNGs
     overwrite = True
-    for file_path in glob(data_path):
-        if "." in file_path:
+    for file_path in tqdm(glob(data_path)):
+        if "." in file_path and "shaded" not in file_path and "Shaded" not in file_path:
             target = file_path.split(root_path)[1][1:]
             if check_exists(s3, bucket, target) and not overwrite:
-                print(target + " exists. Skipping")
+                # print(target + " exists. Skipping")
                 continue
 
-            print(target)
-            image = Image.open(file_path)
+            # print(target)
             s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
             s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
 
     data_path = root_path + "/test_*/**/*/*" # Upload everything else
-    for file_path in glob(data_path):
+    for file_path in tqdm(glob(data_path)):
         if "." in file_path:
 
             target = file_path.split(root_path)[1][1:]
@@ -61,7 +61,11 @@ def main():
                 continue
             s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
             s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
-            print(target)
+            # print(target)
+
+    target = "detection_pilot_batch_0.csv"
+    s3.Object(bucket, target).put(Body=open(target, "rb"))
+    s3.Object(bucket, target).Acl().put(ACL="public-read")
 
 if __name__=="__main__":
     main()
