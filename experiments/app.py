@@ -6,7 +6,7 @@ import boto3
 import requests
 import numpy as np
 from PIL import Image
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session
 
 import config
 
@@ -75,23 +75,21 @@ def get_probe_location(
         return probe_location, probe_touching, bounding_box
 
 
-@app.route("/get_trial_data", methods=["POST"])
+@app.route("/get_trial_data", methods=["GET", "POST"])
 def trial_data_wrapper():
     data = request.form
     experiment_type = data.get("experiment")
     domain = data.get("domain")
     batch = data.get("batch")
     if config.PREPROCESSED:
-        preprocessed_path = "detection_pilot_batch_0.json"
+        preprocessed_path = "stimuli/detection_pilot_batch_0.json"
         with open(preprocessed_path, "rb") as f:
             data = json.load(f)["data"]
 
         s3_root = config.S3_ROOT
         for d in data:
-            print(d["image_url"])
             d["image_url"] = os.path.join(s3_root, d["image_url"],
                                           "images", f"Image{d['frame_idx']:04d}.png")
-            print(d["image_url"])
 
         np.random.seed(config.random_seed)
         np.random.shuffle(data)
