@@ -95,6 +95,8 @@ def trial_data_wrapper():
 
         np.random.seed(config.random_seed)
         np.random.shuffle(data)
+
+        print(f"Serving {len(data)} trials") 
         return jsonify(data)
 
     if config.LOCAL_IMAGES:
