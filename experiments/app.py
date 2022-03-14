@@ -1,6 +1,7 @@
 import os
 import io
 import glob
+import json
 import boto3
 import requests
 import numpy as np
@@ -80,16 +81,25 @@ def trial_data_wrapper():
     experiment_type = data.get("experiment")
     domain = data.get("domain")
     batch = data.get("batch")
+    if config.PREPROCESSED:
+        preprocessed_path = "detection_pilot_batch_0.json"
+        with open(preprocessed_path, "rb") as f:
+            data = json.load(f)["data"]
+
+        s3_root = config.S3_ROOT
+        for d in data:
+            print(d["image_url"])
+            d["image_url"] = os.path.join(s3_root, d["image_url"],
+                                          "images", f"Image{d['frame_idx']:04d}.png")
+            print(d["image_url"])
+
+        np.random.seed(config.random_seed)
+        np.random.shuffle(data)
+        return jsonify(data)
+
     if config.LOCAL_IMAGES:
         if domain == "static":
             trial_data = []
-            if config.PREPROCESSED:
-                preprocessed_path = "detection_pilot_batch_0.json"
-                with open(preprocessed_path, "rb") as f:
-                    data = json.load(f)["data"]
-
-                np.random.shuffle(data)
-                return jsonify(data)
 
             for scene_index, scene in enumerate(glob.glob(config.BASE_IMAGE_URLS)[:20]):
                 image_index = np.random.randint(1, 32)
