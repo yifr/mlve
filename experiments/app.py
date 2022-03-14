@@ -83,6 +83,14 @@ def trial_data_wrapper():
     if config.LOCAL_IMAGES:
         if domain == "static":
             trial_data = []
+            if config.PREPROCESSED:
+                preprocessed_path = "detection_pilot_batch_0.json"
+                with open(preprocessed_path, "rb") as f:
+                    data = json.load(f)["data"]
+
+                np.random.shuffle(data)
+                return jsonify(data)
+
             for scene_index, scene in enumerate(glob.glob(config.BASE_IMAGE_URLS)[:20]):
                 image_index = np.random.randint(1, 32)
 
