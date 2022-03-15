@@ -144,10 +144,12 @@ def trial_data_wrapper():
             for scene_index, scene in enumerate(glob.glob(config.BASE_IMAGE_URLS)[:20]):
                 image_index = np.random.randint(1, 32)
 
-                image_url = os.path.join(scene, "images", f"Image{image_index:04d}.png")
+                image_url = os.path.join(
+                    scene, "images", f"Image{image_index:04d}.png")
                 scene = glob.glob(config.BASE_IMAGE_URLS)[scene_index]
 
-                mask_url = os.path.join(scene, "masks", f"Image{image_index:04d}.png")
+                mask_url = os.path.join(
+                    scene, "masks", f"Image{image_index:04d}.png")
                 masks = np.array(Image.open(mask_url).convert("L"))
 
                 probe_location, probe_touching, bounding_box = get_probe_location(
@@ -178,10 +180,12 @@ def trial_data_wrapper():
                 trial_data = []
                 for i in range(trials_per_batch):
                     # TO-DO: Un-randomize batches
-                    idx = int(np.random.choice((range(1, frames_per_scene + 1))))
+                    idx = int(np.random.choice(
+                        (range(1, frames_per_scene + 1))))
                     texture = np.random.choice(texture_splits)
                     scene_objs = np.random.choice(objs_per_scene)
-                    scene_num = int(np.random.choice(range(0, scenes_per_texture)))
+                    scene_num = int(np.random.choice(
+                        range(0, scenes_per_texture)))
 
                     image_url = f"{s3_root}/{texture}/{scene_objs}/scene_{scene_num:03d}/images/Image{idx:04d}.png"
 
