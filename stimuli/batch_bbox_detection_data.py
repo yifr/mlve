@@ -16,7 +16,21 @@ def generate_probe_location(masks, probe_touching):
         mask = masks == mask_val
 
         y, x = np.where(mask)
+        y_buffer, x_buffer = np.where(masks == 0)
         possible_locations = [loc for loc in zip(x, y)]
+        while True:
+            probe_idx = np.random.choice(range(len(possible_locations)))
+            loc = possible_locations[probe_idx]
+
+            # Avoid overlapping edge of probe with shape
+            overlap = False
+            for y_b, x_b in zip(y_buffer, x_buffer):
+                if np.sqrt((loc[0] - x_b) ** 2 + (loc[1] - y_b) ** 2) < 5:
+                    overlap = True
+
+            if not overlap:
+                return [int(l) for l in loc], None, 0
+
         probe_idx = np.random.choice(range(len(possible_locations)))
         loc = possible_locations[probe_idx]
 
