@@ -2,8 +2,8 @@ import os
 import io
 import glob
 import json
+from tkinter import W
 import boto3
-from experiments.config import TEXTURE_SPLITS
 import pymongo
 import requests
 import numpy as np
@@ -16,8 +16,8 @@ import config
 with open("auth.json", "rb") as f:
     auth = json.load(f)
 
-mongo_user = auth["mongo_user"]
-mongo_pw = auth["mongo_pw"]
+MONGO_USER = auth["mongo_user"]
+MONGO_PW = auth["mongo_pw"]
 
 app = Flask(__name__)
 app.secret_key = "secret key"
@@ -81,24 +81,32 @@ def get_probe_location(
         return probe_location, probe_touching, bounding_box
 
 
+def get_client(db_name):
+    client = pymongo.MongoClient(
+        f"mongodb+srv://{MONGO_USER}:{MONGO_PW}@"
+        + f"psychophys.js4h5.mongodb.net/{db_name}"
+        + "?retryWrites=true&w=majority"
+    )
+    return client
+
+
 @app.route("/post_data", methods=["POST"])
 def post_data():
+    if not session.get("log_results"):
+        return jsonify({"status": 200})
+
     data = request.get_json()  # json.loads(request.data)
     print(data)
 
     db_name = data.get("db_name")
     col_name = data.get("col_name")
 
-    client = pymongo.MongoClient(
-        f"mongodb+srv://{mongo_user}:{mongo_pw}@"
-        + f"psychophys.js4h5.mongodb.net/{db_name}"
-        + "?retryWrites=true&w=majority"
-    )
+    client = get_client(db_name)
     db = client[db_name]
     col = db[col_name]
     resp = col.insert_one(data)
     print(resp)
-    return jsonify({"success": )
+    return jsonify({"success": 200})
 
 
 @app.route("/get_trial_data", methods=["GET", "POST"])
@@ -117,13 +125,13 @@ def trial_data_wrapper():
             image_url = d["image_url"]
             components = image_url.split("/")
             texture = components[0]
-            n_objs = components[1].split("_")[1]
+            n_objs = int(components[1].split("_")[1])
             scene = components[2]
-            d["texture"] = texture 
+            d["texture"] = texture
             d["n_objs"] = n_objs
             d["scene"] = scene
             d["image_url"] = os.path.join(
-                d["image_url"], "images", f"Image{d['frame_idx']:04d}.png"
+                s3_root, d["image_url"], "images", f"Image{d['frame_idx']:04d}.png"
             )
 
         np.random.seed(config.random_seed)
@@ -140,10 +148,12 @@ def trial_data_wrapper():
             for scene_index, scene in enumerate(glob.glob(config.BASE_IMAGE_URLS)[:20]):
                 image_index = np.random.randint(1, 32)
 
-                image_url = os.path.join(scene, "images", f"Image{image_index:04d}.png")
+                image_url = os.path.join(
+                    scene, "images", f"Image{image_index:04d}.png")
                 scene = glob.glob(config.BASE_IMAGE_URLS)[scene_index]
 
-                mask_url = os.path.join(scene, "masks", f"Image{image_index:04d}.png")
+                mask_url = os.path.join(
+                    scene, "masks", f"Image{image_index:04d}.png")
                 masks = np.array(Image.open(mask_url).convert("L"))
 
                 probe_location, probe_touching, bounding_box = get_probe_location(
@@ -174,10 +184,12 @@ def trial_data_wrapper():
                 trial_data = []
                 for i in range(trials_per_batch):
                     # TO-DO: Un-randomize batches
-                    idx = int(np.random.choice((range(1, frames_per_scene + 1))))
+                    idx = int(np.random.choice(
+                        (range(1, frames_per_scene + 1))))
                     texture = np.random.choice(texture_splits)
                     scene_objs = np.random.choice(objs_per_scene)
-                    scene_num = int(np.random.choice(range(0, scenes_per_texture)))
+                    scene_num = int(np.random.choice(
+                        range(0, scenes_per_texture)))
 
                     image_url = f"{s3_root}/{texture}/{scene_objs}/scene_{scene_num:03d}/images/Image{idx:04d}.png"
 
@@ -208,24 +220,34 @@ def trial_data_wrapper():
     return jsonify(trial_data)
 
 
-@app.route("/save_trial", methods=["POST"])
-def save_to_db():
-    data = request.form
-    user_id = data.get("user_id")
+def check_repeat_user(user_id, db, col):
+    if user_id in config.ALLOWED_IDS:
+        return False
 
+    client = get_client(db)
+    db = client[db]
+    col = db[col]
+    res = col.find_one({"user_id": user_id})
+    if res:
+        return True
 
-def check_repeat_user(user_id):
-    # TODO
     return False
 
 
 @app.route("/", methods=["GET"])
 def home():
     user_id = request.args.get("PROLIFIC_PID")
+    db = request.args.get("db")
+    col_name = request.args.get("col")
     print("user_id", user_id)
-    repeat_user = check_repeat_user(user_id)
-    if repeat_user:
-        return render_template("repeat.html")
+    if not user_id or not db or not col_name:
+        print(f"missing one of user_id: {user_id}, db: {db}, col: {col_name}")
+        session["log_results"] = False
+    else:
+        session["log_results"] = True
+        repeat_user = check_repeat_user(user_id, db, col_name)
+        if repeat_user:
+            return render_template("reject.html")
 
     session["user_id"] = user_id
     return render_template("index.html")

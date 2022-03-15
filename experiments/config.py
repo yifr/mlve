@@ -8,5 +8,8 @@ FRAMES_PER_SCENE = 64
 TRIALS_PER_BATCH = 120
 PREPROCESSED = True
 S3_ROOT = "https://gestalt-scenes.s3.us-east-2.amazonaws.com"
-random_seed = 42
 DB_NAME = "psychophys"
+ALLOWED_IDS = []
+DEBUG = False
+
+random_seed = 42
