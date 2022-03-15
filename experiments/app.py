@@ -239,7 +239,7 @@ def home():
     db = request.args.get("db_name")
     col_name = request.args.get("col")
     print("user_id", user_id)
-    if not user_id or db or col_name:
+    if not user_id or not db or not col_name:
         session["log_results"] = False
     else:
         session["log_results"] = True
