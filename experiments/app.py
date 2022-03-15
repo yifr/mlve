@@ -236,10 +236,11 @@ def check_repeat_user(user_id, db, col):
 @app.route("/", methods=["GET"])
 def home():
     user_id = request.args.get("PROLIFIC_PID")
-    db = request.args.get("db_name")
+    db = request.args.get("db")
     col_name = request.args.get("col")
     print("user_id", user_id)
     if not user_id or not db or not col_name:
+        print(f"missing one of user_id: {user_id}, db: {db}, col: {col_name}")
         session["log_results"] = False
     else:
         session["log_results"] = True
