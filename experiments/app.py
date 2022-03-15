@@ -16,8 +16,8 @@ import config
 with open("auth.json", "rb") as f:
     auth = json.load(f)
 
-mongo_user = auth["mongo_user"]
-mongo_pw = auth["mongo_pw"]
+MONGO_USER = auth["mongo_user"]
+MONGO_PW = auth["mongo_pw"]
 
 app = Flask(__name__)
 app.secret_key = "secret key"
@@ -80,25 +80,28 @@ def get_probe_location(
 
         return probe_location, probe_touching, bounding_box
 
+def get_client(db_name):
+    client = pymongo.MongoClient(
+        f"mongodb+srv://{MONGO_USER}:{MONGO_PW}@"
+        + f"psychophys.js4h5.mongodb.net/{db_name}"
+        + "?retryWrites=true&w=majority"
+    )
+    return client
 
 @app.route("/post_data", methods=["POST"])
 def post_data():
     data = request.get_json()  # json.loads(request.data)
     print(data)
-
+    
     db_name = data.get("db_name")
     col_name = data.get("col_name")
-
-    client = pymongo.MongoClient(
-        f"mongodb+srv://{mongo_user}:{mongo_pw}@"
-        + f"psychophys.js4h5.mongodb.net/{db_name}"
-        + "?retryWrites=true&w=majority"
-    )
+    
+    client = get_client(db_name)
     db = client[db_name]
     col = db[col_name]
     resp = col.insert_one(data)
     print(resp)
-    return jsonify({"success": )
+    return jsonify({"success": 200})
 
 
 @app.route("/get_trial_data", methods=["GET", "POST"])
@@ -208,22 +211,28 @@ def trial_data_wrapper():
     return jsonify(trial_data)
 
 
-@app.route("/save_trial", methods=["POST"])
-def save_to_db():
-    data = request.form
-    user_id = data.get("user_id")
 
+def check_repeat_user(user_id, db, col):
+    if user_id in config.ALLOWED_IDS:
+        return False
 
-def check_repeat_user(user_id):
-    # TODO
+    client = get_client(db)
+    db = client[db]
+    col = db[col]
+    res = col.find_one({"user_id": user_id})
+    if res:
+        return True
+    
     return False
 
 
 @app.route("/", methods=["GET"])
 def home():
     user_id = request.args.get("PROLIFIC_PID")
+    db = request.args.get("db_name")
+    col_name = request.args.get("col")
     print("user_id", user_id)
-    repeat_user = check_repeat_user(user_id)
+    repeat_user = check_repeat_user(user_id, db, col)
     if repeat_user:
         return render_template("repeat.html")
 

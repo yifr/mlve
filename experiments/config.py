@@ -10,3 +10,4 @@ PREPROCESSED = True
 S3_ROOT = "https://gestalt-scenes.s3.us-east-2.amazonaws.com"
 random_seed = 42
 DB_NAME = "psychophys"
+ALLOWED_IDS = ["yoni"]
