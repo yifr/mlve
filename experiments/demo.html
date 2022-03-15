@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.slim.js" integrity="sha256-HwWONEZrpuoh951cQD1ov2HUK5zA5DwJ1DNUXaM6FsY=" crossorigin="anonymous"></script>
+<!--    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>-->
+</head>
+
+<body>
+<canvas id="threejs_covering_canvas" width="1000" height="500"></canvas>
+
+<script>
+
+    const canvas = $('#threejs_covering_canvas')[0];
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera( -10, 10 , 5, -5, 1, 1000 );
+
+    camera.position.z = 5;
+
+    const renderer = new THREE.WebGLRenderer({canvas});
+
+    document.body.appendChild( renderer.domElement );
+
+    function vecToSurfaceNormalRGB(vec){
+
+        // normals are in range [-1, 1], so this maps to [0, 1]
+        let red = 0.5 * vec.x + 0.5;
+        let green = 0.5 * vec.y + 0.5;
+        let blue = 0.5 * vec.z + 0.5;
+
+        return new THREE.Color(red, green, blue);
+    }
+
+    class KoenderinkCircle extends THREE.Object3D {
+
+        constructor( dir, origin) {
+
+            super();
+            this.type = 'KoenderinkCircle';
+
+            this._axis = new THREE.Vector3();
+
+            this._lineGeometry = new THREE.BufferGeometry();
+            this._lineGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0, 0, 1, 0 ], 3 ) );
+            this.line = new THREE.Line( this._lineGeometry, new THREE.LineBasicMaterial( { color: 0xffff00, toneMapped: false, linewidth: 4 } ) );
+            this.add( this.line )
+
+            // THREE.RingBufferGeometry
+            this._ringGeometry = new THREE.RingBufferGeometry( 0.5, 1, 100 ); //new THREE.TorusGeometry( .5, .01, 20, 100 );
+            this.ring = new THREE.Mesh( this._ringGeometry, new THREE.MeshNormalMaterial({side: THREE.DoubleSide, normalMapType: THREE.ObjectSpaceNormalMap}) );
+            // Rotate the ring such that line is normal to plane the ring lies on.
+            this.ring.rotateX(Math.PI / 2);
+            this.add(this.ring);
+
+            this.position.copy( origin );
+            this.updateLineColor();
+            this.setDirection(dir)
+
+        }
+
+        setDirection( dir ) {
+
+            // dir is assumed to be normalized
+
+            if ( dir.y > 0.99999 ) {
+
+                this.quaternion.set( 0, 0, 0, 1 );
+
+            } else if ( dir.y < - 0.99999 ) {
+
+                this.quaternion.set( 1, 0, 0, 0 );
+
+            } else {
+
+                this._axis.set( dir.z, 0, - dir.x ).normalize();
+
+                const radians = Math.acos( dir.y );
+
+                this.quaternion.setFromAxisAngle( this._axis, radians );
+
+            }
+
+        }
+
+        updateLineColor ( ) {
+
+            let lineDirection = new THREE.Vector3();
+            this.ring.getWorldDirection(lineDirection);
+            // For some reason, ring points in opposite direction.
+            // Multiply by -1 to get correct direction.
+            lineDirection.multiplyScalar(-1.)
+
+            // TODO: Why does color work correctly only on the front half, not the back half?
+            this.line.material.color.set( vecToSurfaceNormalRGB( lineDirection.normalize() ) );
+        }
+
+    }
+
+    var koenderinkIndicatorDirection = new THREE.Vector3(1, 0, 1).normalize();
+    // var koenderinkIndicatorDirection = new THREE.Vector3(0, 1, 0).normalize();
+    var koenderinkIndicatorPosition = new THREE.Vector3(-4, 2, 0);
+    const koenderinkIndicator = new KoenderinkCircle(
+        koenderinkIndicatorDirection,
+        koenderinkIndicatorPosition)
+    scene.add( koenderinkIndicator );
+
+
+    var pointer = new THREE.Vector3();
+    var mouseStartOrthographicPosition = new THREE.Vector3();
+    var mousePenultimateOrthographicPosition = new THREE.Vector3();
+    var mouseCurrentOrthographicPosition = new THREE.Vector3();
+
+    var distanceCurrentMinusPenultimate = new THREE.Vector3();
+    var distancePenultimateMinusStart = new THREE.Vector3();
+    var distanceCurrentMinusStart = new THREE.Vector3();
+    var angle;
+    var axis = new THREE.Vector3();
+    let lineWorldDirection = new THREE.Vector3();
+    let koenderinkIndicatorWorldDirection = new THREE.Vector3();
+    // This vector will be used to check that rotation doesn't permit pointing
+    // line in negative Z direction.
+    let negativeZVector = new THREE.Vector3(0, 0, -1);
+
+    const radius = 1;
+    const radiusSquared = radius * radius;
+    let rotationQuaternion = new THREE.Quaternion();
+    let mouseDown = false;
+
+    function setMouseCurrentOrthographicPosition(event) {
+
+        let canvasBoundingBox = canvas.getBoundingClientRect();
+        let sketchpadCurrentHeight = canvasBoundingBox.bottom - canvasBoundingBox.top;
+        let sketchpadCurrentWidth = canvasBoundingBox.right - canvasBoundingBox.left;
+
+        // Compute mouse location relative to canvasBoundingBox, then normalize to [-1, 1]
+        // I think this is correct
+
+        pointer.x = ((event.clientX - canvasBoundingBox.left)  / sketchpadCurrentWidth) * 2 - 1;
+        pointer.y = - ((event.clientY - canvasBoundingBox.top) / sketchpadCurrentHeight) * 2 + 1;
+
+        // First computes location of mouse on z=0 plane
+        // See: https://stackoverflow.com/a/13091694/4570472
+        // Third argument is irrelevant.
+        mouseCurrentOrthographicPosition.set(pointer.x, pointer.y, 0);
+
+        // Projects from ThreeJS-independent "normalized device coordinate space" (i.e. -1 to 1)
+        // to "world space" i.e. the coordinates used by ThreeJS
+        mouseCurrentOrthographicPosition.unproject( camera );
+
+        return mouseCurrentOrthographicPosition
+    }
+
+    canvas.addEventListener('mousedown', function (event) {
+        // Save mouseStartOrthographicPosition.
+        mouseStartOrthographicPosition.copy(setMouseCurrentOrthographicPosition(event));
+
+        // Initialize the 2nd most recent othographic position.
+        mousePenultimateOrthographicPosition.copy(mouseStartOrthographicPosition);
+        mouseDown = true;
+
+        // console.log('mousedown set to True');
+    });
+
+    canvas.addEventListener('mouseup', function (event) {
+        mouseDown = false;
+    });
+
+    function rotateIndicator(event) {
+
+        if (mouseDown) {
+
+            setMouseCurrentOrthographicPosition(event);
+
+            distanceCurrentMinusPenultimate.subVectors(mouseCurrentOrthographicPosition, mousePenultimateOrthographicPosition);
+            distanceCurrentMinusStart.subVectors(mouseCurrentOrthographicPosition, mouseStartOrthographicPosition);
+            distancePenultimateMinusStart.subVectors(mousePenultimateOrthographicPosition, mouseStartOrthographicPosition);
+
+            let cond1 = Math.pow(distancePenultimateMinusStart.x, 2) + Math.pow(distancePenultimateMinusStart.y, 2) + 0.0001 < radiusSquared;
+            let cond2 = Math.pow(distanceCurrentMinusStart.x, 2) + Math.pow(distanceCurrentMinusStart.y, 2) + 0.0001 < radiusSquared;
+
+            if (cond1 && cond2) {
+
+                let v0 = new THREE.Vector3(
+                    distancePenultimateMinusStart.x,
+                    distancePenultimateMinusStart.y,
+                    Math.sqrt(radiusSquared - Math.pow(distancePenultimateMinusStart.x, 2) - Math.pow(distancePenultimateMinusStart.y, 2))
+                ).normalize()
+
+                let v1 = new THREE.Vector3(
+                    distanceCurrentMinusStart.x,
+                    distanceCurrentMinusStart.y,
+                    Math.sqrt(radiusSquared - Math.pow(distanceCurrentMinusStart.x, 2) - Math.pow(distanceCurrentMinusStart.y, 2))
+                ).normalize()
+
+                angle = Math.acos(Math.max(Math.min(v0.dot(v1), 0.999), -0.999));
+
+                axis.crossVectors(v0, v1).normalize()
+
+                rotationQuaternion.setFromAxisAngle( axis, angle );
+
+                // For some reason, the line world direction is rotated 90 degrees towards the camera.
+                // i.e. if the line is pointing vertically up, the world direction is (0, 0, 1)
+                // if the line is pointing towards the camera, the world direction is (0, -1, 0)
+                console.log('koenderinkIndicator axis: ', koenderinkIndicator._axis)
+                koenderinkIndicator.getWorldDirection(koenderinkIndicatorWorldDirection);
+                console.log('lineWorldDirection Before Quaternion: ', koenderinkIndicatorWorldDirection)
+
+                // Apply rotation to lineWorldDirection
+                lineWorldDirection.applyQuaternion(rotationQuaternion)
+
+                // console.log('lineWorldDirection After Quaternion: ', lineWorldDirection)
+
+                // Check whether rotation would result in line facing backwards.
+                let dotWithZDirection = lineWorldDirection.dot(negativeZVector)
+
+                // console.log('Dot with Z Direction: ', dotWithZDirection)
+
+                koenderinkIndicator.applyQuaternion(rotationQuaternion);
+                koenderinkIndicator.updateLineColor();
+
+            }
+
+            mousePenultimateOrthographicPosition.copy(mouseCurrentOrthographicPosition);
+
+        }
+      }
+
+    canvas.addEventListener('mousemove', rotateIndicator);
+
+    function animate() {
+        requestAnimationFrame( animate );
+        renderer.render( scene, camera );
+    }
+    animate();
+</script>
+</body>
+
+</html>

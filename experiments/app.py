@@ -3,18 +3,24 @@ import io
 import glob
 import json
 import boto3
+from experiments.config import TEXTURE_SPLITS
+import pymongo
 import requests
 import numpy as np
 from PIL import Image
+from werkzeug.datastructures import ImmutableMultiDict
 from flask import Flask, request, jsonify, render_template, session
 
 import config
 
-# from flask_pymongo import PyMongo
+with open("auth.json", "rb") as f:
+    auth = json.load(f)
+
+mongo_user = auth["mongo_user"]
+mongo_pw = auth["mongo_pw"]
 
 app = Flask(__name__)
-app.config["MONGO_URI"] = "mongodb://localhost:27017/myDatabase"
-# mongo = PyMongo(app)
+app.secret_key = "secret key"
 
 
 def generate_probe_location(masks, probe_touching):
@@ -75,6 +81,26 @@ def get_probe_location(
         return probe_location, probe_touching, bounding_box
 
 
+@app.route("/post_data", methods=["POST"])
+def post_data():
+    data = request.get_json()  # json.loads(request.data)
+    print(data)
+
+    db_name = data.get("db_name")
+    col_name = data.get("col_name")
+
+    client = pymongo.MongoClient(
+        f"mongodb+srv://{mongo_user}:{mongo_pw}@"
+        + f"psychophys.js4h5.mongodb.net/{db_name}"
+        + "?retryWrites=true&w=majority"
+    )
+    db = client[db_name]
+    col = db[col_name]
+    resp = col.insert_one(data)
+    print(resp)
+    return jsonify({"success": )
+
+
 @app.route("/get_trial_data", methods=["GET", "POST"])
 def trial_data_wrapper():
     data = request.form
@@ -88,13 +114,23 @@ def trial_data_wrapper():
 
         s3_root = config.S3_ROOT
         for d in data:
-            d["image_url"] = os.path.join(s3_root, d["image_url"],
-                                          "images", f"Image{d['frame_idx']:04d}.png")
+            image_url = d["image_url"]
+            components = image_url.split("/")
+            texture = components[0]
+            n_objs = components[1].split("_")[1]
+            scene = components[2]
+            d["texture"] = texture 
+            d["n_objs"] = n_objs
+            d["scene"] = scene
+            d["image_url"] = os.path.join(
+                d["image_url"], "images", f"Image{d['frame_idx']:04d}.png"
+            )
 
         np.random.seed(config.random_seed)
         np.random.shuffle(data)
 
-        print(f"Serving {len(data)} trials") 
+        print(f"Serving {len(data)} trials")
+        data = {"data": data, "user_id": session.get("user_id")}
         return jsonify(data)
 
     if config.LOCAL_IMAGES:
@@ -162,6 +198,7 @@ def trial_data_wrapper():
                         "probe_location": probe_location,
                         "probe_touching": probe_touching,
                         "bounding_box": bounding_box,
+                        "user_id": session.get("user_id"),
                     }
                     trial_data.append(trial)
         except Exception as e:
@@ -177,6 +214,18 @@ def save_to_db():
     user_id = data.get("user_id")
 
 
+def check_repeat_user(user_id):
+    # TODO
+    return False
+
+
 @app.route("/", methods=["GET"])
 def home():
+    user_id = request.args.get("PROLIFIC_PID")
+    print("user_id", user_id)
+    repeat_user = check_repeat_user(user_id)
+    if repeat_user:
+        return render_template("repeat.html")
+
+    session["user_id"] = user_id
     return render_template("index.html")

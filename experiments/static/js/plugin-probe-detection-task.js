@@ -30,11 +30,6 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
         pretty_name: "Probe duration",
         default: -1,
       },
-      bounding_box: {
-        type: jspsych.ParameterType.Array,
-        pretty_name: "Bounding Box",
-        default: [null],
-      },
       /** Set the image height in pixels */
       stimulus_height: {
         type: jspsych.ParameterType.INT,
@@ -381,7 +376,6 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
           probe_location: trial.probe_location,
           probe_touching: trial.probe_touching,
           bounding_box: bounding_box,
-          gt_bounding_box: trial.bounding_box,
         };
         console.log(trial_data);
         // clear the display
