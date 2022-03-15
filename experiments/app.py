@@ -2,6 +2,7 @@ import os
 import io
 import glob
 import json
+from tkinter import W
 import boto3
 import pymongo
 import requests
@@ -124,7 +125,7 @@ def trial_data_wrapper():
             image_url = d["image_url"]
             components = image_url.split("/")
             texture = components[0]
-            n_objs = components[1].split("_")[1]
+            n_objs = int(components[1].split("_")[1])
             scene = components[2]
             d["texture"] = texture
             d["n_objs"] = n_objs
