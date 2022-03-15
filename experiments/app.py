@@ -91,6 +91,9 @@ def get_client(db_name):
 
 @app.route("/post_data", methods=["POST"])
 def post_data():
+    if not session.get("log_results"):
+        return jsonify({"status": 200})
+
     data = request.get_json()  # json.loads(request.data)
     print(data)
 
@@ -236,9 +239,13 @@ def home():
     db = request.args.get("db_name")
     col_name = request.args.get("col")
     print("user_id", user_id)
-    repeat_user = check_repeat_user(user_id, db, col_name)
-    if repeat_user:
-        return render_template("reject.html")
+    if not user_id or db or col_name:
+        session["log_results"] = False
+    else:
+        session["log_results"] = True
+        repeat_user = check_repeat_user(user_id, db, col_name)
+        if repeat_user:
+            return render_template("reject.html")
 
     session["user_id"] = user_id
     return render_template("index.html")
