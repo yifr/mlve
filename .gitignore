@@ -1,7 +1,6 @@
 ## ignoring by default
 .DS_Store
 .ipynb_checkpoints/
-*.json
 *.pdf
 *.png
 *.jpeg
