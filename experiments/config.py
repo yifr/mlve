@@ -9,7 +9,7 @@ TRIALS_PER_BATCH = 120
 PREPROCESSED = True
 S3_ROOT = "https://gestalt-scenes.s3.us-east-2.amazonaws.com"
 DB_NAME = "psychophys"
-ALLOWED_IDS = ["yoni"]
+ALLOWED_IDS = []
 DEBUG = False
 
 random_seed = 42
