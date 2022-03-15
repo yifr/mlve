@@ -17,40 +17,34 @@ def generate_probe_location(masks, probe_touching):
 
         y, x = np.where(mask)
         y_buffer, x_buffer = np.where(masks == 0)
-        possible_locations = [loc for loc in zip(x, y)]
-        while True:
-            probe_idx = np.random.choice(range(len(possible_locations)))
-            loc = possible_locations[probe_idx]
-
-            # Avoid overlapping edge of probe with shape
-            overlap = False
-            for y_b, x_b in zip(y_buffer, x_buffer):
-                if np.sqrt((loc[0] - x_b) ** 2 + (loc[1] - y_b) ** 2) < 5:
-                    overlap = True
-
-            if not overlap:
-                return [int(l) for l in loc], None, 0
-
-        probe_idx = np.random.choice(range(len(possible_locations)))
-        loc = possible_locations[probe_idx]
-
-        return [int(l) for l in loc], mask, mask_idx
     else:
         y, x = np.where(masks == 0)
         y_buffer, x_buffer = np.where(masks)
-        possible_locations = [loc for loc in zip(x, y)]
-        while True:
-            probe_idx = np.random.choice(range(len(possible_locations)))
-            loc = possible_locations[probe_idx]
+        mask = None
+        mask_idx = 0
 
-            # Avoid overlapping edge of probe with shape
-            overlap = False
-            for y_b, x_b in zip(y_buffer, x_buffer):
-                if np.sqrt((loc[0] - x_b) ** 2 + (loc[1] - y_b) ** 2) < 1.5:
-                    overlap = True
+    possible_locations = [loc for loc in zip(x, y)]
+    max_tries = 5
+    attempt = 0
+    while True:
+        probe_idx = np.random.choice(range(len(possible_locations)))
+        loc = possible_locations[probe_idx]
 
-            if not overlap:
-                return [int(l) for l in loc], None, 0
+        # Avoid sampling directly on the edges
+        if loc[0] > (masks.shape[0] - 5) or loc[1] > (masks.shape[1] - 5) \
+                or loc[0] < 5 or loc[1] < 5:
+            continue
+
+        # Avoid overlapping edge of probe with shape
+        overlap = False
+        for y_b, x_b in zip(y_buffer, x_buffer):
+            if np.sqrt((loc[0] - x_b) ** 2 + (loc[1] - y_b) ** 2) < 5:
+                overlap = True
+                break
+
+        attempt += 1
+        if not overlap or attempt >= max_tries:
+            return [int(l) for l in loc], mask, mask_idx
 
 
 def get_probe_location(masks, probe_touching=True):
@@ -121,7 +115,7 @@ def main():
     df = pd.DataFrame(batch_data)
     print(df.info())
     df.to_csv("detection_pilot_batch_0.csv")
-    with open("detection_pilot_batch_0.json", "w") as f:
+    with open("/home/yyf/mlve/experiments/stimuli/detection_pilot_batch_0.json", "w") as f:
         json.dump({"data": batch_data}, f)
 
 
