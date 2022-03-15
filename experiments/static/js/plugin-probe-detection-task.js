@@ -98,6 +98,11 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
         pretty_name: "Response ends trial",
         default: true,
       },
+      debug: {
+        type: jspsych.ParameterType.BOOL,
+        pretty_name: "Debug",
+        default: false,
+      },
       /**
        * If true, the image will be drawn onto a canvas element (prevents blank screen between consecutive images in some browsers).
        * If false, the image will be shown via an img element.
@@ -355,10 +360,12 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
       const end_trial = () => {
         // kill any remaining setTimeout handlers
         jsPsych.pluginAPI.clearAllTimeouts();
-        console.log(
-          "correct: ",
-          (response.button == 0) == trial.probe_touching
-        );
+        if (trial.debug) {
+          console.log(
+            "correct: ",
+            (response.button == 0) == trial.probe_touching
+          );
+        }
         // gather the data to store for the trial
         if (bounding_box_drawn) {
           var bounding_box = [
@@ -377,7 +384,9 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
           probe_touching: trial.probe_touching,
           bounding_box: bounding_box,
         };
-        console.log(trial_data);
+        if (trial.debug) {
+          console.log(trial_data);
+        }
         // clear the display
         display_element.innerHTML = "";
         // move on to the next trial
@@ -518,9 +527,10 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
           return;
         } else if (response.button == 0) {
           bounding_box_drawn = true;
-
-          console.log("Bounding box coords: ", startX, startY, endX, endY);
-          console.log("Gt: ", trial.bounding_box);
+          if (trial.debug) {
+            console.log("Bounding box coords: ", startX, startY, endX, endY);
+            console.log("Gt: ", trial.bounding_box);
+          }
         }
 
         // after a valid response, the stimulus will have the CSS class 'responded'
@@ -556,46 +566,6 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
       } else if (trial.response_ends_trial === false) {
         console.warn(
           "The experiment may be deadlocked. Try setting a trial duration or set response_ends_trial to true."
-        );
-      }
-    }
-    simulate(trial, simulation_mode, simulation_options, load_callback) {
-      if (simulation_mode == "data-only") {
-        load_callback();
-        simulate_data_only(trial, simulation_options);
-      }
-      if (simulation_mode == "visual") {
-        simulate_visual(trial, simulation_options, load_callback);
-      }
-    }
-    create_simulation_data(trial, simulation_options) {
-      const default_data = {
-        stimulus: trial.stimulus,
-        rt: jsPsych.randomization.sampleExGaussian(500, 50, 1 / 150, true),
-        response: jsPsych.randomization.randomInt(0, trial.choices.length - 1),
-      };
-      const data = jsPsych.pluginAPI.mergeSimulationData(
-        default_data,
-        simulation_options
-      );
-      jsPsych.pluginAPI.ensureSimulationDataConsistency(trial, data);
-      return data;
-    }
-    simulate_data_only(trial, simulation_options) {
-      const data = create_simulation_data(trial, simulation_options);
-      jsPsych.finishTrial(data);
-    }
-    simulate_visual(trial, simulation_options, load_callback) {
-      const data = create_simulation_data(trial, simulation_options);
-      const display_element = jsPsych.getDisplayElement();
-      trial(display_element, trial);
-      load_callback();
-      if (data.rt !== null) {
-        jsPsych.pluginAPI.clickTarget(
-          display_element.querySelector(
-            `div[data-choice="${data.response}"] button`
-          ),
-          data.rt
         );
       }
     }

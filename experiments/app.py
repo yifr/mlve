@@ -3,7 +3,6 @@ import io
 import glob
 import json
 import boto3
-from experiments.config import TEXTURE_SPLITS
 import pymongo
 import requests
 import numpy as np
@@ -80,6 +79,7 @@ def get_probe_location(
 
         return probe_location, probe_touching, bounding_box
 
+
 def get_client(db_name):
     client = pymongo.MongoClient(
         f"mongodb+srv://{MONGO_USER}:{MONGO_PW}@"
@@ -88,14 +88,15 @@ def get_client(db_name):
     )
     return client
 
+
 @app.route("/post_data", methods=["POST"])
 def post_data():
     data = request.get_json()  # json.loads(request.data)
     print(data)
-    
+
     db_name = data.get("db_name")
     col_name = data.get("col_name")
-    
+
     client = get_client(db_name)
     db = client[db_name]
     col = db[col_name]
@@ -122,11 +123,11 @@ def trial_data_wrapper():
             texture = components[0]
             n_objs = components[1].split("_")[1]
             scene = components[2]
-            d["texture"] = texture 
+            d["texture"] = texture
             d["n_objs"] = n_objs
             d["scene"] = scene
             d["image_url"] = os.path.join(
-                d["image_url"], "images", f"Image{d['frame_idx']:04d}.png"
+                s3_root, d["image_url"], "images", f"Image{d['frame_idx']:04d}.png"
             )
 
         np.random.seed(config.random_seed)
@@ -211,7 +212,6 @@ def trial_data_wrapper():
     return jsonify(trial_data)
 
 
-
 def check_repeat_user(user_id, db, col):
     if user_id in config.ALLOWED_IDS:
         return False
@@ -222,7 +222,7 @@ def check_repeat_user(user_id, db, col):
     res = col.find_one({"user_id": user_id})
     if res:
         return True
-    
+
     return False
 
 
