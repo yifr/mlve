@@ -2,7 +2,6 @@ import os
 import io
 import glob
 import json
-from tkinter import W
 import boto3
 import pymongo
 import requests
@@ -130,8 +129,15 @@ def trial_data_wrapper():
             d["texture"] = texture
             d["n_objs"] = n_objs
             d["scene"] = scene
+
+            # Serve shaded images for attention trials
+            if "ground_truth" in d["image_url"]:
+                image_target = "shaded"
+            else:
+                image_target = "images"
+
             d["image_url"] = os.path.join(
-                s3_root, d["image_url"], "images", f"Image{d['frame_idx']:04d}.png"
+                s3_root, d["image_url"], image_target, f"Image{d['frame_idx']:04d}.png"
             )
 
         np.random.seed(config.random_seed)
