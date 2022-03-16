@@ -78,7 +78,7 @@ def construct_trial(root_dir, texture, obj_split, scene_idx):
     mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
     masks = np.array(Image.open(mask_path).convert("L"))
 
-    if scene_idx >= 5:
+    if scene_idx < 5:
         probe_touching = True
     else:
         probe_touching = False
