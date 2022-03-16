@@ -38,20 +38,20 @@ def main():
 
     b.Acl().put(ACL="public-read")
     root_path = "/om/user/yyf/CommonFate/scenes"
-    data_path = root_path + "/test_*/**/*/*/*" # Upload PNGs
+    data_path = root_path + "/test_ground_truth/**/*/*/*" # Upload PNGs
     overwrite = True
     for file_path in tqdm(glob(data_path)):
-        if "." in file_path and "shaded" not in file_path and "Shaded" not in file_path:
+        if "shaded" in file_path:
             target = file_path.split(root_path)[1][1:]
             if check_exists(s3, bucket, target) and not overwrite:
-                # print(target + " exists. Skipping")
+                print(target + " exists. Skipping")
                 continue
 
-            # print(target)
+            print(target)
             s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
             s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
-
-    data_path = root_path + "/test_*/**/*/*" # Upload everything else
+    """
+    data_path = root_path + "/test_ground_truth/**/*/*" # Upload everything else
     for file_path in tqdm(glob(data_path)):
         if "." in file_path:
 
@@ -62,7 +62,7 @@ def main():
             s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
             s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
             # print(target)
-
+    """
     target = "detection_pilot_batch_0.csv"
     s3.Object(bucket, target).put(Body=open(target, "rb"))
     s3.Object(bucket, target).Acl().put(ACL="public-read")
