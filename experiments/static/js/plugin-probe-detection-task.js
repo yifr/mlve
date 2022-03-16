@@ -160,7 +160,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
           function drawProbe(ctx) {
             ctx.globalCompositeOperation = 'source-over'
             ctx.drawImage(img, 0, 0, width, height);
-            
+
             // Draw outer probe on canvas
             ctx.beginPath();
             var x = parseInt(trial.probe_location[0]);
@@ -476,42 +476,50 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             var mousePos = getMousePosition(canvas, e);
             var mouseX = mousePos[0];
             var mouseY = mousePos[1];
-            endX = mouseX;
-            endY = mouseY;
-            // Put your mousedown stuff here
-            if (isDrawing) {
-              isDrawing = false;
+            startX = mousePos[0];
+            startY = mousePos[1];
+          
+            isDrawing = true;
 
-              updateCanvas();
-
-              // Draw Bounding Box
-              ctx.beginPath();
-              ctx.fillStyle = "rgba(255, 6, 0, 1)";
-              ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
-              ctx.fill();
-              bounding_box_drawn = true;
-            } else {
-              isDrawing = true;
-              var mousePos = getMousePosition(canvas, e);
-              startX = mousePos[0];
-              startY = mousePos[1];
-              canvas.style.cursor = "crosshair";
-            }
+            canvas.style.cursor = "crosshair";
           }
 
           $(canvas).mousedown(function (e) {
             handleMouseDown(e);
           });
 
+          $(canvas).mouseup(function (e) {
+            var mousePos = getMousePosition(canvas, e);
+            var mouseX = mousePos[0];
+            var mouseY = mousePos[1];
+            endX = mouseX;
+            endY = mouseY;
+            isDrawing = false;
+            canvas.style.cursor = "crosshair";
+            updateCanvas();
+
+            // Draw Bounding Box
+            ctx.beginPath();
+            ctx.fillStyle = "rgba(255, 6, 0, 1)";
+            ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
+            ctx.fill();
+
+            if ((endX - startX) * (endY - startY) > 25) {
+              bounding_box_drawn = true;
+            }
+          })
+
           $(canvas).on("mousemove", function (e) {
             var mousePos = getMousePosition(canvas, e);
             var mouseX = mousePos[0];
             var mouseY = mousePos[1];
+            endX = mouseX;
+            endY = mouseY;
 
             // Put your mousedown stuff here
             if (isDrawing) {
               updateCanvas();
-
+              
               // Update bounding box
               ctx.beginPath();
               ctx.lineWidth = 5;
