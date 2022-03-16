@@ -2,7 +2,6 @@ import os
 import io
 import glob
 import json
-from tkinter import W
 import boto3
 import pymongo
 import requests
