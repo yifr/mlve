@@ -90,7 +90,8 @@ def construct_trial(root_dir, texture, obj_split, scene_idx):
     obj_texture_data = config_data["objects"][f"h1_{mask_idx}"]["texture"]
     background_texture_data = config_data["background"]["texture"]
 
-    trial_data = {"image_url": scene_path, "frame_idx": int(frame_idx), "probe_touching": probe_touching,
+    trial_data = {"image_url": scene_path, "frame_idx": int(frame_idx),
+                  "probe_touching": probe_touching,
                   "probe_location": [int(x) for x in probe_location],
                   "bounding_box": bounding_box, # [int(x) for x in bounding_box],
                   "mask_idx": int(mask_idx),
