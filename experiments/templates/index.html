@@ -1,36 +1,30 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Gestalt Experiment</title>
-    <script src="/static/js/jspsych/dist/jspsych.js"></script>
-    <script src="/static/js/jspsych/dist/plugin-preload.js"></script>
-    <script src="/static/js/jspsych/dist/plugin-instructions.js"></script>
-    <script src="/static/js/plugin-probe-detection-task.js"></script>
-    <script src="/static/js/jquery/dist/jquery.min.js"></script>
-    <link rel="stylesheet" href="/static/css/styles.css" />
-    <link
-      href="/static/js/jspsych/dist/jspsych.css"
-      rel="stylesheet"
-      type="text/css"
-    />
-  </head>
 
-  <body
-    class="jspsych-content-wrapper jspsych-display-element"
-    tabindex="0"
-    style="margin: 0px; height: 100%; width: 100%;"
-  >
-    <div class="jspsych-content-wrapper">
-      <div id="jspsych-content" class="jspsych-content">
-        <div style="margin: 50px 0 0 -50px">
-          Please wait momentarily while the experiment loads...
-        </div>
-        <div id="loader">
-          <div id="shadow"></div>
-          <div id="box"></div>
-        </div>
-        <!-- <figure>
+<head>
+  <meta charset="utf-8" />
+  <title>Gestalt Experiment</title>
+  <script src="/static/js/jspsych/dist/jspsych.js"></script>
+  <script src="/static/js/jspsych/dist/plugin-preload.js"></script>
+  <script src="/static/js/jspsych/dist/plugin-instructions.js"></script>
+  <script src="/static/js/plugin-probe-detection-task.js"></script>
+  <script src="/static/js/jquery/dist/jquery.min.js"></script>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <link href="/static/js/jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body class="jspsych-content-wrapper jspsych-display-element" tabindex="0"
+  style="margin: 0px; height: 100%; width: 100%;">
+  <div class="jspsych-content-wrapper">
+    <div id="jspsych-content" class="jspsych-content">
+      <div style="margin: 50px 0 0 -50px">
+        Please wait momentarily while the experiment loads...
+      </div>
+      <div id="loader">
+        <div id="shadow"></div>
+        <div id="box"></div>
+      </div>
+      <!-- <figure>
           <div class="dot white"></div>
           <div class="dot"></div>
           <div class="dot"></div>
@@ -38,96 +32,100 @@
           <div class="dot"></div>
       </figure> -->
     </div>
-  </body>
-  <script>
-    const jsPsych = initJsPsych({
-      show_progress_bar: true,
-      auto_update_progress_bar: true,
-    });
+</body>
+<script>
+  const jsPsych = initJsPsych({
+    show_progress_bar: true,
+    auto_update_progress_bar: true,
+  });
 
-    $.ajax({
-      type: "GET",
-      url: "/get_trial_data",
-      data: { experiment: "detection", domain: "static" },
-      dataType: "json",
-      success: function (resp) {
-        trials = [];
-        var preload = {
-          type: jsPsychPreload,
-          auto_preload: true,
-          on_start: function() {
-            document.body.style.backgroundColor = "#fff";          
-          }
-        };
-        trials.push(preload);
-        const instructions = {
-          type: jsPsychInstructions,
-          pages: ["Thank you for participating in this experiment. To continue reading the instructions please hit the right arrow key.",
+  $.ajax({
+    type: "GET",
+    url: "/get_trial_data",
+    data: { experiment: "detection", domain: "static" },
+    dataType: "json",
+    success: function (resp) {
+      trials = [];
+      var preload = {
+        type: jsPsychPreload,
+        auto_preload: true,
+        on_start: function () {
+          document.body.style.backgroundColor = "#fff";
+        }
+      };
+      trials.push(preload);
+      const instructions = {
+        type: jsPsychInstructions,
+        pages: ["Thank you for participating in this experiment. To continue reading the instructions please hit the right arrow key.",
 
-                  "In this experiment, you will be asked to determine whether or not a probe dot is touching an object. \
+          "In this experiment, you will be asked to determine whether or not a probe dot is touching an object. \
                   The objects will be camoflauged against the background, but look like these kinds of shapes: <br><br> \
                   <img height=450, width=800, src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/all_stims.gif'></img>",
-                  
-                  "Objects can appear anywhere in a scene. If the center (red part) of a probe is touching an object, click yes, and draw a box around \
+
+          "Objects can appear anywhere in a scene. If the center (red part) of a probe is touching an object, click yes, and draw a box around \
                   visible part of the object it is touching. For example, on the example trial below, the probe is touching an object so the answer is 'Yes'. \
                   <br> <br>After clicking yes, we can draw a box around that object, and hit 'Submit' to continue. To draw a box, click one time to start the drawing, and one time to stop. \
                   <br><br> \
                   <video src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/example_trial.mp4' type='video/mp4' width=500, height=500 controls autoplay> \
                     </video>",
 
-                  "Ready? The experiment will start on the next page. To review any of the instructions, just hit the back arrow to return to a previous page.",
-                  ],
-                  show_clickable_nav: true
-                };
-        
-        trials.push(instructions);
-        console.log(resp.user_id)
-        data = resp.data
-        console.log(data)
-        for (let i = 0; i < data.length; i++) {
-          const trial = {
-            type: jsPsychProbeDetectionTask,
-            stimulus: data[i].image_url,
-            stimulus_index: (data[i].frame_idx, data[i].mask_idx),
-            probe_location: data[i].probe_location,
-            probe_touching: data[i].probe_touching,
-            bounding_box: data[i].bounding_box,
-            experiment_type: "detection",
-            domain: "static",
-            batch: 0,
-            on_finish: function(response_data) {
-              trial_data = {...response_data, ...data[i]}
-              $.ajax({
-                type: "POST",
-                url: "/post_data",
-                contentType: 'application/json;charset=UTF-8',
-                data: JSON.stringify({
-                  trial_data: trial_data,
-                  user_id: resp.user_id,
-                  experiment: "detection",
-                  domain: "static",
-                  batch: 0,
-                  db_name: "psychophys",
-                  col_name: "test"
-                }),
-                dataType: "json",
-                success: function (resp) {
-                  console.log(resp);
-                },
-              })
-            }
-          };
-          trials.push(trial);
-        }
+          "Ready? The experiment will start on the next page. To review any of the instructions, just hit the back arrow to return to a previous page.",
+        ],
+        show_clickable_nav: true
+      };
 
-        finished_trial = {
-            type: jsPsychInstructions,
-            pages: ["Thank you for participating in this study! Please copy the completion code below or click the following link to complete the experiment."]
-        }
-        trials.push(finished_trial)
+      trials.push(instructions);
+      console.log(resp.user_id)
+      data = resp.data
+      console.log(data)
+      for (let i = 0; i < data.length; i++) {
+        const trial = {
+          type: jsPsychProbeDetectionTask,
+          stimulus: data[i].image_url,
+          stimulus_index: (data[i].frame_idx, data[i].mask_idx),
+          probe_location: data[i].probe_location,
+          probe_touching: data[i].probe_touching,
+          bounding_box: data[i].bounding_box,
+          experiment_type: "detection",
+          domain: "static",
+          batch: 0,
+          on_finish: function (response_data) {
+            trial_data = { ...response_data, ...data[i] }
+            $.ajax({
+              type: "POST",
+              url: "/post_data",
+              contentType: 'application/json;charset=UTF-8',
+              data: JSON.stringify({
+                trial_data: trial_data,
+                user_id: resp.user_id,
+                experiment: "detection",
+                domain: "static",
+                batch: 0,
+                db_name: "psychophys",
+                col_name: "test"
+              }),
+              dataType: "json",
+              success: function (resp) {
+                console.log(resp);
+              },
+            })
+          }
+        };
+        trials.push(trial);
+      }
 
-        jsPsych.run(trials);
-      },
-    });
-  </script>
+      finished_trial = {
+        type: jsPsychInstructions,
+        pages: ["Thank you for participating in this study!"
+          + " Please copy the completion code below or click "
+          + " <a href='https://app.prolific.co/submissions/complete?cc=3C3285A5' target='_blank'> here to complete the experiment.</a>" +
+          "<p><strong>Completion Code: </strong> 3C3285A5</p>"]
+      }
+      trials.push(finished_trial)
+
+      jsPsych.run(trials);
+    },
+  });
+</script>
+
 </html>
