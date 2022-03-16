@@ -38,10 +38,10 @@ def main():
 
     b.Acl().put(ACL="public-read")
     root_path = "/om/user/yyf/CommonFate/scenes"
-    data_path = root_path + "/test_ground_truth/**/*/*/*" # Upload PNGs
+    data_path = root_path + "/test_ground_truth/superquadric_1/*/*/*" # Upload PNGs
     overwrite = True
     for file_path in tqdm(glob(data_path)):
-        if "shaded" in file_path:
+        if "shaded" in file_path or "masks" in file_path:
             target = file_path.split(root_path)[1][1:]
             if check_exists(s3, bucket, target) and not overwrite:
                 print(target + " exists. Skipping")

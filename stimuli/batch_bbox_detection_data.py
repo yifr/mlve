@@ -119,8 +119,8 @@ def main():
                 trial_data = construct_trial(root_dir, texture, obj_split, i)
                 batch_data.append(trial_data)
 
-    for i in range(3):
-        trial_data = construct_trial(root_dir, "test_ground_truth", "superquadric_3", i)
+    for i in range(5):
+        trial_data = construct_trial(root_dir, "test_ground_truth", "superquadric_1", i)
         batch_data.append(trial_data)
 
     df = pd.DataFrame(batch_data)
