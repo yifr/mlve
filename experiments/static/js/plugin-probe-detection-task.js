@@ -151,33 +151,58 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
         var ctx = canvas.getContext("2d");
         var img = new Image();
         img.src = trial.stimulus;
-
+        
         img.onload = () => {
           // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
           getHeightWidth(); // only possible to get width/height after image loads
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Draw probe on canvas
-          ctx.beginPath();
-          var x = parseInt(trial.probe_location[0]);
-          var y = parseInt(trial.probe_location[1]);
-          var radius = 12;
-          var startAngle = 0; // Starting point on circle
-          var endAngle = 2 * Math.Pi; // End point on circle
-          ctx.arc(x, y, radius, 0, 2 * Math.PI);
-          ctx.fillStyle = "rgba(70, 50, 100, 0.75)";
-          ctx.fill();
+          function drawProbe(ctx) {
+            ctx.globalCompositeOperation = 'source-over'
+            ctx.drawImage(img, 0, 0, width, height);
 
-          // Draw probe on canvas
-          ctx.beginPath();
-          var x = parseInt(trial.probe_location[0]);
-          var y = parseInt(trial.probe_location[1]);
-          var radius = 4;
-          var startAngle = 0; // Starting point on circle
-          var endAngle = 2 * Math.Pi; // End point on circle
-          ctx.arc(x, y, radius, 0, 2 * Math.PI);
-          ctx.fillStyle = "rgba(255, 6, 0, 1)";
-          ctx.fill();
+            // Draw outer probe on canvas
+            ctx.beginPath();
+            var x = parseInt(trial.probe_location[0]);
+            var y = parseInt(trial.probe_location[1]);
+            var radius = 12;
+            var startAngle = 0; // Starting point on circle
+            var endAngle = 2 * Math.Pi; // End point on circle
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = "rgba(70, 50, 100, 0.75)";
+            ctx.fill();
+
+            // Draw inner probe on canvas
+            ctx.beginPath();
+            var x = parseInt(trial.probe_location[0]);
+            var y = parseInt(trial.probe_location[1]);
+            var radius = 4;
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = "rgba(255, 6, 0, 1)";
+            ctx.fill();
+            return ctx;
+          }
+
+          function clearProbe(ctx) {
+            // Create transparent circle at probe point
+            var x = parseInt(trial.probe_location[0]);
+            var y = parseInt(trial.probe_location[1]);
+            var radius = 12;
+            ctx.globalCompositeOperation = 'destination-out'
+            ctx.arc(x, y, radius, 0, Math.PI*2, true);
+            ctx.fill();
+          }
+
+          function flashProbe(ctx){
+            drawProbe(ctx);
+            setTimeout(function(){clearProbe(ctx)}, 200);
+            setTimeout(function(){drawProbe(ctx)}, 400);
+            setTimeout(function(){clearProbe(ctx)}, 600);
+            setTimeout(function(){drawProbe(ctx)}, 800);
+            //setTimeout(drawProbe(ctx), 400);
+          }
+          flashProbe(ctx);
+          
         };
 
         // get/set image height and width - this can only be done after image loads because uses image's naturalWidth/naturalHeight properties
@@ -451,42 +476,50 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             var mousePos = getMousePosition(canvas, e);
             var mouseX = mousePos[0];
             var mouseY = mousePos[1];
-            endX = mouseX;
-            endY = mouseY;
-            // Put your mousedown stuff here
-            if (isDrawing) {
-              isDrawing = false;
+            startX = mousePos[0];
+            startY = mousePos[1];
+          
+            isDrawing = true;
 
-              updateCanvas();
-
-              // Draw Bounding Box
-              ctx.beginPath();
-              ctx.fillStyle = "rgba(255, 6, 0, 1)";
-              ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
-              ctx.fill();
-              bounding_box_drawn = true;
-            } else {
-              isDrawing = true;
-              var mousePos = getMousePosition(canvas, e);
-              startX = mousePos[0];
-              startY = mousePos[1];
-              canvas.style.cursor = "crosshair";
-            }
+            canvas.style.cursor = "crosshair";
           }
 
           $(canvas).mousedown(function (e) {
             handleMouseDown(e);
           });
 
+          $(canvas).mouseup(function (e) {
+            var mousePos = getMousePosition(canvas, e);
+            var mouseX = mousePos[0];
+            var mouseY = mousePos[1];
+            endX = mouseX;
+            endY = mouseY;
+            isDrawing = false;
+            canvas.style.cursor = "crosshair";
+            updateCanvas();
+
+            // Draw Bounding Box
+            ctx.beginPath();
+            ctx.fillStyle = "rgba(255, 6, 0, 1)";
+            ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
+            ctx.fill();
+
+            if ((endX - startX) * (endY - startY) > 25) {
+              bounding_box_drawn = true;
+            }
+          })
+
           $(canvas).on("mousemove", function (e) {
             var mousePos = getMousePosition(canvas, e);
             var mouseX = mousePos[0];
             var mouseY = mousePos[1];
+            endX = mouseX;
+            endY = mouseY;
 
             // Put your mousedown stuff here
             if (isDrawing) {
               updateCanvas();
-
+              
               // Update bounding box
               ctx.beginPath();
               ctx.lineWidth = 5;
