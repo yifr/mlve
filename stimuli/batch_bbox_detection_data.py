@@ -19,14 +19,14 @@ def check_overlap(point, border_dist, min_dist, image):
     max_point = lambda p: min(width, p + min_dist)
     width = image.shape[0]
     x, y = point
-    r = 15
+    r = 20
 
     if x > (width - border_dist) or y > (width - border_dist) \
     or x < border_dist or y < border_dist:
         return True
 
     for x_t, y_t in points_in_circle(radius=r, x0=point[0], y0=point[1]):
-        if image[x_t, y_t] != image[point[0], point[1]]:
+        if image[y_t, x_t] != image[point[1], point[0]]:
             return True
 
     return False
