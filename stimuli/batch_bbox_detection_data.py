@@ -8,6 +8,23 @@ from PIL import Image
 import numpy as np
 
 
+def check_overlap(point, border_dist, min_dist, image):
+    min_point = lambda p: max(0, p - min_dist)
+    max_point = lambda p: min(width, p + min_dist)
+    width = image.shape[0]
+    if point[0] > (width - border_dist) or point[1] > (width - border_dist) \
+            or point[0] < border_dist or point[1] < border_dist:
+        return True
+
+    # Check for overlap within threshold region
+    overlap = False
+    for x_t in range(min_point(point[0]), max_point(point[0])):
+        for y_t in range(min_point(point[1]), max_point(point[1])):
+            if image[x_t, y_t] != image[point[0], point[1]]:
+                return True
+
+    return False
+
 def generate_probe_location(masks, probe_touching):
     if probe_touching:
         mask_vals = np.unique(masks)
@@ -22,40 +39,19 @@ def generate_probe_location(masks, probe_touching):
         mask = None
         mask_idx = 0
 
-    possible_locations = [loc for loc in  zip(x, y)]
-    min_dist = 25
+    possible_locations = [loc for loc in  zip(y, x)]
+    min_dist = 30
     border_dist = 10
     width = masks.shape[0]
 
-    def dist(a, b):
-        return np.linalg.norm(np.array(a) - np.array(b))
-
-    min_point = lambda p: max(0, p - min_dist)
-    max_point = lambda p: min(width, p + min_dist)
-
     np.random.shuffle(possible_locations)
-
+    print(probe_touching, len(possible_locations))
     for loc in possible_locations:
         # Avoid sampling directly on the edges
-        if loc[0] > (width - border_dist) or loc[1] > (width - border_dist) \
-                or loc[0] < border_dist or loc[1] < border_dist:
-            continue
 
-        # Check for overlap within threshold region
-        overlap = False
-        for x_t in range(min_point(loc[0]), max_point(loc[0])):
-            for y_t in range(min_point(loc[1]), max_point(loc[1])):
-                if masks[x_t, y_t] != masks[loc[0], loc[1]]:
-                    overlap = True
-                    break
-
-            if overlap:
-                break
-
+        overlap = check_overlap(loc, border_dist, min_dist, masks)
         if not overlap:
-        # if not overlap:
             return [int(l) for l in loc], mask, mask_idx
-
 
     print("No good point found")
     loc = possible_locations[np.random.choice(range(len(possible_locations)))]
