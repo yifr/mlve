@@ -21,11 +21,12 @@ def check_overlap(point, border_dist, min_dist, image):
     x, y = point
     r = 20
 
-    if x > (width - border_dist) or y > (width - border_dist) \
-    or x < border_dist or y < border_dist:
-        return True
 
     for x_t, y_t in points_in_circle(radius=r, x0=point[0], y0=point[1]):
+        if x_t > (width - border_dist) or y_t > (width - border_dist) \
+                or x_t < border_dist or y_t < border_dist:
+            return True
+
         if image[y_t, x_t] != image[point[1], point[0]]:
             return True
 
