@@ -15,19 +15,15 @@ def generate_probe_location(masks, probe_touching):
         mask_idx = list(mask_vals[1:]).index(mask_val)
         mask = masks == mask_val
 
-        y, x = np.where(mask)
-        y_buffer, x_buffer = np.where(masks != mask_val)
+        y, x = np.nonzero(mask)
     else:
         mask_val = 0
         y, x = np.where(masks == 0)
-        y_buffer, x_buffer = np.where(masks)
         mask = None
         mask_idx = 0
 
-    possible_locations = [loc for loc in zip(x, y)]
-    max_tries = 50
-    attempt = 0
-    min_dist = 30
+    possible_locations = [loc for loc in  zip(x, y)]
+    min_dist = 10
     border_dist = 10
     width = masks.shape[0]
 
