@@ -36,7 +36,10 @@ def generate_probe_location(masks, probe_touching):
 
     min_point = lambda p: max(0, p - min_dist)
     max_point = lambda p: min(width, p + min_dist)
+
+    print(possible_locations[0])
     np.random.shuffle(possible_locations)
+    print(possible_locations[0])
 
     for loc in possible_locations:
         # Avoid sampling directly on the edges
@@ -46,9 +49,10 @@ def generate_probe_location(masks, probe_touching):
 
         overlap = False
         # Check for overlap within threshold region
-        for x_b in range(min_point(loc[0]), max_point(loc[0])):
-            for y_b in range(min_point(loc[1]), max_point(loc[1])):
-                if masks[x_b, y_b] != masks[loc[0], loc[1]]:
+        for x_t in range(min_point(loc[0]), max_point(loc[0])):
+            for y_t in range(min_point(loc[1]), max_point(loc[1])):
+                if masks[x_t, y_t] != masks[loc[0], loc[1]]:
+                    print(loc, (x_t, y_t), masks[x_t, y_t], masks[loc[0], loc[1]])
                     overlap = True
                     break
 
