@@ -23,7 +23,7 @@ def generate_probe_location(masks, probe_touching):
         mask_idx = 0
 
     possible_locations = [loc for loc in  zip(x, y)]
-    min_dist = 30
+    min_dist = 25
     border_dist = 10
     width = masks.shape[0]
 
@@ -42,15 +42,17 @@ def generate_probe_location(masks, probe_touching):
             continue
 
         # Check for overlap within threshold region
-        conflicts = 0
+        overlap = False
         for x_t in range(min_point(loc[0]), max_point(loc[0])):
             for y_t in range(min_point(loc[1]), max_point(loc[1])):
                 if masks[x_t, y_t] != masks[loc[0], loc[1]]:
-                    conflicts += 1
                     overlap = True
                     break
 
-        if conflicts < 10:
+            if overlap:
+                break
+
+        if not overlap:
         # if not overlap:
             return [int(l) for l in loc], mask, mask_idx
 
