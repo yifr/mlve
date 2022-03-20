@@ -18,6 +18,7 @@ def generate_probe_location(masks, probe_touching):
         y, x = np.where(mask)
         y_buffer, x_buffer = np.where(masks != mask_val)
     else:
+        mask_val = 0
         y, x = np.where(masks == 0)
         y_buffer, x_buffer = np.where(masks)
         mask = None
@@ -26,27 +27,38 @@ def generate_probe_location(masks, probe_touching):
     possible_locations = [loc for loc in zip(x, y)]
     max_tries = 50
     attempt = 0
-    dist = 30
-    while True:
-        probe_idx = np.random.choice(range(len(possible_locations)))
-        loc = possible_locations[probe_idx]
+    min_dist = 20
+    border_dist = 10
+    width = masks.shape[0]
 
+    def dist(a, b):
+        return np.linalg.norm(np.array(a) - np.array(b))
+
+    min_point = lambda p: max(0, p - min_dist)
+    max_point = lambda p: min(width, p + min_dist)
+    np.random.shuffle(possible_locations)
+
+    for loc in possible_locations:
         # Avoid sampling directly on the edges
-        if loc[0] > (masks.shape[0] - dist) or loc[1] > (masks.shape[1] - dist) \
-                or loc[0] < dist or loc[1] < dist:
+        if loc[0] > (width - border_dist) or loc[1] > (width - border_dist) \
+                or loc[0] < border_dist or loc[1] < border_dist:
             continue
 
-        # Avoid overlapping edge of probe with shape
         overlap = False
-        for y_b, x_b in zip(y_buffer, x_buffer):
-            if np.sqrt((loc[0] - x_b) ** 2 + (loc[1] - y_b) ** 2) < dist:
-                overlap = True
-                break
+        # Check for overlap within threshold region
+        for x_b in range(min_point(loc[0]), max_point(loc[0])):
+            for y_b in range(min_point(loc[1]), max_point(loc[1])):
+                if masks[x_b, y_b] != mask_val:
+                    overlap = True
+                    break
 
-        attempt += 1
-        if not overlap or attempt >= max_tries:
+        if not overlap:
+            print("Returning probe location: ", loc)
             return [int(l) for l in loc], mask, mask_idx
 
+
+    print("No good point found")
+    return [int(l) for l in loc], mask, mask_idx
 
 def get_probe_location(masks, probe_touching=True):
 
@@ -66,7 +78,7 @@ def get_probe_location(masks, probe_touching=True):
 
     return probe_location, bounding_box, mask_idx
 
-def construct_trial(root_dir, texture, obj_split, scene_idx):
+def construct_trial(root_dir, texture, obj_split, scene_idx, probe_touching=False):
     scene_path = os.path.join(texture, obj_split, f"scene_{scene_idx:03d}")
     scene_dir = os.path.join(root_dir, scene_path)
     print(scene_path)
@@ -78,11 +90,6 @@ def construct_trial(root_dir, texture, obj_split, scene_idx):
 
     mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
     masks = np.array(Image.open(mask_path).convert("L"))
-
-    if scene_idx < 5:
-        probe_touching = True
-    else:
-        probe_touching = False
 
     probe_location, bounding_box, mask_idx = get_probe_location(masks, probe_touching)
     obj_shape_data = config_data["objects"][f"h1_{mask_idx}"]["shape_params"]
@@ -116,11 +123,19 @@ def main():
         for obj_split in obj_splits:
             print(texture, obj_split)
             for i in range(scenes_per_group * 2):
-                trial_data = construct_trial(root_dir, texture, obj_split, i)
+                if i > scenes_per_group:
+                    probe_touching = True
+                else:
+                    probe_touching = False
+                trial_data = construct_trial(root_dir, texture, obj_split, i, probe_touching)
                 batch_data.append(trial_data)
 
     for i in range(5):
-        trial_data = construct_trial(root_dir, "test_ground_truth", "superquadric_1", i)
+        if i > 2:
+            probe_touching = False
+        else:
+            probe_touching = True
+        trial_data = construct_trial(root_dir, "test_ground_truth", "superquadric_1", i, probe_touching)
         batch_data.append(trial_data)
 
     df = pd.DataFrame(batch_data)
