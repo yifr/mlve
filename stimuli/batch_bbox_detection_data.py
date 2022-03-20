@@ -7,21 +7,28 @@ import pandas as pd
 from PIL import Image
 import numpy as np
 
+def points_in_circle(radius, x0=0, y0=0, ):
+    x_ = np.arange(x0 - radius - 1, x0 + radius + 1, dtype=int)
+    y_ = np.arange(y0 - radius - 1, y0 + radius + 1, dtype=int)
+    x, y = np.where((x_[:,np.newaxis] - x0)**2 + (y_ - y0)**2 <= radius**2)
+    # x, y = np.where((np.hypot((x_-x0)[:,np.newaxis], y_-y0)<= radius)) # alternative implementation
+    for x, y in zip(x_[x], y_[y]):
+        yield x, y
 
 def check_overlap(point, border_dist, min_dist, image):
     min_point = lambda p: max(0, p - min_dist)
     max_point = lambda p: min(width, p + min_dist)
     width = image.shape[0]
     x, y = point
+    r = 14
+
     if x > (width - border_dist) or y > (width - border_dist) \
-            or x < border_dist or y < border_dist:
+    or x < border_dist or y < border_dist:
         return True
 
-    # Check for overlap within threshold region
-    for x_t in range(min_point(point[0]), max_point(point[0])):
-        for y_t in range(min_point(point[1]), max_point(point[1])):
-            if image[x_t, y_t] != image[point[0], point[1]]:
-                return True
+    for x_t, y_t in points_in_circle(radius=r, x0=point[0], y0=point[1]):
+        if image[x_t, y_t] != image[point[0], point[1]]:
+            return True
 
     return False
 
