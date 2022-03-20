@@ -11,7 +11,6 @@ def points_in_circle(radius, x0=0, y0=0, ):
     x_ = np.arange(x0 - radius - 1, x0 + radius + 1, dtype=int)
     y_ = np.arange(y0 - radius - 1, y0 + radius + 1, dtype=int)
     x, y = np.where((x_[:,np.newaxis] - x0)**2 + (y_ - y0)**2 <= radius**2)
-    # x, y = np.where((np.hypot((x_-x0)[:,np.newaxis], y_-y0)<= radius)) # alternative implementation
     for x, y in zip(x_[x], y_[y]):
         yield x, y
 
@@ -20,7 +19,7 @@ def check_overlap(point, border_dist, min_dist, image):
     max_point = lambda p: min(width, p + min_dist)
     width = image.shape[0]
     x, y = point
-    r = 14
+    r = 15
 
     if x > (width - border_dist) or y > (width - border_dist) \
     or x < border_dist or y < border_dist:
@@ -46,7 +45,7 @@ def generate_probe_location(masks, probe_touching):
         mask = None
         mask_idx = 0
 
-    possible_locations = [loc for loc in  zip(y, x)]
+    possible_locations = [loc for loc in  zip(x, y)]
     min_dist = 20
     border_dist = 20
     width = masks.shape[0]
