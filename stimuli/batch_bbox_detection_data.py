@@ -24,7 +24,7 @@ def generate_probe_location(masks, probe_touching):
 
     possible_locations = [loc for loc in  zip(x, y)]
     min_dist = 10
-    border_dist = 10
+    border_dist = 30
     width = masks.shape[0]
 
     def dist(a, b):
