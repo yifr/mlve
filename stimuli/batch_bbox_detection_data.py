@@ -12,12 +12,12 @@ def check_overlap(point, border_dist, min_dist, image):
     min_point = lambda p: max(0, p - min_dist)
     max_point = lambda p: min(width, p + min_dist)
     width = image.shape[0]
-    if point[0] > (width - border_dist) or point[1] > (width - border_dist) \
-            or point[0] < border_dist or point[1] < border_dist:
+    x, y = point
+    if x > (width - border_dist) or y > (width - border_dist) \
+            or x < border_dist or y < border_dist:
         return True
 
     # Check for overlap within threshold region
-    overlap = False
     for x_t in range(min_point(point[0]), max_point(point[0])):
         for y_t in range(min_point(point[1]), max_point(point[1])):
             if image[x_t, y_t] != image[point[0], point[1]]:
@@ -40,15 +40,12 @@ def generate_probe_location(masks, probe_touching):
         mask_idx = 0
 
     possible_locations = [loc for loc in  zip(y, x)]
-    min_dist = 30
-    border_dist = 10
+    min_dist = 20
+    border_dist = 20
     width = masks.shape[0]
 
     np.random.shuffle(possible_locations)
-    print(probe_touching, len(possible_locations))
     for loc in possible_locations:
-        # Avoid sampling directly on the edges
-
         overlap = check_overlap(loc, border_dist, min_dist, masks)
         if not overlap:
             return [int(l) for l in loc], mask, mask_idx
