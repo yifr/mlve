@@ -96,7 +96,7 @@ def construct_trial(root_dir, texture, obj_split, scene_idx, probe_touching=Fals
     obj_shape_data = config_data["objects"][f"h1_{mask_idx}"]["shape_params"]
     obj_scaling_data = config_data["objects"][f"h1_{mask_idx}"]["scaling_params"]
     obj_type_data = config_data["objects"][f"h1_{mask_idx}"]["shape_type"]
-    obj_rotation_data = config_data["objects"][f"h1_{mask_idx}"]["rotation_matrix"][frame_idx]
+    obj_rotation_data = config_data["objects"][f"h1_{mask_idx}"]["rotation_quaternion"][frame_idx]
     obj_location_data = config_data["objects"][f"h1_{mask_idx}"]["location"][frame_idx]
     obj_texture_data = config_data["objects"][f"h1_{mask_idx}"]["texture"]
     background_texture_data = config_data["background"]["texture"]
@@ -104,13 +104,14 @@ def construct_trial(root_dir, texture, obj_split, scene_idx, probe_touching=Fals
     trial_data = {"image_url": scene_path, "frame_idx": int(frame_idx),
                   "probe_touching": probe_touching,
                   "probe_location": [int(x) for x in probe_location],
-                  "bounding_box": bounding_box, # [int(x) for x in bounding_box],
+                  "gt_bounding_box": bounding_box, # [int(x) for x in bounding_box],
                   "mask_idx": int(mask_idx),
                   "mask_val": int(mask_val),
                   "obj_shape_data": [float(x) for x in obj_shape_data],
                   "obj_scaling_data": [float(x) for x in obj_scaling_data],
                   "obj_shape_type": str(obj_type_data),
                   "obj_location_data": [float(x) for x in obj_location_data],
+                  "obj_rotation_data": [float(x) for x in obj_rotation_data],
                   "obj_texture_data": obj_texture_data,
                   "background_texture": background_texture_data}
 
