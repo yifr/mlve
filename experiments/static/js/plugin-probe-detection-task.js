@@ -407,7 +407,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
           correct: (response.button == 0) == trial.probe_touching,
           probe_location: trial.probe_location,
           probe_touching: trial.probe_touching,
-          bounding_box: bounding_box,
+          subject_bounding_box: bounding_box,
         };
         if (trial.debug) {
           console.log(trial_data);
