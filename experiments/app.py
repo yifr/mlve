@@ -144,7 +144,15 @@ def trial_data_wrapper():
         np.random.shuffle(data)
 
         print(f"Serving {len(data)} trials")
-        data = {"data": data, "user_id": session.get("user_id")}
+        data = {"data": data,
+                "user_id": session.get("user_id"),
+                "db": session.get("db"),
+                "col_name": session.get("col_name"),
+                "session_id": session.get("session_id"),
+                "study_id": session.get("study_id"),
+                "completion_code": "6713F83E"
+                }
+
         return jsonify(data)
 
     if config.LOCAL_IMAGES:
@@ -266,6 +274,8 @@ def home():
         if repeat_user:
             return render_template("reject.html")
 
+    session["col_name"] = col_name
+    session["db"] = db
     session["study_id"] = study_id
     session["session_id"] = session_id
     session["user_id"] = user_id
