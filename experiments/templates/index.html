@@ -60,7 +60,7 @@
 
       const instructions = {
         type: jsPsychInstructions,
-        pages: ["Thank you for participating in this experiment. To continue reading the instructions please hit the right arrow key.",
+        pages: ["Welcome to our experiment! To continue reading the instructions please hit the right arrow key.",
 
           "In this experiment, you will be asked to determine whether or not a red dot is touching an object. \
                   During the experiment, objects will be camouflaged against the background. The objects in question are simple, 3D shapes, \
@@ -88,14 +88,16 @@
       completion_code = resp.completion_code;
 
       for (let i = 0; i < data.length; i++) {
-        // if (i == Math.floor(data.length / 2)) {
-        //   var progress_trial = {
-        //     type: jsPsychInstructions,
-        //     pages: ["You're halfway through the experiment! Great job so far!"],
-        //     show_clickable: true
-        //   }
-        //   trials.push(progress_trial);
-        // }
+      	if (i == Math.floor(data.length / 2)) {
+           var progress_trial = {
+             type: jsPsychInstructions,
+             pages: ["You're halfway through the experiment! Great job so far!"],
+             show_clickable_nav: true,
+	     button_label_next: "Continue",
+	     allow_backward: false
+           }
+           trials.push(progress_trial);
+         }
 
         const trial = {
           type: jsPsychProbeDetectionTask,
