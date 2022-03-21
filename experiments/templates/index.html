@@ -51,9 +51,9 @@
       trials.push(preload);
 
       consent = {
-        type: externalHTML,
-        url: "/templates/consent.html",
-        cont_btn: "Start",
+        type: jsPsychExternalHtml,
+        url: "consent.html",
+        cont_btn: "start",
       }
       trials.push(consent);
 
@@ -85,10 +85,11 @@
       completion_code = resp.completion_code;
 
       for (let i = 0; i < data.length; i++) {
-        if (i % (data.length * .5) == 0) {
+        if (i == Math.floor(data.length / 2)) {
           var progress_trial = {
             type: jsPsychInstructions,
-            pages: ["You're halfway through the experiment! Great job so far!"]
+            pages: ["You're halfway through the experiment! Great job so far!"],
+  	    show_clickable: true
           }
           trials.push(progress_trial);
         }
