@@ -217,6 +217,9 @@ def trial_data_wrapper():
                         "probe_touching": probe_touching,
                         "bounding_box": bounding_box,
                         "user_id": session.get("user_id"),
+                        "session_id": session.get("session_id"),
+                        "study_id": session.get("study_id"),
+                        "completion_code": "6713F83E"
                     }
                     trial_data.append(trial)
         except Exception as e:
@@ -248,6 +251,9 @@ def consent():
 @app.route("/", methods=["GET"])
 def home():
     user_id = request.args.get("PROLIFIC_PID")
+    session_id = request.args.get("SESSION_ID")
+    study_id = request.args.get("STUDY_ID")
+
     db = request.args.get("db")
     col_name = request.args.get("col")
     print("user_id", user_id)
@@ -260,5 +266,7 @@ def home():
         if repeat_user:
             return render_template("reject.html")
 
+    session["study_id"] = study_id
+    session["session_id"] = session_id
     session["user_id"] = user_id
     return render_template("index.html")
