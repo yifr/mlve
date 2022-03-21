@@ -504,7 +504,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
             ctx.fill();
 
-            if ((endX - startX) * (endY - startY) > 25) {
+            if (Math.sqrt((endX - startX) ** 2) * Math.sqrt((endY - startY) ** 2) > 25) {
               bounding_box_drawn = true;
             }
           })

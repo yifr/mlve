@@ -7,6 +7,7 @@
   <script src="/static/js/jspsych/dist/jspsych.js"></script>
   <script src="/static/js/jspsych/dist/plugin-preload.js"></script>
   <script src="/static/js/jspsych/dist/plugin-instructions.js"></script>
+  <script src="/static/js/jspsych/dist/plugin-survey-text.js"></script>
   <script src="/static/js/jspsych/dist/plugin-external-html.js"></script>
   <script src="/static/js/plugin-probe-detection-task.js"></script>
   <script src="/static/js/jquery/dist/jquery.min.js"></script>
@@ -73,7 +74,9 @@
                   <video src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/example_trial.mp4' type='video/mp4' width=500, height=500 controls autoplay> \
                     </video>",
 
-          "In the example below, the dot is not touching an object, so we can simply click 'No' and move on",
+          "In the example below, the dot is not touching an object, so we can simply click 'No' and move on  \
+          <br><br> \
+          <video src = 'https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/gestalt-example-no-trial.mov' type = 'video/mov' width = 500, height = 500 controls autoplay >",
           "Ready? The experiment will start on the next page. To review any of the instructions, just hit the back arrow to return to a previous page.",
         ],
         show_clickable_nav: true
@@ -85,14 +88,14 @@
       completion_code = resp.completion_code;
 
       for (let i = 0; i < data.length; i++) {
-        if (i == Math.floor(data.length / 2)) {
-          var progress_trial = {
-            type: jsPsychInstructions,
-            pages: ["You're halfway through the experiment! Great job so far!"],
-  	    show_clickable: true
-          }
-          trials.push(progress_trial);
-        }
+        // if (i == Math.floor(data.length / 2)) {
+        //   var progress_trial = {
+        //     type: jsPsychInstructions,
+        //     pages: ["You're halfway through the experiment! Great job so far!"],
+        //     show_clickable: true
+        //   }
+        //   trials.push(progress_trial);
+        // }
 
         const trial = {
           type: jsPsychProbeDetectionTask,
@@ -130,14 +133,15 @@
       }
 
       var comments_block = {
-        type: "survey-text",
+        type: jsPsychSurveyText,
         preamble:
           '<p>Thank you for participating in our study.</p><p><strong>Click "Finish" to complete the experiment and receive compensation.</strong> If you have any comments, please let us know in the form below.</p>',
         questions: [{ prompt: "Do you have any comments to share with us?" }],
         button_label: "Finish",
         on_finish: function () {
           document.body.innerHTML =
-            "<p> Please wait. You will be redirected back to Prolific in a few moments.</p>";
+            "<p> Please wait. You will be redirected back to Prolific in a few moments.</p> If not, please use the following completion code to ensure \
+            compensation for this study: 3C3285A5";
           setTimeout(function () {
             location.href =
               "https://app.prolific.co/submissions/complete?cc=" + completionCode; // add correct completion code

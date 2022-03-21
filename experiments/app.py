@@ -239,9 +239,11 @@ def check_repeat_user(user_id, db, col):
 
     return False
 
+
 @app.route("/consent.html", methods=["GET"])
 def consent():
     return render_template("consent.html")
+
 
 @app.route("/", methods=["GET"])
 def home():
