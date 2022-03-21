@@ -55,15 +55,15 @@ def generate_probe_location(masks, probe_touching):
     for loc in possible_locations:
         overlap = check_overlap(loc, border_dist, min_dist, masks)
         if not overlap:
-            return [int(l) for l in loc], mask, mask_idx
+            return [int(l) for l in loc], mask, mask_idx, mask_val
 
     print("No good point found")
     loc = possible_locations[np.random.choice(range(len(possible_locations)))]
-    return [int(l) for l in loc], mask, mask_idx
+    return [int(l) for l in loc], mask, mask_idx, mask_val
 
 def get_probe_location(masks, probe_touching=True):
 
-    probe_location, mask, mask_idx = generate_probe_location(masks, probe_touching)
+    probe_location, mask, mask_idx, mask_val = generate_probe_location(masks, probe_touching)
 
     # Compute bounding boxes
     if mask is not None:
@@ -77,7 +77,7 @@ def get_probe_location(masks, probe_touching=True):
     else:
         bounding_box = []
 
-    return probe_location, bounding_box, mask_idx
+    return probe_location, bounding_box, mask_idx, mask_val
 
 def construct_trial(root_dir, texture, obj_split, scene_idx, probe_touching=False):
     scene_path = os.path.join(texture, obj_split, f"scene_{scene_idx:03d}")
@@ -92,8 +92,10 @@ def construct_trial(root_dir, texture, obj_split, scene_idx, probe_touching=Fals
     mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
     masks = np.array(Image.open(mask_path).convert("L"))
 
-    probe_location, bounding_box, mask_idx = get_probe_location(masks, probe_touching)
+    probe_location, bounding_box, mask_idx, mask_val = get_probe_location(masks, probe_touching)
     obj_shape_data = config_data["objects"][f"h1_{mask_idx}"]["shape_params"]
+    obj_scaling_data = config_data["objects"][f"h1_{mask_idx}"]["scaling_params"]
+    obj_type_data = config_data["objects"][f"h1_{mask_idx}"]["shape_type"]
     obj_rotation_data = config_data["objects"][f"h1_{mask_idx}"]["rotation_matrix"][frame_idx]
     obj_location_data = config_data["objects"][f"h1_{mask_idx}"]["location"][frame_idx]
     obj_texture_data = config_data["objects"][f"h1_{mask_idx}"]["texture"]
@@ -104,7 +106,10 @@ def construct_trial(root_dir, texture, obj_split, scene_idx, probe_touching=Fals
                   "probe_location": [int(x) for x in probe_location],
                   "bounding_box": bounding_box, # [int(x) for x in bounding_box],
                   "mask_idx": int(mask_idx),
+                  "mask_val": int(mask_val),
                   "obj_shape_data": [float(x) for x in obj_shape_data],
+                  "obj_scaling_data": [float(x) for x in obj_scaling_data],
+                  "obj_shape_type": str(obj_type_data),
                   "obj_location_data": [float(x) for x in obj_location_data],
                   "obj_texture_data": obj_texture_data,
                   "background_texture": background_texture_data}
