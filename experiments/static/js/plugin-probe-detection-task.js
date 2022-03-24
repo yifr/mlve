@@ -506,6 +506,8 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
 
             if (Math.sqrt((endX - startX) ** 2) * Math.sqrt((endY - startY) ** 2) > 25) {
               bounding_box_drawn = true;
+            } else {
+              bounding_box_drawn = false;
             }
           })
 
@@ -513,8 +515,6 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             var mousePos = getMousePosition(canvas, e);
             var mouseX = mousePos[0];
             var mouseY = mousePos[1];
-            endX = mouseX;
-            endY = mouseY;
 
             // Put your mousedown stuff here
             if (isDrawing) {
