@@ -25,6 +25,16 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
         pretty_name: "Whether probe is touching object",
         default: false,
       },
+      gt_bounding_box: {
+        type: jspsych.ParameterType.Array,
+        pretty_name: "Ground Truth Bounding Box",
+        default: []
+      },
+      instructions: {
+        type: jspsych.ParameterType.BOOL,
+        pretty_name: "Instructions",
+        default: false,
+      },
       probe_duration: {
         type: jspsych.ParameterType.INT,
         pretty_name: "Probe duration",
@@ -291,6 +301,12 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             "beforeend",
             "<p id='prompt'>" + trial.prompt + "</p>"
           );
+
+          if (trial.instructions) {
+            var title = document.createElement("h3");
+            title.innerHTML = "Practice Trial"
+            display_element.insertBefore(title, canvas);
+          }
         }
       } else {
         // display stimulus as an image element
@@ -313,6 +329,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             buttons.push(trial.button_html);
           }
         }
+      
         html += '<div id="jspsych-image-button-response-btngroup">';
         for (var i = 0; i < trial.choices.length; i++) {
           var str = buttons[i].replace(/%choice%/g, trial.choices[i]);
@@ -396,7 +413,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
           var bounding_box = [
             [startX, startY],
             [endX, endY],
-          ];
+          ]
         } else {
           var bounding_box = [];
         }
@@ -442,6 +459,24 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
               trial.stimulus_width
             );
 
+            if (trial.instructions) {
+              // Draw ground truth bounding box
+              ctx.beginPath();
+              ctx.lineWidth = 5;
+              ctx.strokeStyle = "rgba(0, 6, 255, 1)";
+              var gt_bounding_box = trial.gt_bounding_box;
+
+              var gt_x0 = gt_bounding_box[0][0];
+              var gt_y0 = gt_bounding_box[0][1];
+              var gt_x1 = gt_bounding_box[1][0];
+              var gt_y1 = gt_bounding_box[1][1];
+              var gt_width = gt_x1 - gt_x0;
+              var gt_height = gt_y1 - gt_y0;
+
+              ctx.strokeRect(gt_x0, gt_y0, gt_width, gt_height);
+              ctx.fill();
+            }
+
             // Draw probe on canvas
             ctx.beginPath();
             var x = parseInt(trial.probe_location[0]);
@@ -461,6 +496,8 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
             ctx.fillStyle = "rgba(255, 6, 0, 1)";
             ctx.fill();
+            ctx.strokeStyle = "rgba(255, 6, 0, 1)";
+
           }
 
           var isDrawing = false;
@@ -474,8 +511,6 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
 
           function handleMouseDown(e) {
             var mousePos = getMousePosition(canvas, e);
-            var mouseX = mousePos[0];
-            var mouseY = mousePos[1];
             startX = mousePos[0];
             startY = mousePos[1];
           
@@ -530,9 +565,37 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
           });
         };
 
+        
+        if (trial.instructions) { 
+          if (response.button != 0) {
+            prompt = "The probe is touching the object! Please press 'Yes' to continue.";
+            display_element.querySelector("#prompt").innerHTML = prompt;
+            return;
+          }
+        }
         if (response.button == 0 && !bounding_box_drawn) {
-          display_element.querySelector("#prompt").innerHTML =
-            "Please draw a bounding box around the object the probe is touching.";
+          var prompt = "";
+          if (trial.instructions) {
+            prompt = "Draw a bounding box to match the blue, ground truth bounding box you see on the screen."
+            ctx.beginPath();
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = "rgba(0, 6, 255, 1)";
+            var gt_bounding_box = trial.gt_bounding_box;
+
+            var gt_x0 = gt_bounding_box[0][0];
+            var gt_y0 = gt_bounding_box[0][1];
+            var gt_x1 = gt_bounding_box[1][0];
+            var gt_y1 = gt_bounding_box[1][1];
+            var gt_width = gt_x1 - gt_x0;
+            var gt_height = gt_y1 - gt_y0;
+
+            ctx.strokeRect(gt_x0, gt_y0, gt_width, gt_height);
+            ctx.fill();
+
+          } else {
+            prompt = "Please draw a bounding box around the object the probe is touching.";
+          }
+          display_element.querySelector("#prompt").innerHTML = prompt;
 
           initBoundingBox();
 
@@ -549,10 +612,43 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             .addEventListener("click", (e) => {
               var btn_el = e.currentTarget;
               var choice = btn_el.getAttribute("data-choice"); // don't use dataset for jsdom compatibility
+
               if (!bounding_box_drawn) {
                 display_element.querySelector("#prompt").innerHTML =
                   "Please draw a bounding box before continuing";
                 return;
+              }
+
+              if (trial.instructions) {
+                
+                // Check bounding box area matches
+                gt_bounding_box = trial.gt_bounding_box
+                var gt_x0 = gt_bounding_box[0][0];
+                var gt_y0 = gt_bounding_box[0][1];
+                var gt_x1 = gt_bounding_box[1][0];
+                var gt_y1 = gt_bounding_box[1][1];
+                var gt_area = (gt_x1 - gt_x0) * (gt_y1 - gt_y0)
+
+                var x0 = startX;
+                var x1 = endX;
+                var y0 = startY;
+                var y1 = endY;
+                var user_area = (x1 - x0) * (y1 - y0)
+
+                var x_left = Math.max(x0, gt_x0);
+                var x_right = Math.min(x1, gt_x1);
+                var y_top = Math.max(gt_y0, y0);
+                var y_bottom = Math.min(gt_y1, y1);
+
+                var intersection = (x_right - x_left) * (y_bottom - y_top)
+                
+                var iou = intersection / (gt_area + user_area - intersection)
+                console.log(iou)
+                if (iou < 0.75) { 
+                  display_element.querySelector("#prompt").innerHTML =
+                  "To continue, please make sure your bounding box is as close as possible to the ground truth blue one.";
+                  return;
+                }
               }
               after_response(choice);
             });
@@ -560,10 +656,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
           return;
         } else if (response.button == 0) {
           bounding_box_drawn = true;
-          if (trial.debug) {
-            console.log("Bounding box coords: ", startX, startY, endX, endY);
-            console.log("Gt: ", trial.bounding_box);
-          }
+
         }
 
         // after a valid response, the stimulus will have the CSS class 'responded'

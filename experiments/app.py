@@ -120,6 +120,7 @@ def trial_data_wrapper():
             data = json.load(f)["data"]
 
         s3_root = config.S3_ROOT
+        practice_trial = {}
         for d in data:
             image_url = d["image_url"]
             components = image_url.split("/")
@@ -133,6 +134,8 @@ def trial_data_wrapper():
             # Serve shaded images for attention trials
             if "ground_truth" in d["image_url"]:
                 image_target = "shaded"
+                if d["probe_touching"]:
+                    practice_trial = d
             else:
                 image_target = "images"
 
@@ -143,8 +146,11 @@ def trial_data_wrapper():
         np.random.seed(config.random_seed)
         np.random.shuffle(data)
 
+        print(practice_trial)
+
         print(f"Serving {len(data)} trials")
         data = {"data": data,
+                "practice_trial": practice_trial,
                 "user_id": session.get("user_id"),
                 "db": session.get("db"),
                 "col_name": session.get("col_name"),
@@ -155,86 +161,86 @@ def trial_data_wrapper():
 
         return jsonify(data)
 
-    if config.LOCAL_IMAGES:
-        if domain == "static":
-            trial_data = []
+    # if config.LOCAL_IMAGES:
+    #     if domain == "static":
+    #         trial_data = []
 
-            for scene_index, scene in enumerate(glob.glob(config.BASE_IMAGE_URLS)[:20]):
-                image_index = np.random.randint(1, 32)
+    #         for scene_index, scene in enumerate(glob.glob(config.BASE_IMAGE_URLS)[:20]):
+    #             image_index = np.random.randint(1, 32)
 
-                image_url = os.path.join(
-                    scene, "images", f"Image{image_index:04d}.png")
-                scene = glob.glob(config.BASE_IMAGE_URLS)[scene_index]
+    #             image_url = os.path.join(
+    #                 scene, "images", f"Image{image_index:04d}.png")
+    #             scene = glob.glob(config.BASE_IMAGE_URLS)[scene_index]
 
-                mask_url = os.path.join(
-                    scene, "masks", f"Image{image_index:04d}.png")
-                masks = np.array(Image.open(mask_url).convert("L"))
+    #             mask_url = os.path.join(
+    #                 scene, "masks", f"Image{image_index:04d}.png")
+    #             masks = np.array(Image.open(mask_url).convert("L"))
 
-                probe_location, probe_touching, bounding_box = get_probe_location(
-                    experiment_type, masks, batch, scene_index, image_index
-                )
-                trial = {
-                    "image_url": image_url,
-                    "stimulus_index": (scene_index, image_index),
-                    "probe_location": probe_location,
-                    "probe_touching": probe_touching,
-                    "bounding_box": bounding_box,
-                }
-                trial_data.append(trial)
-                print(scene_index)
-    else:
-        try:
-            bucket_name = config.S3_BUCKET
-            texture_splits = config.TEXTURE_SPLITS
-            objs_per_scene = config.OBJS_PER_SCENE
-            scenes_per_texture = config.SCENES_PER_TEXTURE
-            frames_per_scene = config.FRAMES_PER_SCENE
-            trials_per_batch = config.TRIALS_PER_BATCH
-            s3_root = config.S3_ROOT
+    #             probe_location, probe_touching, bounding_box = get_probe_location(
+    #                 experiment_type, masks, batch, scene_index, image_index
+    #             )
+    #             trial = {
+    #                 "image_url": image_url,
+    #                 "stimulus_index": (scene_index, image_index),
+    #                 "probe_location": probe_location,
+    #                 "probe_touching": probe_touching,
+    #                 "bounding_box": bounding_box,
+    #             }
+    #             trial_data.append(trial)
+    #             print(scene_index)
+    # else:
+    #     try:
+    #         bucket_name = config.S3_BUCKET
+    #         texture_splits = config.TEXTURE_SPLITS
+    #         objs_per_scene = config.OBJS_PER_SCENE
+    #         scenes_per_texture = config.SCENES_PER_TEXTURE
+    #         frames_per_scene = config.FRAMES_PER_SCENE
+    #         trials_per_batch = config.TRIALS_PER_BATCH
+    #         s3_root = config.S3_ROOT
 
-            s3 = boto3.resource("s3")
-            bucket = s3.Bucket(bucket_name)
-            if domain == "static":
-                trial_data = []
-                for i in range(trials_per_batch):
-                    # TO-DO: Un-randomize batches
-                    idx = int(np.random.choice(
-                        (range(1, frames_per_scene + 1))))
-                    texture = np.random.choice(texture_splits)
-                    scene_objs = np.random.choice(objs_per_scene)
-                    scene_num = int(np.random.choice(
-                        range(0, scenes_per_texture)))
+    #         s3 = boto3.resource("s3")
+    #         bucket = s3.Bucket(bucket_name)
+    #         if domain == "static":
+    #             trial_data = []
+    #             for i in range(trials_per_batch):
+    #                 # TO-DO: Un-randomize batches
+    #                 idx = int(np.random.choice(
+    #                     (range(1, frames_per_scene + 1))))
+    #                 texture = np.random.choice(texture_splits)
+    #                 scene_objs = np.random.choice(objs_per_scene)
+    #                 scene_num = int(np.random.choice(
+    #                     range(0, scenes_per_texture)))
 
-                    image_url = f"{s3_root}/{texture}/{scene_objs}/scene_{scene_num:03d}/images/Image{idx:04d}.png"
+    #                 image_url = f"{s3_root}/{texture}/{scene_objs}/scene_{scene_num:03d}/images/Image{idx:04d}.png"
 
-                    mask_path = f"{texture}/{scene_objs}/scene_{scene_num:03d}/masks/Image{idx:04d}.png"
-                    obj = bucket.Object(mask_path)
-                    file_stream = io.BytesIO()
-                    obj.download_fileobj(file_stream)
-                    masks = np.array(
-                        Image.open(file_stream).convert("L").resize((512, 512))
-                    )
-                    print(masks.shape)
-                    probe_location, probe_touching, bounding_box = get_probe_location(
-                        experiment_type, masks, batch, -1, -1
-                    )
-                    trial = {
-                        "image_url": image_url,
-                        "stimulus_index": (-1, -1),
-                        "probe_location": probe_location,
-                        "probe_touching": probe_touching,
-                        "bounding_box": bounding_box,
-                        "user_id": session.get("user_id"),
-                        "session_id": session.get("session_id"),
-                        "study_id": session.get("study_id"),
-                        "completion_code": "6713F83E"
-                    }
-                    trial_data.append(trial)
-        except Exception as e:
-            print(e)
-            return e
+    #                 mask_path = f"{texture}/{scene_objs}/scene_{scene_num:03d}/masks/Image{idx:04d}.png"
+    #                 obj = bucket.Object(mask_path)
+    #                 file_stream = io.BytesIO()
+    #                 obj.download_fileobj(file_stream)
+    #                 masks = np.array(
+    #                     Image.open(file_stream).convert("L").resize((512, 512))
+    #                 )
+    #                 print(masks.shape)
+    #                 probe_location, probe_touching, bounding_box = get_probe_location(
+    #                     experiment_type, masks, batch, -1, -1
+    #                 )
+    #                 trial = {
+    #                     "image_url": image_url,
+    #                     "stimulus_index": (-1, -1),
+    #                     "probe_location": probe_location,
+    #                     "probe_touching": probe_touching,
+    #                     "bounding_box": bounding_box,
+    #                     "user_id": session.get("user_id"),
+    #                     "session_id": session.get("session_id"),
+    #                     "study_id": session.get("study_id"),
+    #                     "completion_code": "6713F83E"
+    #                 }
+    #                 trial_data.append(trial)
+    #     except Exception as e:
+    #         print(e)
+    #         return e
 
-    return jsonify(trial_data)
+    # return jsonify(trial_data)
 
 
 def check_repeat_user(user_id, db, col):

@@ -56,34 +56,76 @@
         url: "consent.html",
         cont_btn: "start",
       }
-      trials.push(consent);
+      if (resp.user_id) {
+        trials.push(consent);
+      }
 
-      const instructions = {
+      var instructions = {
         type: jsPsychInstructions,
         pages: ["Welcome to our experiment! To continue reading the instructions please hit the right arrow key.",
 
-          "In this experiment, you will be asked to determine whether or not a red dot is touching an object. \
-                  During the experiment, objects will be camouflaged against the background. The objects in question are simple, 3D shapes, \
-                  and when they're not camouflaged, look like these shapes: <br><br> \
-                  <img height=450, width=800, src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/all_stims.gif'></img>",
+          `In this experiment, you will be asked to determine whether or not a red dot is touching an object. 
+                  During the experiment, objects will be camouflaged against the background. The objects in question are simple, 3D shapes, 
+                  and when they're not camouflaged, look like these shapes: <br><br> 
+                  <img height=450, width=800, src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/all_stims.gif'></img>`,
 
-          "Objects can appear anywhere in a scene. If the center (red part) of a dot is touching an object, click 'Yes', and draw a box around \
-                  visible part of the object it is touching. For example, on the example trial below, the dot is touching an object so the answer is 'Yes'. \
-                  <br> <br>After clicking yes, use your mouse to click and drag to draw a box around that object, and hit 'Submit' to continue. You can redraw a bounding box to adjust it as many times as you want before continuing. While it doesn't need to be perfect, try and make the box you draw fit the object (ie; try not to leave too much space on the outside). Sometimes an object isn't fully visible, like if it's blocked by another object in front of it. In those cases, just draw a box around the visible portion of the object that the dot is touching. \
-                  <br><br> \
-                  <video src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/example_trial.mp4' type='video/mp4' width=500, height=500 controls autoplay> \
-                    </video>",
+          `Objects can appear anywhere in a scene. If the center (red part) of a dot is touching an object, click 'Yes', and draw a box around 
+                  visible part of the object it is touching. For example, on the example trial below, the dot is touching an object so the answer is 'Yes'. 
+                  <br> <br>
+                  
+                  After clicking yes, use your mouse to click and drag to draw a box around that object, and hit 'Submit' to continue. 
+                  
+                  <br> <br>
+                  
+                  You can redraw a bounding box to adjust it as many times as you want before continuing. 
+                  While it doesn't need to be perfect, try and make the box you draw fit the object (ie; try not to leave too much space on the outside). 
+                  
+                  <br> <br>
 
-          "In the example below, the dot is not touching an object, so we can simply click 'No' and move on  \
-          <br><br> \
-          <video src = 'https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/gestalt-example-no-trial.mov' type = 'video/mov' width = 500, height = 500 controls autoplay > </video>",
-          "Ready? The experiment will start on the next page. To review any of the instructions, just hit the back arrow to return to a previous page.",
+                  Sometimes an object isn't fully visible, like if it's blocked by another object in front of it. 
+                  In those cases, just draw a box around the visible portion of the object that the dot is touching. 
+                  <br><br> 
+                  <video src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/example_trial.mp4' 
+                  type='video/mp4' width=500, height=500 controls autoplay></video>`,
+          `Bonuses will be awarded based on two factors. The number of correct responses, and how closely your bounding boxes fit the 
+                objects in question.`,
+          `In the example below, the dot is not touching an object, so we can simply click 'No' and move on.
+                <br><br> 
+                <video src = 'https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/gestalt-example-no-trial.mov' 
+                type ='video/mov' width = 500, height = 500 controls autoplay > </video>`,
+          `Ready? There will be one practice trial before you start the experiment, and then the experiment will begin. 
+          Once you click to continue, you won't be able to review any of the instructions. 
+          To review any of the instructions now, just hit the back arrow to return to a previous page.`
         ],
         show_clickable_nav: true
       };
 
+      console.log(resp.practice_trial);
+      var practice_trial = {
+        type: jsPsychProbeDetectionTask,
+        stimulus: resp.practice_trial['image_url'],
+        stimulus_index: (resp.practice_trial.frame_idx, resp.practice_trial.mask_idx),
+        probe_location: resp.practice_trial['probe_location'],
+        probe_touching: resp.practice_trial['probe_touching'],
+        gt_bounding_box: resp.practice_trial['gt_bounding_box'],
+        instructions: true,
+        experiment_type: "detection",
+        domain: "static",
+        batch: 0,
+      }
+
+
+
       trials.push(instructions);
-      console.log(resp.user_id)
+      trials.push(practice_trial);
+      trials.push({
+        type: jsPsychInstructions,
+        pages: ["Beginning Experiment"],
+        allow_backward: false,
+        show_clickable_nav: true,
+        button_label_next: "Start",
+      });
+
       data = resp.data;
       completion_code = resp.completion_code;
 
@@ -105,7 +147,7 @@
           stimulus_index: (data[i].frame_idx, data[i].mask_idx),
           probe_location: data[i].probe_location,
           probe_touching: data[i].probe_touching,
-          bounding_box: data[i].bounding_box,
+          gt_bounding_box: data[i].gt_bounding_box,
           experiment_type: "detection",
           domain: "static",
           batch: 0,
