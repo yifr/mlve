@@ -97,8 +97,8 @@ def post_data():
     data = request.get_json()  # json.loads(request.data)
     print(data)
 
-    db_name = data.get("db_name")
-    col_name = data.get("col_name")
+    db_name = session.get("db")
+    col_name = session.get("col_name")
 
     client = get_client(db_name)
     db = client[db_name]
