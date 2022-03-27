@@ -100,7 +100,6 @@
         show_clickable_nav: true
       };
 
-      console.log(resp.practice_trial);
       var practice_trial = {
         type: jsPsychProbeDetectionTask,
         stimulus: resp.practice_trial['image_url'],
@@ -120,7 +119,7 @@
       trials.push(practice_trial);
       trials.push({
         type: jsPsychInstructions,
-        pages: ["Beginning Experiment"],
+        pages: ["Great job! Click 'Start' to begin the experiment."],
         allow_backward: false,
         show_clickable_nav: true,
         button_label_next: "Start",
