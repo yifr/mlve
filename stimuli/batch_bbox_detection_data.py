@@ -130,7 +130,7 @@ def main():
         for obj_split in obj_splits:
             print(texture, obj_split)
             for i in range(scenes_per_group * 2):
-                if i > scenes_per_group:
+                if i >= scenes_per_group:
                     probe_touching = True
                 else:
                     probe_touching = False
@@ -146,11 +146,12 @@ def main():
         batch_data.append(trial_data)
 
     df = pd.DataFrame(batch_data)
-    print(df.info())
+    print(df["probe_touching"].mean())
+    """
     df.to_csv("detection_pilot_batch_0.csv")
     with open("/home/yyf/mlve/experiments/stimuli/detection_pilot_batch_0.json", "w") as f:
         json.dump({"data": batch_data}, f)
-
+    """
 
 if __name__ == "__main__":
     main()
