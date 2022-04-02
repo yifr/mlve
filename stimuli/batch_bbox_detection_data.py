@@ -5,6 +5,7 @@ import tqdm
 import json
 import pandas as pd
 from PIL import Image
+import tdw_dataset
 import numpy as np
 
 def points_in_circle(radius, x0=0, y0=0, ):
@@ -37,9 +38,9 @@ def generate_probe_location(masks, probe_touching):
         mask_vals = np.unique(masks)
         mask_val = np.random.choice(mask_vals[1:])
         mask_idx = list(mask_vals[1:]).index(mask_val)
-        mask = masks == mask_val
+        mask = np.where(masks == mask_val, masks, 0)
+        y, x = np.where(masks == mask_val)
 
-        y, x = np.nonzero(mask)
     else:
         mask_val = 0
         y, x = np.where(masks == 0)
@@ -79,7 +80,25 @@ def get_probe_location(masks, probe_touching=True):
 
     return probe_location, bounding_box, mask_idx, mask_val
 
-def construct_trial(root_dir, texture, obj_split, scene_idx, probe_touching=False):
+def construct_tdw_trial(tdw_dataset, tdw_root, scene_idx, probe_touching=False):
+    image, segment_map, file_name = tdw_dataset.__getitem__(scene_idx)
+
+    # Pick an object to probe
+    probe_location, bounding_box, mask_idx, mask_val = get_probe_location(
+        segment_map, probe_touching
+    )
+    url = file_name.split(tdw_root)[1:]
+    trial_data = {"image_url": url,
+                  "scene_idx": int(scene_idx),
+                  "probe_touching": probe_touching,
+                  "probe_location": probe_location,
+                  "bounding_box": bounding_box,
+                  "mask_idx": int(mask_idx),
+                  "mask_val": int(mask_val)}
+
+    return trial_data
+
+def construct_gestalt_trial(root_dir, texture, obj_split, scene_idx, probe_touching=False):
     scene_path = os.path.join(texture, obj_split, f"scene_{scene_idx:03d}")
     scene_dir = os.path.join(root_dir, scene_path)
     print(scene_path)
@@ -118,7 +137,28 @@ def construct_trial(root_dir, texture, obj_split, scene_idx, probe_touching=Fals
     return trial_data
 
 
-def main():
+def tdw_main():
+    # Generate single batch of 120 images evenly balanced by:
+    # 5 on-target scenes + 5 off-target scenes for splits of texture, number_objects
+    root_dir = "/om2/user/yyf/tdw_playroom_small"
+    dataset = tdw_dataset.TDWDataset(root_dir, training=False)
+    ignore_dir = "/om2/user/yyf"
+    batch_data = []
+    for i in tqdm.tqdm(range(130)):
+
+        probe_touching = i % 2 == 0
+        trial_data = construct_tdw_trial(dataset, ignore_dir,
+                                         scene_idx=i,
+                                         probe_touching=probe_touching)
+        batch_data.append(trial_data)
+
+    df = pd.DataFrame(batch_data)
+    print(df["probe_touching"].mean())
+
+    with open("/home/yyf/mlve/experiments/stimuli/tdw_detection_pilot_batch_0.json", "w") as f:
+        json.dump({"data": batch_data}, f)
+
+def gestalt_main():
     # Generate single batch of 120 images evenly balanced by:
     # 5 on-target scenes + 5 off-target scenes for splits of texture, number_objects
     root_dir = "/om/user/yyf/CommonFate/scenes"
@@ -152,6 +192,5 @@ def main():
     with open("/home/yyf/mlve/experiments/stimuli/detection_pilot_batch_0.json", "w") as f:
         json.dump({"data": batch_data}, f)
     """
-
 if __name__ == "__main__":
-    main()
+    tdw_main()

@@ -7,7 +7,7 @@ import logging
 import sys
 sys.path.append("/home/yyf/.aws/")
 import credentials
-
+import tdw_dataset
 
 def get_client():
         s3 = boto3.resource(service_name="s3",
@@ -26,17 +26,45 @@ def check_exists(s3, bucket_name, stim_name):
         else:
             print('Something else has gone wrong with {}'.format(stim_name))
 
-def main():
-    bucket = "gestalt-scenes"
-    s3 = get_client()
+def create_bucket(client, bucket):
     try:
-        b = s3.create_bucket(Bucket=bucket, CreateBucketConfiguration={"LocationConstraint": "us-east-2"})
+        b = client.create_bucket(Bucket=bucket,
+                             CreateBucketConfiguration={
+                                 "LocationConstraint": "us-east-2"
+                             })
         print('Created new bucket.')
     except Exception as e:
-        b = s3.Bucket(bucket)
+        b = client.Bucket(bucket)
         logging.error(e)
 
     b.Acl().put(ACL="public-read")
+    return b
+
+def upload(client, bucket, s3_path, file_path, overwrite=False):
+    if check_exists(client, bucket, s3_path) and not overwrite:
+        print(s3_path + " exists on s3. Skipping")
+        return
+
+    print("Uploading " + file_path + " to path: " + s3_path)
+    client.Object(bucket, s3_path).put(Body=open(file_path,'rb')) ## upload stimuli
+    client.Object(bucket, s3_path).Acl().put(ACL='public-read') ## set access controls
+    return
+
+def tdw_main():
+    bucket = "tdw-scenes"
+    s3 = get_client()
+    b = create_bucket(s3, bucket)
+    dataset = tdw_dataset.TDWDataset("/om2/user/yyf/tdw_playroom_small", training=False)
+    for i in tqdm(range(130)):
+        image, masks, file_path = dataset.__getitem__(i)
+        s3_path = file_path.split("/om2/user/yyf/")[1]
+        upload(s3, bucket, s3_path, file_path)
+
+def main():
+    bucket = "gestalt-scenes"
+    s3 = get_client()
+    b = create_bucket(s3, bucket)
+
     root_path = "/om/user/yyf/CommonFate/scenes"
     data_path = root_path + "/test_ground_truth/superquadric_1/*/*/*" # Upload PNGs
     overwrite = True
@@ -68,4 +96,4 @@ def main():
     s3.Object(bucket, target).Acl().put(ACL="public-read")
 
 if __name__=="__main__":
-    main()
+    tdw_main()
