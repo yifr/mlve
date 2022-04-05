@@ -111,8 +111,8 @@ def post_data():
 @app.route("/get_trial_data", methods=["GET", "POST"])
 def trial_data_wrapper():
     data = request.form
-    experiment_type = data.get("experiment")
     domain = data.get("domain")
+    experiment = data.get("experiment")
     batch = data.get("batch")
     if config.PREPROCESSED:
         preprocessed_path = "stimuli/tdw_detection_pilot_batch_0.json"
@@ -131,7 +131,7 @@ def trial_data_wrapper():
                 d["texture"] = texture
                 d["n_objs"] = n_objs
                 d["scene"] = scene
-                
+
                 # Serve shaded images for attention trials
                 if "ground_truth" in d["image_url"]:
                     image_target = "shaded"
@@ -141,11 +141,10 @@ def trial_data_wrapper():
                     image_target = "images"
 
                 d["image_url"] = os.path.join(
-                    s3_root, d["image_url"], 
-                    image_target, 
+                    s3_root, d["image_url"],
+                    image_target,
                     f"Image{d['frame_idx']:04d}.png"
                 )
-                
 
             elif "tdw" in s3_root:
                 image_url = os.path.join(s3_root, d["image_url"][0][1:])
@@ -153,11 +152,10 @@ def trial_data_wrapper():
                 d["gt_bounding_box"] = d["bounding_box"]
                 del d["bounding_box"]
                 print(d["image_url"], s3_root)
-                
+
                 # Assign first scene as practice trial
                 if "0009" in d["image_url"]:
                     practice_trial = d
-
 
         np.random.seed(config.random_seed)
         np.random.shuffle(data)

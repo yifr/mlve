@@ -17,3 +17,41 @@ function parseURLParams(url) {
     }
     return parms;
 }
+
+
+function setupExperiment() { 
+    // Domain 
+    // Batch data? 
+    // Config
+    const jsPsych = initJsPsych({
+        show_progress_bar: true,
+        auto_update_progress_bar: true,
+      });
+
+      var urlParams = parseURLParams(window.location.href);
+      
+      var domain = urlParams["domain"]
+      var experiment = urlParams["experiment"]
+
+      $.ajax({
+        type: "GET",
+        url: "/get_trial_data",
+        data: { experiment: experiment, domain: domain},
+        dataType: "json",
+        success: function (resp) {
+          trials = [];
+          var preload = {
+            type: jsPsychPreload,
+            auto_preload: true,
+            on_start: function () {
+              document.body.style.backgroundColor = "#fff";
+            }
+          };
+          trials.push(preload);
+    
+          consent = {
+            type: jsPsychExternalHtml,
+            url: "consent.html",
+            cont_btn: "start",
+          }
+}
