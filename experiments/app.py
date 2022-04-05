@@ -115,33 +115,49 @@ def trial_data_wrapper():
     domain = data.get("domain")
     batch = data.get("batch")
     if config.PREPROCESSED:
-        preprocessed_path = "stimuli/detection_pilot_batch_0.json"
+        preprocessed_path = "stimuli/tdw_detection_pilot_batch_0.json"
         with open(preprocessed_path, "rb") as f:
             data = json.load(f)["data"]
 
         s3_root = config.S3_ROOT
         practice_trial = {}
         for d in data:
-            image_url = d["image_url"]
-            components = image_url.split("/")
-            texture = components[0]
-            n_objs = int(components[1].split("_")[1])
-            scene = components[2]
-            d["texture"] = texture
-            d["n_objs"] = n_objs
-            d["scene"] = scene
+            if "gestalt" in s3_root:
+                image_url = d["image_url"]
+                components = image_url.split("/")
+                texture = components[0]
+                n_objs = int(components[1].split("_")[1])
+                scene = components[2]
+                d["texture"] = texture
+                d["n_objs"] = n_objs
+                d["scene"] = scene
+                
+                # Serve shaded images for attention trials
+                if "ground_truth" in d["image_url"]:
+                    image_target = "shaded"
+                    if d["probe_touching"]:
+                        practice_trial = d
+                else:
+                    image_target = "images"
 
-            # Serve shaded images for attention trials
-            if "ground_truth" in d["image_url"]:
-                image_target = "shaded"
-                if d["probe_touching"]:
+                d["image_url"] = os.path.join(
+                    s3_root, d["image_url"], 
+                    image_target, 
+                    f"Image{d['frame_idx']:04d}.png"
+                )
+                
+
+            elif "tdw" in s3_root:
+                image_url = os.path.join(s3_root, d["image_url"][0][1:])
+                d["image_url"] = image_url
+                d["gt_bounding_box"] = d["bounding_box"]
+                del d["bounding_box"]
+                print(d["image_url"], s3_root)
+                
+                # Assign first scene as practice trial
+                if "0009" in d["image_url"]:
                     practice_trial = d
-            else:
-                image_target = "images"
 
-            d["image_url"] = os.path.join(
-                s3_root, d["image_url"], image_target, f"Image{d['frame_idx']:04d}.png"
-            )
 
         np.random.seed(config.random_seed)
         np.random.shuffle(data)

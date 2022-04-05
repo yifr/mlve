@@ -116,7 +116,7 @@
 
 
       trials.push(instructions);
-      trials.push(practice_trial);
+      // trials.push(practice_trial);
       trials.push({
         type: jsPsychInstructions,
         pages: ["Great job! Click 'Start' to begin the experiment."],
@@ -172,6 +172,8 @@
             })
           }
         };
+	
+	console.log(trial);
         trials.push(trial);
       }
 
