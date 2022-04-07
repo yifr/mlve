@@ -30,7 +30,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
         pretty_name: "Ground Truth Bounding Box",
         default: []
       },
-      instructions: {
+      practice_trial: {
         type: jspsych.ParameterType.BOOL,
         pretty_name: "Instructions",
         default: false,
@@ -302,7 +302,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             "<p id='prompt'>" + trial.prompt + "</p>"
           );
 
-          if (trial.instructions) {
+          if (trial.practice_trial) {
             var title = document.createElement("h3");
             title.innerHTML = "Practice Trial"
             display_element.insertBefore(title, canvas);
@@ -459,7 +459,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
               trial.stimulus_width
             );
 
-            if (trial.instructions) {
+            if (trial.practice_trial) {
               // Draw ground truth bounding box
               ctx.beginPath();
               ctx.lineWidth = 5;
@@ -566,7 +566,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
         };
 
         
-        if (trial.instructions) { 
+        if (trial.practice_trial) { 
           if (response.button != 0) {
             prompt = "The probe is touching the object! Please press 'Yes' to continue.";
             display_element.querySelector("#prompt").innerHTML = prompt;
@@ -575,7 +575,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
         }
         if (response.button == 0 && !bounding_box_drawn) {
           var prompt = "";
-          if (trial.instructions) {
+          if (trial.practice_trial) {
             prompt = "Draw a bounding box to match the blue, ground truth bounding box you see on the screen."
             ctx.beginPath();
             ctx.lineWidth = 5;
@@ -619,7 +619,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
                 return;
               }
 
-              if (trial.instructions) {
+              if (trial.practice_trial) {
                 
                 // Check bounding box area matches
                 gt_bounding_box = trial.gt_bounding_box
@@ -696,6 +696,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
       }
     }
   }
+
   ProbeDetectionTaskPlugin.info = info;
 
   return ProbeDetectionTaskPlugin;

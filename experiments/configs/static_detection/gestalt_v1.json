@@ -5,8 +5,10 @@
     "S3_ROOT": "https://gestalt-scenes.s3.us-east-2.amazonaws.com",
     "db_name": "psychophys",
     "col_name": "gestalt_static_detection_bbox_v1",
+    "experiment_trial_type": "plugin-probe-detection-task",
     "trial_data": ["gestalt_static_detection_v1.json"],       
-    "random_seed": 42,
+    "random_seed": null,
+    "num_practice_trials": 1,
     "instructions": [
         "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
         "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
@@ -18,6 +20,6 @@
         "<p>Here you can see an example trial, where the shape is not occluded at all: <br>  <video src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/example_trial.mp4' type='video/mp4' width=500, height=500 controls autoplay></video></p>",
         "<p>Bonuses will be awarded based on two factors. The number of correct responses, and whether the bounding boxes you draw accurately outline the object.</p>",
         "<p>In the example below, the dot is not touching an object, so we can simply click 'No' and move on.<br><br> <video src = 'https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/gestalt-example-no-trial.mov' type ='video/mov' width = 500, height = 500 controls autoplay > </video> </p>",
-        "<p>Ready? There will be one practice trial on the next page, and then the experiment will begin.</p><p>Once you click to continue, you won't be able to review any of the instructions.</p><p>To review any of the instructions now, just hit the back arrow to return to a previous page.</p>",
+        "<p>Ready? There will be one practice trial on the next page, and then the experiment will begin.</p><p>Once you click to continue, you won't be able to review any of the instructions.</p><p>To review any of the instructions now, just hit the back arrow to return to a previous page.</p>"
       ]
 }

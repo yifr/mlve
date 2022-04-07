@@ -97,164 +97,102 @@ def post_data():
     data = request.get_json()  # json.loads(request.data)
     print(data)
 
-    db_name = session.get("db")
+    db_name = session.get("db_name")
     col_name = session.get("col_name")
 
     client = get_client(db_name)
     db = client[db_name]
     col = db[col_name]
+    data["user_id"] = session["user_id"]
+    data["experiment"] = session["experiment"]
+    data["domain"] = session["domain"]
+
     resp = col.insert_one(data)
     print(resp)
     return jsonify({"success": 200})
 
 
+def get_config(experiment, domain, batch):
+    config_path = os.path.join("configs", experiment, domain)
+    config_opts = glob.glob(config_path + "*")
+    config = json.load(open(config_opts[batch], "rb"))
+    return config
+
+
 @app.route("/get_trial_data", methods=["GET", "POST"])
-def trial_data_wrapper():
-    data = request.form
-    domain = data.get("domain")
+def get_trial_data():
+    data = request.values
     experiment = data.get("experiment")
-    batch = data.get("batch")
-    if config.PREPROCESSED:
-        preprocessed_path = "stimuli/tdw_detection_pilot_batch_0.json"
-        with open(preprocessed_path, "rb") as f:
-            data = json.load(f)["data"]
+    domain = data.get("domain")
+    batch = int(data.get("batch"))
+    config = get_config(experiment, domain, batch)
+    db_name = config["db_name"]
+    col_name = config["col_name"]
 
-        s3_root = config.S3_ROOT
-        practice_trial = {}
-        for d in data:
-            if "gestalt" in s3_root:
-                image_url = d["image_url"]
-                components = image_url.split("/")
-                texture = components[0]
-                n_objs = int(components[1].split("_")[1])
-                scene = components[2]
-                d["texture"] = texture
-                d["n_objs"] = n_objs
-                d["scene"] = scene
+    session["domain"] = domain
+    session["experiment"] = experiment
+    session["batch"] = batch
+    session["config"] = config
 
-                # Serve shaded images for attention trials
-                if "ground_truth" in d["image_url"]:
-                    image_target = "shaded"
-                    if d["probe_touching"]:
-                        practice_trial = d
-                else:
-                    image_target = "images"
+    session["db_name"] = db_name
+    session["col_name"] = col_name
 
-                d["image_url"] = os.path.join(
-                    s3_root, d["image_url"],
-                    image_target,
-                    f"Image{d['frame_idx']:04d}.png"
-                )
+    trial_data_path = os.path.join("stimuli", config["trial_data"][0])
 
-            elif "tdw" in s3_root:
-                image_url = os.path.join(s3_root, d["image_url"][0][1:])
-                d["image_url"] = image_url
-                d["gt_bounding_box"] = d["bounding_box"]
-                del d["bounding_box"]
-                print(d["image_url"], s3_root)
+    with open(trial_data_path, "rb") as f:
+        data = json.load(f)["data"]
 
-                # Assign first scene as practice trial
-                if "0009" in d["image_url"]:
+    s3_root = config.get("S3_ROOT")
+    practice_trial = {}
+    for d in data:
+        if "gestalt" in s3_root:
+            image_url = d["image_url"]
+            components = image_url.split("/")
+            texture = components[0]
+            n_objs = int(components[1].split("_")[1])
+            scene = components[2]
+            d["texture"] = texture
+            d["n_objs"] = n_objs
+            d["scene"] = scene
+
+            # Serve shaded images for attention trials
+            if "ground_truth" in d["image_url"]:
+                image_target = "shaded"
+                if d["probe_touching"]:
                     practice_trial = d
+            else:
+                image_target = "images"
 
-        np.random.seed(config.random_seed)
-        np.random.shuffle(data)
+            d["image_url"] = os.path.join(
+                s3_root, d["image_url"],
+                image_target,
+                f"Image{d['frame_idx']:04d}.png"
+            )
 
-        print(practice_trial)
+        elif "tdw" in s3_root:
+            image_url = os.path.join(s3_root, d["image_url"][0][1:])
+            d["image_url"] = image_url
+            d["gt_bounding_box"] = d["bounding_box"]
+            del d["bounding_box"]
 
-        print(f"Serving {len(data)} trials")
-        data = {"data": data,
-                "practice_trial": practice_trial,
-                "user_id": session.get("user_id"),
-                "db": session.get("db"),
-                "col_name": session.get("col_name"),
-                "session_id": session.get("session_id"),
-                "study_id": session.get("study_id"),
-                "completion_code": "6713F83E"
-                }
+            # Assign first scene as practice trial
+            if "0009" in d["image_url"]:
+                practice_trial = d
 
-        return jsonify(data)
+    seed = config.get("random_seed", np.random.randint(0, 100))
+    np.random.seed(seed)
+    np.random.shuffle(data)
 
-    # if config.LOCAL_IMAGES:
-    #     if domain == "static":
-    #         trial_data = []
+    print(f"Serving {len(data)} trials")
+    data = {"experimentData": data,
+            "experimentConfig": config,
+            "user_id": session.get("user_id"),
+            "session_id": session.get("session_id"),
+            "study_id": session.get("study_id"),
+            "completion_code": config.get("completion_code")
+            }
 
-    #         for scene_index, scene in enumerate(glob.glob(config.BASE_IMAGE_URLS)[:20]):
-    #             image_index = np.random.randint(1, 32)
-
-    #             image_url = os.path.join(
-    #                 scene, "images", f"Image{image_index:04d}.png")
-    #             scene = glob.glob(config.BASE_IMAGE_URLS)[scene_index]
-
-    #             mask_url = os.path.join(
-    #                 scene, "masks", f"Image{image_index:04d}.png")
-    #             masks = np.array(Image.open(mask_url).convert("L"))
-
-    #             probe_location, probe_touching, bounding_box = get_probe_location(
-    #                 experiment_type, masks, batch, scene_index, image_index
-    #             )
-    #             trial = {
-    #                 "image_url": image_url,
-    #                 "stimulus_index": (scene_index, image_index),
-    #                 "probe_location": probe_location,
-    #                 "probe_touching": probe_touching,
-    #                 "bounding_box": bounding_box,
-    #             }
-    #             trial_data.append(trial)
-    #             print(scene_index)
-    # else:
-    #     try:
-    #         bucket_name = config.S3_BUCKET
-    #         texture_splits = config.TEXTURE_SPLITS
-    #         objs_per_scene = config.OBJS_PER_SCENE
-    #         scenes_per_texture = config.SCENES_PER_TEXTURE
-    #         frames_per_scene = config.FRAMES_PER_SCENE
-    #         trials_per_batch = config.TRIALS_PER_BATCH
-    #         s3_root = config.S3_ROOT
-
-    #         s3 = boto3.resource("s3")
-    #         bucket = s3.Bucket(bucket_name)
-    #         if domain == "static":
-    #             trial_data = []
-    #             for i in range(trials_per_batch):
-    #                 # TO-DO: Un-randomize batches
-    #                 idx = int(np.random.choice(
-    #                     (range(1, frames_per_scene + 1))))
-    #                 texture = np.random.choice(texture_splits)
-    #                 scene_objs = np.random.choice(objs_per_scene)
-    #                 scene_num = int(np.random.choice(
-    #                     range(0, scenes_per_texture)))
-
-    #                 image_url = f"{s3_root}/{texture}/{scene_objs}/scene_{scene_num:03d}/images/Image{idx:04d}.png"
-
-    #                 mask_path = f"{texture}/{scene_objs}/scene_{scene_num:03d}/masks/Image{idx:04d}.png"
-    #                 obj = bucket.Object(mask_path)
-    #                 file_stream = io.BytesIO()
-    #                 obj.download_fileobj(file_stream)
-    #                 masks = np.array(
-    #                     Image.open(file_stream).convert("L").resize((512, 512))
-    #                 )
-    #                 print(masks.shape)
-    #                 probe_location, probe_touching, bounding_box = get_probe_location(
-    #                     experiment_type, masks, batch, -1, -1
-    #                 )
-    #                 trial = {
-    #                     "image_url": image_url,
-    #                     "stimulus_index": (-1, -1),
-    #                     "probe_location": probe_location,
-    #                     "probe_touching": probe_touching,
-    #                     "bounding_box": bounding_box,
-    #                     "user_id": session.get("user_id"),
-    #                     "session_id": session.get("session_id"),
-    #                     "study_id": session.get("study_id"),
-    #                     "completion_code": "6713F83E"
-    #                 }
-    #                 trial_data.append(trial)
-    #     except Exception as e:
-    #         print(e)
-    #         return e
-
-    # return jsonify(trial_data)
+    return jsonify(data)
 
 
 def check_repeat_user(user_id, db, col):
@@ -271,12 +209,12 @@ def check_repeat_user(user_id, db, col):
     return False
 
 
-@app.route("/consent.html", methods=["GET"])
+@ app.route("/consent.html", methods=["GET"])
 def consent():
     return render_template("consent.html")
 
 
-@app.route("/", methods=["GET"])
+@ app.route("/", methods=["GET"])
 def home():
     user_id = request.args.get("PROLIFIC_PID")
     session_id = request.args.get("SESSION_ID")
@@ -285,7 +223,7 @@ def home():
     db = request.args.get("db")
     col_name = request.args.get("col")
     print("user_id", user_id)
-    if not user_id or not db or not col_name:
+    if not user_id:
         print(f"missing one of user_id: {user_id}, db: {db}, col: {col_name}")
         session["log_results"] = False
     else:
@@ -294,8 +232,6 @@ def home():
         if repeat_user:
             return render_template("reject.html")
 
-    session["col_name"] = col_name
-    session["db"] = db
     session["study_id"] = study_id
     session["session_id"] = session_id
     session["user_id"] = user_id
