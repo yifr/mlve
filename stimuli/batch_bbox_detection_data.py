@@ -144,7 +144,7 @@ def tdw_main():
     dataset = tdw_dataset.TDWDataset(root_dir, training=False)
     ignore_dir = "/om2/user/yyf"
     batch_data = []
-    for i in tqdm.tqdm(range(130)):
+    for i in tqdm.tqdm(range(125)):
 
         probe_touching = i % 2 == 0
         trial_data = construct_tdw_trial(dataset, ignore_dir,
