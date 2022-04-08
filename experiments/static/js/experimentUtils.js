@@ -75,6 +75,26 @@ function constructExperimentTrials(experimentData, experimentConfig){
     var practiceTrial;
     for (var i = 0; i < experimentData.length; i ++) {
       practiceTrial = (i < numPracticeTrials) ? true : false;
+      if (i == numPracticeTrials && numPracticeTrials > 0) {
+        trials.push({
+          type: jsPsychInstructions,
+          pages: ["Great job! Click 'Start' to begin the experiment."],
+          allow_backward: false,
+          show_clickable_nav: true,
+          button_label_next: "Start",
+        });
+      }
+
+      if (i == Math.floor(experimentData.length / 2)) {
+        var progressTrial = {
+          type: jsPsychInstructions,
+          pages: ["You're halfway through the experiment! Great job so far!"],
+          show_clickable_nav: true,
+          button_label_next: "Continue",
+          allow_backward: false
+        }
+        trials.push(progressTrial);
+      }
 
       var trialData = experimentData[i];
       var onFinish = function (responseData) {

@@ -76,7 +76,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
       prompt: {
         type: jspsych.ParameterType.HTML_STRING,
         pretty_name: "Prompt",
-        default: "Is the center of the probe touching an object?",
+        default: "Is the center of the dot touching an object?",
       },
       /** How long to show the stimulus. */
       stimulus_duration: {
@@ -398,6 +398,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
         rt: null,
         button: null,
       };
+
       // function to end trial when it is time
       const end_trial = () => {
         // kill any remaining setTimeout handlers
@@ -567,16 +568,22 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
 
         
         if (trial.practice_trial) { 
-          if (response.button != 0) {
-            prompt = "The probe is touching the object! Please press 'Yes' to continue.";
+          if (response.button != 0 && trial.probe_touching) {
+            prompt = "The dot is touching the object! Please press 'Yes' to continue.";
+            display_element.querySelector("#prompt").innerHTML = prompt;
+            return;
+          } else if (response.button != 1 && !(trial.probe_touching)) {
+            prompt = "In this trial the dot is not touching an object! Please press 'No' to continue."
             display_element.querySelector("#prompt").innerHTML = prompt;
             return;
           }
+
         }
+
         if (response.button == 0 && !bounding_box_drawn) {
           var prompt = "";
           if (trial.practice_trial) {
-            prompt = "Draw a bounding box to match the blue, ground truth bounding box you see on the screen."
+            prompt = "That's the right answer! Now draw a box to match the <strong>correct</strong> box you see drawn in blue."
             ctx.beginPath();
             ctx.lineWidth = 5;
             ctx.strokeStyle = "rgba(0, 6, 255, 1)";
@@ -593,7 +600,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             ctx.fill();
 
           } else {
-            prompt = "Please draw a bounding box around the object the probe is touching.";
+            prompt = "Please draw a bounding box around the object the dot is touching.";
           }
           display_element.querySelector("#prompt").innerHTML = prompt;
 
