@@ -611,7 +611,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
             "#jspsych-image-button-response-btngroup"
           ).innerHTML = `<div class="jspsych-image-button-response-button" 
                           style="display: inline-block; margin:0px 8px" id="jspsych-image-button-response-button-0" data-choice="0">
-                            <button class="jspsych-btn">Submit</button>
+                            <button unselectable='on' class="jspsych-btn unselectable">Submit</button>
                         </div>`;
 
           display_element
