@@ -92,7 +92,7 @@ def construct_tdw_trial(tdw_dataset, tdw_root, scene_idx, probe_touching=False):
                   "scene_idx": int(scene_idx),
                   "probe_touching": probe_touching,
                   "probe_location": probe_location,
-                  "bounding_box": bounding_box,
+                  "gt_bounding_box": bounding_box,
                   "mask_idx": int(mask_idx),
                   "mask_val": int(mask_val)}
 
