@@ -187,10 +187,10 @@ def gestalt_main():
 
     df = pd.DataFrame(batch_data)
     print(df["probe_touching"].mean())
-    """
+
     df.to_csv("detection_pilot_batch_0.csv")
     with open("/home/yyf/mlve/experiments/stimuli/detection_pilot_batch_0.json", "w") as f:
         json.dump({"data": batch_data}, f)
-    """
+
 if __name__ == "__main__":
     tdw_main()
