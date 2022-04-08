@@ -33,34 +33,39 @@ def check_overlap(point, border_dist, min_dist, image):
 
     return False
 
-def generate_probe_location(masks, probe_touching):
-    if probe_touching:
-        mask_vals = np.unique(masks)
-        mask_val = np.random.choice(mask_vals[1:])
-        mask_idx = list(mask_vals[1:]).index(mask_val)
-        mask = np.where(masks == mask_val, masks, 0)
-        y, x = np.where(masks == mask_val)
+def get_idxs(masks):
+    mask_vals = np.unique(masks)
+    mask_val = np.random.choice(mask_vals[1:])
+    mask_idx = list(mask_vals[1:]).index(mask_val)
+    mask = np.where(masks == mask_val, masks, 0)
+    y, x = np.where(masks == mask_val)
+    return y, x, mask, mask_val, mask_idx
 
-    else:
+def generate_probe_location(masks, probe_touching):
+    location_found = False
+    if not probe_touching:
         mask_val = 0
         y, x = np.where(masks == 0)
         mask = None
         mask_idx = 0
+        possible_locations = [loc for loc in  zip(x, y)]
 
-    possible_locations = [loc for loc in  zip(x, y)]
-    min_dist = 20
-    border_dist = 20
-    width = masks.shape[0]
+    max_tries = 50
+    tries = 0
+    while not location_found:
+        if probe_touching:
+            y, x, mask, mask_val, mask_idx = get_idxs(masks)
+            possible_locations = [loc for loc in  zip(x, y)]
 
-    np.random.shuffle(possible_locations)
-    for loc in possible_locations:
+        min_dist = 20
+        border_dist = 20
+        width = masks.shape[0]
+
+        loc = possible_locations[np.random.choice(len(possible_locations))]
         overlap = check_overlap(loc, border_dist, min_dist, masks)
-        if not overlap:
+        tries += 1
+        if not overlap or tries > max_tries:
             return [int(l) for l in loc], mask, mask_idx, mask_val
-
-    print("No good point found")
-    loc = possible_locations[np.random.choice(range(len(possible_locations)))]
-    return [int(l) for l in loc], mask, mask_idx, mask_val
 
 def get_probe_location(masks, probe_touching=True):
 
