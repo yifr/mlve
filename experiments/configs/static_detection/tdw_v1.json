@@ -5,7 +5,7 @@
     "S3_ROOT": "https://tdw-scenes.s3.us-east-2.amazonaws.com",
     "db_name": "psychophys",
     "col_name": "tdw_static_detection_bbox_v1",
-    "trial_data": ["tdw_static_detection_v1.json"],  
+    "trial_data": ["tdw_detection_pilot_batch_0.json"],  
     "experiment_trial_type": "plugin-probe-detection-task",     
     "random_seed": 30,
     "num_practice_trials": 5,

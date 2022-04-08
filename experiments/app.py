@@ -172,12 +172,7 @@ def get_trial_data():
         elif "tdw" in s3_root:
             image_url = os.path.join(s3_root, d["image_url"][0][1:])
             d["image_url"] = image_url
-            d["gt_bounding_box"] = d["bounding_box"]
-            del d["bounding_box"]
-
-            # Assign first scene as practice trial
-            if "0009" in d["image_url"]:
-                practice_trial = d
+            print(d["gt_bounding_box"])
 
     seed = config.get("random_seed", np.random.randint(0, 100))
     np.random.seed(seed)
