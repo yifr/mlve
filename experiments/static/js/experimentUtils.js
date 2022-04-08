@@ -74,6 +74,9 @@ function constructExperimentTrials(experimentData, experimentConfig){
 
     var practiceTrial;
     for (var i = 0; i < experimentData.length; i ++) {
+      if (debug) {
+        console.log(experimentData[i]);
+      }
       practiceTrial = (i < numPracticeTrials) ? true : false;
       if (i == numPracticeTrials && numPracticeTrials > 0) {
         trials.push({
@@ -98,7 +101,13 @@ function constructExperimentTrials(experimentData, experimentConfig){
 
       var trialData = experimentData[i];
       var onFinish = function (responseData) {
-        var trial_data = { ...responseData, ...trialData }
+        var trial_data = [trialData, responseData].reduce(function (r, o) {
+          Object.keys(o).forEach(function (k) { r[k] = o[k]; });
+          return r;
+      }, {});
+        if (debug) {
+          console.log(trial_data);
+        }
         sendData(trial_data)
       }
 

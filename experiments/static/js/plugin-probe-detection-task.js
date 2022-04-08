@@ -299,7 +299,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
         if (trial.prompt !== null) {
           display_element.insertAdjacentHTML(
             "beforeend",
-            "<p id='prompt'>" + trial.prompt + "</p>"
+            "<p class='unselectable' unselectable='on' id='prompt'>" + trial.prompt + "</p>"
           );
 
           if (trial.practice_trial) {
@@ -411,13 +411,14 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
         }
         // gather the data to store for the trial
         if (bounding_box_drawn) {
-          var bounding_box = [
+          var subject_bounding_box = [
             [startX, startY],
             [endX, endY],
           ]
         } else {
-          var bounding_box = [];
+          var subject_bounding_box = [];
         }
+
         var trial_data = {
           rt: response.rt,
           stimulus: trial.stimulus,
@@ -425,11 +426,10 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
           correct: (response.button == 0) == trial.probe_touching,
           probe_location: trial.probe_location,
           probe_touching: trial.probe_touching,
-          subject_bounding_box: bounding_box,
+          subject_bounding_box: subject_bounding_box,
+          gt_bounding_box: trial.gt_bounding_box,
         };
-        if (trial.debug) {
-          console.log(trial_data);
-        }
+
         // clear the display
         display_element.innerHTML = "";
         // move on to the next trial
@@ -465,6 +465,7 @@ var jsPsychProbeDetectionTask = (function (jspsych) {
               ctx.beginPath();
               ctx.lineWidth = 5;
               ctx.strokeStyle = "rgba(0, 6, 255, 1)";
+
               var gt_bounding_box = trial.gt_bounding_box;
 
               var gt_x0 = gt_bounding_box[0][0];
