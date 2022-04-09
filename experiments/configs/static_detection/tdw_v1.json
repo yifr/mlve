@@ -7,6 +7,7 @@
     "col_name": "tdw_static_detection_bbox_v1",
     "trial_data": ["tdw_detection_pilot_batch_0.json"],  
     "experiment_trial_type": "plugin-probe-detection-task",     
+    "completion_code": "6713F83E",
     "random_seed": 30,
     "num_practice_trials": 5,
     "instructions": [
