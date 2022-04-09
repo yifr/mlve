@@ -125,9 +125,10 @@ def get_trial_data():
     experiment = data.get("experiment")
     domain = data.get("domain")
     batch = int(data.get("batch"))
-    config = get_config(experiment, domain, batch)
-    db_name = config["db_name"]
-    col_name = config["col_name"]
+
+    config = session["config"]
+    db_name = session["db_name"]
+    col_name = session["col_name"]
 
     session["domain"] = domain
     session["experiment"] = experiment
@@ -214,15 +215,25 @@ def home():
     session_id = request.args.get("SESSION_ID")
     study_id = request.args.get("STUDY_ID")
 
-    db = request.args.get("db")
-    col_name = request.args.get("col")
+    experiment = request.args.get("experiment")
+    domain = request.args.get("domain")
+    batch = int(request.args.get("batch"))
+
+    config = get_config(experiment, domain, batch)
+    db_name = config.get("db_name", "psychophys")
+    col_name = config.get("col_name", "test")
+
+    session["config"] = config
+    session["db_name"] = db_name
+    session["col_name"] = col_name
+
     print("user_id", user_id)
     if not user_id:
         print(f"missing one of user_id: {user_id}, db: {db}, col: {col_name}")
         session["log_results"] = False
     else:
         session["log_results"] = True
-        repeat_user = check_repeat_user(user_id, db, col_name)
+        repeat_user = check_repeat_user(user_id, db_name, col_name)
         if repeat_user:
             return render_template("reject.html")
 
