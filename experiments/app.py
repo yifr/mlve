@@ -19,65 +19,7 @@ MONGO_USER = auth["mongo_user"]
 MONGO_PW = auth["mongo_pw"]
 
 app = Flask(__name__)
-app.secret_key = "secret key"
-
-
-def generate_probe_location(masks, probe_touching):
-    if probe_touching:
-        mask_val = np.random.choice(np.unique(masks))
-        mask = masks == mask_val
-
-        y, x = np.where(mask)
-        possible_locations = [loc for loc in zip(x, y)]
-        probe_idx = np.random.choice(range(len(possible_locations)))
-        loc = possible_locations[probe_idx]
-        return [int(l) for l in loc], mask
-    else:
-        y, x = np.where(masks == 0)
-        y_buffer, x_buffer = np.where(masks)
-        possible_locations = [loc for loc in zip(x, y)]
-        while True:
-            probe_idx = np.random.choice(range(len(possible_locations)))
-            loc = possible_locations[probe_idx]
-
-            # Avoid overlapping edge of probe with shape
-            for y_b, x_b in zip(y_buffer, x_buffer):
-                if (
-                    np.sqrt((loc[1] - y_b) ** 2) < 5
-                    and np.sqrt((loc[0] - x_b) ** 2) < 5
-                ):
-                    return [int(l) for l in loc], None
-
-
-# @app.route("/get_probe_location", methods=["POST"])
-def get_probe_location(
-    experiment_type, masks, batch, scene_index, image_index, randomize_contact=True
-):
-
-    if experiment_type == "detection":
-
-        # Generate probe location
-        if randomize_contact:
-            probe_touching = (
-                np.random.rand() >= 0.5
-            )  # TO-DO Evenly Balance out each experiment?
-        else:
-            probe_touching = True
-
-        probe_location, mask = generate_probe_location(masks, probe_touching)
-        # Compute bounding boxes
-        if mask is not None:
-            mask_y, mask_x = np.where(mask)
-            x_min = int(np.min(mask_x))
-            x_max = int(np.max(mask_x))
-            y_min = int(np.min(mask_y))
-            y_max = int(np.max(mask_y))
-            coords = ((x_min, y_min), (x_max, y_max))
-            bounding_box = coords
-        else:
-            bounding_box = []
-
-        return probe_location, probe_touching, bounding_box
+app.secret_key = "secret key" # what
 
 
 def get_client(db_name):
@@ -112,10 +54,9 @@ def post_data():
     return jsonify({"success": 200})
 
 
-def get_config(experiment, domain, batch):
-    config_path = os.path.join("configs", experiment, domain)
-    config_opts = glob.glob(config_path + "*")
-    config = json.load(open(config_opts[batch], "rb"))
+def get_config(experiment, domain):
+    config_path = os.path.join("configs", experiment, domain + ".json")
+    config = json.load(open(config_path, "rb"))
     return config
 
 
@@ -124,11 +65,11 @@ def get_trial_data():
     data = request.values
     experiment = data.get("experiment")
     domain = data.get("domain")
-    batch = int(data.get("batch"))
 
     config = session["config"]
     db_name = session["db_name"]
     col_name = session["col_name"]
+    batch = get_batch(db_name, experiment, config["n_total_batches"])
 
     session["domain"] = domain
     session["experiment"] = experiment
@@ -138,7 +79,7 @@ def get_trial_data():
     session["db_name"] = db_name
     session["col_name"] = col_name
 
-    trial_data_path = os.path.join("stimuli", config["trial_data"][0])
+    trial_data_path = os.path.join(config["data_path"], config["data_name"] + f"_{batch}.json")
 
     with open(trial_data_path, "rb") as f:
         data = json.load(f)["data"]
@@ -190,12 +131,12 @@ def get_trial_data():
     return jsonify(data)
 
 
-def check_repeat_user(user_id, db, col):
+def check_repeat_user(user_id, db_name, col):
     if user_id in config.ALLOWED_IDS:
         return False
 
-    client = get_client(db)
-    db = client[db]
+    client = get_client(db_name)
+    db = client[db_name]
     col = db[col]
     res = col.find_one({"user_id": user_id})
     if res:
@@ -203,6 +144,19 @@ def check_repeat_user(user_id, db, col):
 
     return False
 
+def get_batch(db_name, experiment_name, total_batches=10):
+    client = get_client(db_name)
+    db = client[db_name]
+    batch_info = db["batch_info"]
+    res = batch_info.find_one({"experiment_name": experiment_name})
+    if not res:
+        batch_hits = [0 for i in range(total_batches)]
+        batch_info.insert_one({"experiment_name": experiment_name, "batch_hits": batch_hits})
+        return 0
+
+    batch_hits = res["batch_hits"]
+    batch = batch_hits.index(min(batch_hits))
+    return batch
 
 @ app.route("/consent.html", methods=["GET"])
 def consent():
@@ -217,9 +171,8 @@ def home():
 
     experiment = request.args.get("experiment")
     domain = request.args.get("domain")
-    batch = int(request.args.get("batch"))
 
-    config = get_config(experiment, domain, batch)
+    config = get_config(experiment, domain)
     db_name = config.get("db_name", "psychophys")
     col_name = config.get("col_name", "test")
 
@@ -229,7 +182,7 @@ def home():
 
     print("user_id", user_id)
     if not user_id:
-        print(f"missing one of user_id: {user_id}, db: {db}, col: {col_name}")
+        print(f"missing user id")
         session["log_results"] = False
     else:
         session["log_results"] = True
