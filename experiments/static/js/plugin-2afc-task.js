@@ -1,4 +1,4 @@
-var jsPsych2AFCResponse = (function (jspsych) {
+var jsPsych2afcResponse = (function (jspsych) {
   'use strict';
 
   const info = {

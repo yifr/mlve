@@ -126,7 +126,7 @@ function constructExperimentTrials(experimentData, experimentConfig){
         } 
       } else if (experimentTrialType == "plugin-2afc-task") {
         var trial = {
-          type: jsPsych2AFCResponse,
+          type: jsPsych2afcResponse,
           stimulus: trialData["image_url"],
           choices: [trialData["gt_shape_url"], trialData["alt_shape_url"]],
           correct_choice: trialData["gt_shape_url"],
