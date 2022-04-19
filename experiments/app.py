@@ -69,7 +69,11 @@ def get_trial_data():
     config = session["config"]
     db_name = session["db_name"]
     col_name = session["col_name"]
-    batch = get_batch(db_name, experiment, config["n_total_batches"])
+    if not session.get("batch"):
+        batch = get_batch(db_name, experiment, config["n_total_batches"])
+    else:
+        batch = session["batch"]
+    print("batch: ", batch)
 
     session["domain"] = domain
     session["experiment"] = experiment
@@ -79,7 +83,7 @@ def get_trial_data():
     session["db_name"] = db_name
     session["col_name"] = col_name
 
-    trial_data_path = os.path.join(config["data_path"], config["data_name"] + f"_{batch}.json")
+    trial_data_path = os.path.join(config["data_path"], config["data_name"] + f"{batch}.json")
 
     with open(trial_data_path, "rb") as f:
         data = json.load(f)["data"]
@@ -156,6 +160,12 @@ def get_batch(db_name, experiment_name, total_batches=10):
 
     batch_hits = res["batch_hits"]
     batch = batch_hits.index(min(batch_hits))
+    batch_hits[batch] += 1
+    if session.get("log_results"):
+        res = batch_info.update_one({"experiment_name": experiment_name}, 
+                                    {"$set": {"batch_hits": batch_hits}}) 
+        print("Updated batch info", res)
+
     return batch
 
 @ app.route("/consent.html", methods=["GET"])
@@ -168,10 +178,11 @@ def home():
     user_id = request.args.get("PROLIFIC_PID")
     session_id = request.args.get("SESSION_ID")
     study_id = request.args.get("STUDY_ID")
-
+    
     experiment = request.args.get("experiment")
     domain = request.args.get("domain")
-
+    batch = request.args.get("batch", None)
+    
     config = get_config(experiment, domain)
     db_name = config.get("db_name", "psychophys")
     col_name = config.get("col_name", "test")
@@ -179,6 +190,7 @@ def home():
     session["config"] = config
     session["db_name"] = db_name
     session["col_name"] = col_name
+    session["batch"] = batch
 
     print("user_id", user_id)
     if not user_id:
