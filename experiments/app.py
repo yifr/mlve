@@ -194,12 +194,6 @@ def home():
 
     print("user_id", user_id)
     if not user_id:
-<<<<<<< Updated upstream
-        print(f"missing user id")
-=======
-        print(
-            f"missing one of user_id: {user_id}, db: {db_name}, col: {col_name}")
->>>>>>> Stashed changes
         session["log_results"] = False
     else:
         session["log_results"] = True
