@@ -1,7 +1,12 @@
 import os
 import sys
-from glob import glob
+import json
+import pickle
 import hashlib
+import numpy as np
+from PIL import Image
+from glob import glob
+from tqdm import tqdm
 
 sys.path.append("../")
 from utils import probes
@@ -15,16 +20,14 @@ def construct_gestalt_trial(root_dir, scene_name):
 
     frame_found = False
     while not frame_found:
-        try:
-            frame_idx = np.random.choice(range(1, 64))
-            mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
-            masks = np.array(Image.open(mask_path).convert("L"))
+        frame_idx = np.random.choice(range(1, 64))
+        mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
+        masks = np.array(Image.open(mask_path).convert("L"))
+        mask_vals = np.unique(masks)
+        if  len(mask_vals) > 1:
             frame_found = True
-        except:
-            continue
 
-    probe_location, bounding_box, mask_idx, mask_val = probes.get_probe_location(masks, probe_touching)
-    print(mask_idx, mask_val)
+    probe_location, bounding_box, mask_idx, mask_val = probes.get_probe_location(masks, probe_touching=True)
 
     obj_shape_data = config_data["objects"][f"h1_{mask_idx}"]["shape_params"]
     obj_scaling_data = config_data["objects"][f"h1_{mask_idx}"]["scaling_params"]
@@ -45,7 +48,9 @@ def construct_gestalt_trial(root_dir, scene_name):
     alt_strhash = alt_hash.hexdigest()
 
     trial_data = {"image_url": scene_name, "frame_idx": int(frame_idx),
+                  "gt_shape_params": [float(x) for x in obj_shape_data],
                   "gt_shape_url": object_strhash,
+                  "alt_shape_params": [float(x) for x in alt_params],
                   "alt_shape_url": alt_strhash,
                   "probe_location": [int(x) for x in probe_location],
                   "gt_bounding_box": bounding_box, # [int(x) for x in bounding_box],
@@ -62,14 +67,27 @@ def construct_gestalt_trial(root_dir, scene_name):
     return trial_data
 
 
-def create_batches(root_dir, n_bins, scenes_per_bin):
+def create_batches(root_dir, scenes_per_bin):
     textures = ["voronoi", "wave", "noise"]
     batches = [[] for i in range(scenes_per_bin)]
     for texture in textures:
         for n_objs in range(1, 5):
             scene_dir = os.path.join(root_dir, "test_" + texture, "superquadric_" + str(n_objs))
             scenes = glob(scene_dir + "/scale*")
-            print(len(scenes))
+            scenes.sort()
+            for scene in tqdm(scenes):
+                path_components = scene.split(root_dir)
+                scene_name = path_components[1][1:]
+                trial_data = construct_gestalt_trial(root_dir, scene_name)
+                batch_idx = int(scene_name[-1])
+                batches[batch_idx].append(trial_data)
 
-create_batches("/om/user/yyf/CommonFate/scenes", 9, 7)
+    for i, batch in enumerate(batches):
+        root_dir = "/home/yyf/mlve/experiments/stimuli/"
+        experiment_name = f"gestalt_static_2afc_batch_{i}.json"
+        print("Writing data to " + root_dir + experiment_name)
+        with open(os.path.join(root_dir, experiment_name), "w") as f:
+            json.dump({"data": batch}, f)
+
+create_batches("/om/user/yyf/CommonFate/scenes", 10)
 

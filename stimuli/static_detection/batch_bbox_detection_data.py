@@ -1,12 +1,16 @@
 import os
-import glob
-import pickle
-import tqdm
+import sys
 import json
-import pandas as pd
-from PIL import Image
-import tdw_dataset
+import pickle
 import numpy as np
+import pandas as pd
+
+from tqdm import tqdm
+from glob import glob
+from PIL import Image
+
+sys.path.append("../")
+import tdw_dataset
 
 def points_in_circle(radius, x0=0, y0=0, ):
     x_ = np.arange(x0 - radius - 1, x0 + radius + 1, dtype=int)
@@ -103,18 +107,22 @@ def construct_tdw_trial(tdw_dataset, tdw_root, scene_idx, probe_touching=False):
 
     return trial_data
 
-def construct_gestalt_trial(root_dir, texture, obj_split, scene_idx, probe_touching=False):
-    scene_path = os.path.join(texture, obj_split, f"scene_{scene_idx:03d}")
-    scene_dir = os.path.join(root_dir, scene_path)
-    print(scene_path)
+def construct_gestalt_trial(root_dir, scene_name, texture, obj_split, scene_idx, probe_touching=False):
+    scene_dir = os.path.join(root_dir, scene_name)
 
-    frame_idx = np.random.choice(range(1, 64))
+    frame_found = False
+    while not frame_found:
+        frame_idx = np.random.choice(range(1, 64))
+        mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
+        masks = np.array(Image.open(mask_path).convert("L"))
+        mask_vals = np.unique(masks)
+        if  len(mask_vals) > 1:
+            frame_found = True
+
     config_file = os.path.join(scene_dir, "scene_config.pkl")
     with open(config_file, "rb") as f:
         config_data = pickle.load(f)
 
-    mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
-    masks = np.array(Image.open(mask_path).convert("L"))
 
     probe_location, bounding_box, mask_idx, mask_val = get_probe_location(masks, probe_touching)
     obj_shape_data = config_data["objects"][f"h1_{mask_idx}"]["shape_params"]
@@ -125,7 +133,7 @@ def construct_gestalt_trial(root_dir, texture, obj_split, scene_idx, probe_touch
     obj_texture_data = config_data["objects"][f"h1_{mask_idx}"]["texture"]
     background_texture_data = config_data["background"]["texture"]
 
-    trial_data = {"image_url": scene_path, "frame_idx": int(frame_idx),
+    trial_data = {"image_url": scene_name, "frame_idx": int(frame_idx),
                   "probe_touching": probe_touching,
                   "probe_location": [int(x) for x in probe_location],
                   "gt_bounding_box": bounding_box, # [int(x) for x in bounding_box],
@@ -149,7 +157,7 @@ def tdw_main():
     dataset = tdw_dataset.TDWDataset(root_dir, training=False)
     ignore_dir = "/om2/user/yyf"
     batch_data = []
-    for i in tqdm.tqdm(range(125)):
+    for i in tqdm(range(125)):
 
         probe_touching = i % 2 == 0
         trial_data = construct_tdw_trial(dataset, ignore_dir,
@@ -164,38 +172,45 @@ def tdw_main():
         json.dump({"data": batch_data}, f)
 
 def gestalt_main():
-    # Generate single batch of 120 images evenly balanced by:
-    # 5 on-target scenes + 5 off-target scenes for splits of texture, number_objects
     root_dir = "/om/user/yyf/CommonFate/scenes"
     textures = ["test_wave", "test_voronoi", "test_noise"]
     obj_splits = [f"superquadric_{i}" for i in range(1, 5)]
-    scenes_per_group = 5
-    batch_data = []
+
+    batches = [[] for i in range(10)]
+    probe_touching = True
     for texture in textures:
         for obj_split in obj_splits:
-            print(texture, obj_split)
-            for i in range(scenes_per_group * 2):
-                if i >= scenes_per_group:
-                    probe_touching = True
-                else:
-                    probe_touching = False
-                trial_data = construct_trial(root_dir, texture, obj_split, i, probe_touching)
-                batch_data.append(trial_data)
+            scene_dir = os.path.join(root_dir, texture, obj_split)
+            scenes = glob(scene_dir + "/scale*")
+            scenes.sort()
+            for i, scene in tqdm(enumerate(scenes)):
+                path_components = scene.split(root_dir)
+                scene_name = path_components[1][1:]
+                if i % 10 == 0:
+                    probe_touching = not probe_touching
 
+                trial_data = construct_gestalt_trial(root_dir, scene_name, texture, obj_split, i, probe_touching)
+                batch_idx = int(scene_name[-1])
+                batches[batch_idx].append(trial_data)
+    """
     for i in range(5):
         if i > 2:
             probe_touching = False
         else:
             probe_touching = True
-        trial_data = construct_trial(root_dir, "test_ground_truth", "superquadric_1", i, probe_touching)
+            scene_name = f"test_ground_truth/superquadric_1/scene_{i:03d}"
+        trial_data = construct_gestalt_trial(root_dir, scene_name, "test_ground_truth", "superquadric_1", i, probe_touching)
         batch_data.append(trial_data)
-
-    df = pd.DataFrame(batch_data)
+    """
+    df = pd.DataFrame(batches[0])
     print(df["probe_touching"].mean())
 
-    df.to_csv("detection_pilot_batch_0.csv")
-    with open("/home/yyf/mlve/experiments/stimuli/detection_pilot_batch_0.json", "w") as f:
-        json.dump({"data": batch_data}, f)
+    for i, batch in enumerate(batches):
+        root_dir = "/home/yyf/mlve/experiments/stimuli/"
+        experiment_name = f"gestalt_static_localization_batch_{i}.json"
+        print("Writing data to " + root_dir + experiment_name)
+        with open(os.path.join(root_dir, experiment_name), "w") as f:
+            json.dump({"data": batch}, f)
 
 if __name__ == "__main__":
-    tdw_main()
+    gestalt_main()
