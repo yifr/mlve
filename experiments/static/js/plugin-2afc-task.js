@@ -1,8 +1,8 @@
-var jsPsychImageButtonResponse = (function (jspsych) {
+var jsPsych2AFCRespose = (function (jspsych) {
   'use strict';
 
   const info = {
-      name: "image-button-response",
+      name: "2afc-task",
       parameters: {
           /** The image to be displayed */
           stimulus: {
@@ -10,17 +10,27 @@ var jsPsychImageButtonResponse = (function (jspsych) {
               pretty_name: "Stimulus",
               default: undefined,
           },
+          probe_location: {
+              type: jspsych.Array,
+              pretty_name: "Probe Location",
+              default: undefined
+          },
+          correct_choice: {
+              type: jspsych.STRING,
+              pretty_name: "Correct Choice",
+              default: undefined
+          },
           /** Set the image height in pixels */
           stimulus_height: {
               type: jspsych.ParameterType.INT,
               pretty_name: "Image height",
-              default: null,
+              default: 512,
           },
           /** Set the image width in pixels */
           stimulus_width: {
               type: jspsych.ParameterType.INT,
               pretty_name: "Image width",
-              default: null,
+              default: 512,
           },
           /** Maintain the aspect ratio after setting width or height */
           maintain_aspect_ratio: {
@@ -122,11 +132,59 @@ var jsPsychImageButtonResponse = (function (jspsych) {
               var img = new Image();
               img.onload = () => {
                   // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
-                  if (!image_drawn) {
-                      getHeightWidth(); // only possible to get width/height after image loads
-                      ctx.drawImage(img, 0, 0, width, height);
-                  }
+                    getHeightWidth(); // only possible to get width/height after image loads
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    function drawProbe(ctx) {
+                        ctx.globalCompositeOperation = 'source-over'
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Draw outer probe on canvas
+                        ctx.beginPath();
+                        var x = parseInt(trial.probe_location[0]);
+                        var y = parseInt(trial.probe_location[1]);
+                        var radius = 12;
+                        var startAngle = 0; // Starting point on circle
+                        var endAngle = 2 * Math.Pi; // End point on circle
+                        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                        ctx.fillStyle = "rgba(70, 50, 100, 0.75)";
+                        ctx.fill();
+
+                        // Draw inner probe on canvas
+                        ctx.beginPath();
+                        var x = parseInt(trial.probe_location[0]);
+                        var y = parseInt(trial.probe_location[1]);
+                        var radius = 4;
+                        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                        ctx.fillStyle = "rgba(255, 6, 0, 1)";
+                        ctx.fill();
+                        return ctx;
+                    }
+
+                    function clearProbe(ctx) {
+                        // Create transparent circle at probe point
+                        var x = parseInt(trial.probe_location[0]);
+                        var y = parseInt(trial.probe_location[1]);
+                        var radius = 12;
+                        ctx.globalCompositeOperation = 'destination-out'
+                        ctx.arc(x, y, radius, 0, Math.PI*2, true);
+                        ctx.fill();
+                    }
+
+                    function flashProbe(ctx){
+                        drawProbe(ctx);
+                        setTimeout(function(){clearProbe(ctx)}, 200);
+                        setTimeout(function(){drawProbe(ctx)}, 400);
+                        setTimeout(function(){clearProbe(ctx)}, 600);
+                        setTimeout(function(){drawProbe(ctx)}, 800);
+                        //setTimeout(drawProbe(ctx), 400);
+                    }
+                    flashProbe(ctx);
+                    
+                    };
+
               };
+
               img.src = trial.stimulus;
               // get/set image height and width - this can only be done after image loads because uses image's naturalWidth/naturalHeight properties
               const getHeightWidth = () => {
@@ -290,11 +348,17 @@ var jsPsychImageButtonResponse = (function (jspsych) {
               // kill any remaining setTimeout handlers
               this.jsPsych.pluginAPI.clearAllTimeouts();
               // gather the data to store for the trial
+              var correct = response.button == trial.correct_choice;
               var trial_data = {
                   rt: response.rt,
                   stimulus: trial.stimulus,
                   response: response.button,
+                  correct: correct,
+                  probe_location: trial.probe_location,
+                  correct_choice: trial.correct_choice,
+                  choices: trial.choices,
               };
+
               // clear the display
               display_element.innerHTML = "";
               // move on to the next trial

@@ -124,6 +124,13 @@ function constructExperimentTrials(experimentData, experimentConfig){
           debug: debug,
           on_finish: onFinish,
         } 
+      } else if (experimentTrialType == "image-button-response") {
+        var trial = {
+          type: jsPsychImageButtonResponse,
+          stimulus: trialData["image_url"],
+          choices: [trialData["gt_shape_url"], trialData["alt_shape_url"]],
+          correct_choice: trialData["gt_shape_url"],
+        }
       } else {
         var trial = {};
         console.log("No trial built for trial type: ", experimentTrialType);
@@ -153,14 +160,16 @@ function setupExperiment() {
         var commentsBlock = {
           type: jsPsychSurveyText,
           preamble:
-            '<p>Thank you for participating in our study.</p><p><strong>Click "Finish" to complete the experiment and receive compensation.</strong> If you have any comments, please let us know in the form below.</p>',
+            `<p>Thank you for participating in our study.</p><p><strong>Click "Finish" to complete the experiment and 
+            receive compensation.</strong> If you have any comments, please let us know in the form below.</p>`,
           questions: [{ prompt: "Do you have any comments to share with us?" }],
           button_label: "Finish",
           on_finish: function (comments) {
             sendData(comments);
             document.body.innerHTML =
-              "<p> Please wait. You will be redirected back to Prolific in a few moments.</p> If not, please use the following completion code to ensure \
-              compensation for this study: " + response["completion_code"];
+              `<p> Please wait. You will be redirected back to Prolific in a few moments.
+              </p> If not, please use the following completion code to ensure \
+              compensation for this study: ` + response["completion_code"];
             setTimeout(function () {
               location.href =
                 "https://app.prolific.co/submissions/complete?cc=" + response["completion_code"]  // add correct completion code
