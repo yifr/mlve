@@ -131,59 +131,58 @@ var jsPsych2afcResponse = (function (jspsych) {
               var ctx = canvas.getContext("2d");
               var img = new Image();
               img.onload = () => {
-                  // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
-                    getHeightWidth(); // only possible to get width/height after image loads
+                // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
+                getHeightWidth(); // only possible to get width/height after image loads
+                ctx.drawImage(img, 0, 0, width, height);
+
+                function drawProbe(ctx) {
+                    ctx.globalCompositeOperation = 'source-over'
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    function drawProbe(ctx) {
-                        ctx.globalCompositeOperation = 'source-over'
-                        ctx.drawImage(img, 0, 0, width, height);
+                    // Draw outer probe on canvas
+                    ctx.beginPath();
+                    var x = parseInt(trial.probe_location[0]);
+                    var y = parseInt(trial.probe_location[1]);
+                    var radius = 12;
+                    var startAngle = 0; // Starting point on circle
+                    var endAngle = 2 * Math.Pi; // End point on circle
+                    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                    ctx.fillStyle = "rgba(70, 50, 100, 0.75)";
+                    ctx.fill();
 
-                        // Draw outer probe on canvas
-                        ctx.beginPath();
-                        var x = parseInt(trial.probe_location[0]);
-                        var y = parseInt(trial.probe_location[1]);
-                        var radius = 12;
-                        var startAngle = 0; // Starting point on circle
-                        var endAngle = 2 * Math.Pi; // End point on circle
-                        ctx.arc(x, y, radius, 0, 2 * Math.PI);
-                        ctx.fillStyle = "rgba(70, 50, 100, 0.75)";
-                        ctx.fill();
+                    // Draw inner probe on canvas
+                    ctx.beginPath();
+                    var x = parseInt(trial.probe_location[0]);
+                    var y = parseInt(trial.probe_location[1]);
+                    var radius = 4;
+                    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                    ctx.fillStyle = "rgba(255, 6, 0, 1)";
+                    ctx.fill();
+                    return ctx;
+                }
 
-                        // Draw inner probe on canvas
-                        ctx.beginPath();
-                        var x = parseInt(trial.probe_location[0]);
-                        var y = parseInt(trial.probe_location[1]);
-                        var radius = 4;
-                        ctx.arc(x, y, radius, 0, 2 * Math.PI);
-                        ctx.fillStyle = "rgba(255, 6, 0, 1)";
-                        ctx.fill();
-                        return ctx;
-                    }
+                function clearProbe(ctx) {
+                    // Create transparent circle at probe point
+                    var x = parseInt(trial.probe_location[0]);
+                    var y = parseInt(trial.probe_location[1]);
+                    var radius = 12;
+                    ctx.globalCompositeOperation = 'destination-out'
+                    ctx.arc(x, y, radius, 0, Math.PI*2, true);
+                    ctx.fill();
+                }
 
-                    function clearProbe(ctx) {
-                        // Create transparent circle at probe point
-                        var x = parseInt(trial.probe_location[0]);
-                        var y = parseInt(trial.probe_location[1]);
-                        var radius = 12;
-                        ctx.globalCompositeOperation = 'destination-out'
-                        ctx.arc(x, y, radius, 0, Math.PI*2, true);
-                        ctx.fill();
-                    }
-
-                    function flashProbe(ctx){
-                        drawProbe(ctx);
-                        setTimeout(function(){clearProbe(ctx)}, 200);
-                        setTimeout(function(){drawProbe(ctx)}, 400);
-                        setTimeout(function(){clearProbe(ctx)}, 600);
-                        setTimeout(function(){drawProbe(ctx)}, 800);
-                        //setTimeout(drawProbe(ctx), 400);
-                    }
-                    flashProbe(ctx);
-                    
-                    };
-
-              };
+                function flashProbe(ctx){
+                    drawProbe(ctx);
+                    setTimeout(function(){clearProbe(ctx)}, 200);
+                    setTimeout(function(){drawProbe(ctx)}, 400);
+                    setTimeout(function(){clearProbe(ctx)}, 600);
+                    setTimeout(function(){drawProbe(ctx)}, 800);
+                    //setTimeout(drawProbe(ctx), 400);
+                }
+                
+                flashProbe(ctx);      
+            };
+            
 
               img.src = trial.stimulus;
               // get/set image height and width - this can only be done after image loads because uses image's naturalWidth/naturalHeight properties
