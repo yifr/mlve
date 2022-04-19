@@ -37,21 +37,16 @@ def construct_gestalt_trial(root_dir, scene_name):
     obj_texture_data = config_data["objects"][f"h1_{mask_idx}"]["texture"]
     background_texture_data = config_data["background"]["texture"]
 
-    object_key = f"{obj_type_data}_{obj_shape_data[0]}_{obj_shape_data[1]}".encode("utf-8")
-    object_hash = hashlib.sha256(object_key)
-    object_strhash = object_hash.hexdigest()
+    object_key = f"{obj_type_data}_{obj_shape_data[0]:.03f}_{obj_shape_data[1]:.03f}"
 
     # TODO: Sample with graded difficulty
-    alt_params = np.random.uniform(0.1, 4., 2)
-    alt_key = f"{obj_type_data}_{alt_params[0]}_{alt_params[1]}".encode("utf-8")
-    alt_hash = hashlib.sha256(alt_key)
-    alt_strhash = alt_hash.hexdigest()
+    alt_opts = glob("/om/user/yyf/CommonFate/media/2-afc/*")
+    alt_key = np.random.choice(alt_opts)[:-4]
 
     trial_data = {"image_url": scene_name, "frame_idx": int(frame_idx),
                   "gt_shape_params": [float(x) for x in obj_shape_data],
-                  "gt_shape_url": object_strhash,
-                  "alt_shape_params": [float(x) for x in alt_params],
-                  "alt_shape_url": alt_strhash,
+                  "gt_shape_url": object_key,
+                  "alt_shape_url": alt_key,
                   "probe_location": [int(x) for x in probe_location],
                   "gt_bounding_box": bounding_box, # [int(x) for x in bounding_box],
                   "mask_idx": int(mask_idx),
