@@ -1,8 +1,8 @@
-var jsPsych2AFCRespose = (function (jspsych) {
+var jsPsych2AFCResponse = (function (jspsych) {
   'use strict';
 
   const info = {
-      name: "2afc-task",
+      name: "plugin-2afc-task",
       parameters: {
           /** The image to be displayed */
           stimulus: {

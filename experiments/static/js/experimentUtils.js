@@ -124,9 +124,9 @@ function constructExperimentTrials(experimentData, experimentConfig){
           debug: debug,
           on_finish: onFinish,
         } 
-      } else if (experimentTrialType == "image-button-response") {
+      } else if (experimentTrialType == "plugin-2afc-task") {
         var trial = {
-          type: jsPsychImageButtonResponse,
+          type: jsPsych2AFCResponse,
           stimulus: trialData["image_url"],
           choices: [trialData["gt_shape_url"], trialData["alt_shape_url"]],
           correct_choice: trialData["gt_shape_url"],
