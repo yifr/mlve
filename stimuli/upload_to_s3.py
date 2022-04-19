@@ -63,9 +63,11 @@ def tdw_main():
 def main():
     bucket = "gestalt-scenes"
     upload_ground_truth = False
+    upload_2afc = True
+
     s3 = get_client()
     b = create_bucket(s3, bucket)
-    root_path = "/om/user/yyf/CommonFate/scenes"
+    root_path = "/om/user/yyf/CommonFate/"
     overwrite = True
 
     if upload_ground_truth:
@@ -80,6 +82,17 @@ def main():
                 print(target)
                 s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
                 s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
+
+    elif upload_2afc:
+        data_path = root_path + "/media/2-afc/*"
+        for file_path in tqdm(glob(data_path)):
+            target = file_path.split(root_path)[1][1:]
+            if check_exists(s3, bucket, target) and not overwrite:
+                print(target + " exists. Skipping")
+                continue
+
+            s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
+            s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
     else:
         data_path = root_path + "/test_*/**/*/images/*" # Upload everything else
         for file_path in tqdm(glob(data_path)):
@@ -93,8 +106,8 @@ def main():
                 # print(target)
 
     # target = "detection_pilot_batch_0.csv"
-    s3.Object(bucket, target).put(Body=open(target, "rb"))
-    s3.Object(bucket, target).Acl().put(ACL="public-read")
+    # s3.Object(bucket, target).put(Body=open(target, "rb"))
+    # s3.Object(bucket, target).Acl().put(ACL="public-read")
 
 if __name__=="__main__":
     main()
