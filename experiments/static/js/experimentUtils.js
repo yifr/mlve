@@ -103,8 +103,9 @@ function constructExperimentTrials(experimentData, experimentConfig){
       var onFinish = function (responseData) {
         var trial_data = [trialData, responseData].reduce(function (r, o) {
           Object.keys(o).forEach(function (k) { r[k] = o[k]; });
-          return r;
-      }, {});
+              return r;
+          }, {});
+          
         if (debug) {
           console.log(trial_data);
         }
@@ -155,15 +156,15 @@ function setupExperiment() {
             '<p>Thank you for participating in our study.</p><p><strong>Click "Finish" to complete the experiment and receive compensation.</strong> If you have any comments, please let us know in the form below.</p>',
           questions: [{ prompt: "Do you have any comments to share with us?" }],
           button_label: "Finish",
-          on_finish: function () {
+          on_finish: function (comments) {
+            sendData(comments);
             document.body.innerHTML =
               "<p> Please wait. You will be redirected back to Prolific in a few moments.</p> If not, please use the following completion code to ensure \
-              compensation for this study: " + response["completionCode"];
+              compensation for this study: " + response["completion_code"];
             setTimeout(function () {
               location.href =
-                "https://app.prolific.co/submissions/complete?cc=" + response["completionCode"]  // add correct completion code
+                "https://app.prolific.co/submissions/complete?cc=" + response["completion_code"]  // add correct completion code
             }, 500);
-            sendData();
           },
         }
         trials.push(commentsBlock);

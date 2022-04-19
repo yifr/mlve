@@ -8,6 +8,7 @@
     "experiment_trial_type": "plugin-probe-detection-task",
     "trial_data": ["gestalt_static_detection_v1.json"],       
     "random_seed": null,
+    "completion_code": "6713F83E",
     "num_practice_trials": 3,
     "instructions": [
         "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
