@@ -132,7 +132,7 @@ function constructExperimentTrials(experimentData, experimentConfig){
           choices: [trialData["gt_shape_url"], trialData["alt_shape_url"]],
           probe_location: trialData["probe_location"],
           correct_choice: trialData["gt_shape_url"],
-          button_html: "<img height='128px' width='128px' src=%choice></img>"
+          button_html: "<img height='128px' width='128px' src=%choice%></img>"
         }
       } else {
         var trial = {};
