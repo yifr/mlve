@@ -130,6 +130,8 @@ var jsPsych2afcResponse = (function (jspsych) {
               canvas.style.padding = "0";
               var ctx = canvas.getContext("2d");
               var img = new Image();
+              
+              img.src = trial.stimulus;
               img.onload = () => {
                 // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
                 getHeightWidth(); // only possible to get width/height after image loads
@@ -183,8 +185,6 @@ var jsPsych2afcResponse = (function (jspsych) {
                 flashProbe(ctx);      
             };
             
-
-              img.src = trial.stimulus;
               // get/set image height and width - this can only be done after image loads because uses image's naturalWidth/naturalHeight properties
               const getHeightWidth = () => {
                   if (trial.stimulus_height !== null) {
