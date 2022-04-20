@@ -155,8 +155,10 @@ def get_batch(db_name, experiment_name, total_batches=10):
     res = batch_info.find_one({"experiment_name": experiment_name})
     if not res:
         batch_hits = [0 for i in range(total_batches)]
+        batch = 0
+        batch_hits[batch] = 1
         batch_info.insert_one({"experiment_name": experiment_name, "batch_hits": batch_hits})
-        return 0
+        return batch
 
     batch_hits = res["batch_hits"]
     batch = batch_hits.index(min(batch_hits))
