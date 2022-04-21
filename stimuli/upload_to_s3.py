@@ -68,7 +68,7 @@ def main():
     s3 = get_client()
     b = create_bucket(s3, bucket)
     root_path = "/om/user/yyf/CommonFate/"
-    overwrite = True
+    overwrite = False
 
     if upload_ground_truth:
         data_path = root_path + "/test_ground_truth/superquadric_1/*/*/*" # Upload PNGs
