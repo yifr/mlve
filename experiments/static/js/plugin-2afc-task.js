@@ -97,6 +97,11 @@ var jsPsych2afcResponse = (function (jspsych) {
               pretty_name: "Render on canvas",
               default: true,
           },
+          debug: {
+              type: jspsych.ParameterType.BOOL,
+              pretty_name: "Debug",
+              default: false,
+          }
       },
   };
   /**
@@ -114,6 +119,9 @@ var jsPsych2afcResponse = (function (jspsych) {
       trial(display_element, trial) {
           var height, width;
           var html;
+          if (trial.debug) {
+            console.log("Correct Answer: " + correct_choice);
+          }
           if (trial.render_on_canvas) {
               var image_drawn = false;
               // first clear the display element (because the render_on_canvas method appends to display_element instead of overwriting it with .innerHTML)
@@ -130,7 +138,7 @@ var jsPsych2afcResponse = (function (jspsych) {
               canvas.style.padding = "0";
               var ctx = canvas.getContext("2d");
               var img = new Image();
-              
+
               img.src = trial.stimulus;
               img.onload = () => {
                 // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
