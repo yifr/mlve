@@ -44,6 +44,13 @@ def create_bucket(client, bucket):
     return b
 
 def upload(client, bucket, s3_path, file_path, overwrite=False):
+    """
+    Params:
+        client: client connected to s3 account
+        bucket: str: bucket name
+        s3_path: str: path that the file will live at on s3
+        file_path: str: path to the file in local storage
+    """
     if check_exists(client, bucket, s3_path) and not overwrite:
         print(s3_path + " exists on s3. Skipping")
         return
