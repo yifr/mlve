@@ -1,18 +1,25 @@
-import boto3
-from botocore.exceptions import ClientError
-from tqdm import tqdm
 import os
-from glob import glob
-import logging
 import sys
-sys.path.append("/home/yyf/.aws/")
-import credentials
-import tdw_dataset
+import json
+import boto3
+import logging
+from tqdm import tqdm
+from glob import glob
+from botocore.exceptions import ClientError
+
+try:
+    import tdw_dataset
+except:
+    print("tdw_dataset.py not found")
+
+credential_path = "/home/yyf/.aws/credentials.json"
+
+credentials = json.load(open(credential_path, "r"))
 
 def get_client():
         s3 = boto3.resource(service_name="s3",
-                      aws_access_key_id=credentials.aws_access_key_id,
-                      aws_secret_access_key=credentials.aws_secret_access_key)
+                      aws_access_key_id=credentials.get("aws_access_key_id"),
+                      aws_secret_access_key=credentials.get("aws_secret_access_key"))
         return s3
 
 
