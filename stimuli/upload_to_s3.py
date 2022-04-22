@@ -7,11 +7,7 @@ from tqdm import tqdm
 from glob import glob
 from botocore.exceptions import ClientError
 
-try:
-    import tdw_dataset
-except:
-    print("tdw_dataset.py not found")
-
+# import tdw_dataset
 credential_path = "/home/yyf/.aws/credentials.json"
 
 credentials = json.load(open(credential_path, "r"))
