@@ -107,7 +107,7 @@ def construct_tdw_trial(tdw_dataset, tdw_root, scene_idx, probe_touching=False):
 
     return trial_data
 
-def construct_gestalt_trial(root_dir, scene_name, texture, obj_split, scene_idx, probe_touching=False):
+def construct_gestalt_trial(root_dir, s3_path, scene_name, probe_touching=False, image_dir="images"):
     scene_dir = os.path.join(root_dir, scene_name)
 
     frame_found = False
@@ -133,7 +133,8 @@ def construct_gestalt_trial(root_dir, scene_name, texture, obj_split, scene_idx,
     obj_texture_data = config_data["objects"][f"h1_{mask_idx}"]["texture"]
     background_texture_data = config_data["background"]["texture"]
 
-    trial_data = {"image_url": scene_name, "frame_idx": int(frame_idx),
+    image_url = os.path.join(s3_path, scene_name, image_dir, f"Image{frame_idx:04d}.png")
+    trial_data = {"image_url": image_url,
                   "probe_touching": probe_touching,
                   "probe_location": [int(x) for x in probe_location],
                   "gt_bounding_box": bounding_box, # [int(x) for x in bounding_box],
@@ -173,8 +174,13 @@ def tdw_main():
 
 def gestalt_main():
     root_dir = "/om/user/yyf/CommonFate/scenes"
+    s3_path = "https://gestalt-scenes.s3.us-east-2.amazonaws.com"
     textures = ["test_wave", "test_voronoi", "test_noise"]
     obj_splits = [f"superquadric_{i}" for i in range(1, 5)]
+    proj_name = "psychophys"
+    exp_name = "gestalt_static_localization"
+    iter_name = "v1"
+    completion_code = "6713F83E"
 
     batches = [[] for i in range(10)]
     probe_touching = True
@@ -189,28 +195,53 @@ def gestalt_main():
                 if i % 10 == 0:
                     probe_touching = not probe_touching
 
-                trial_data = construct_gestalt_trial(root_dir, scene_name, texture, obj_split, i, probe_touching)
+                trial_data = construct_gestalt_trial(root_dir, s3_path, scene_name, probe_touching)
+                trial_data["texture"] = texture
+                trial_data["n_objs"] = obj_split.split("_")[-1]
+                trial_data["trial_type"] = "test"
                 batch_idx = int(scene_name[-1])
                 batches[batch_idx].append(trial_data)
-    """
-    for i in range(5):
-        if i > 2:
-            probe_touching = False
-        else:
-            probe_touching = True
-            scene_name = f"test_ground_truth/superquadric_1/scene_{i:03d}"
-        trial_data = construct_gestalt_trial(root_dir, scene_name, "test_ground_truth", "superquadric_1", i, probe_touching)
-        batch_data.append(trial_data)
-    """
-    df = pd.DataFrame(batches[0])
-    print(df["probe_touching"].mean())
+
+    # Add attention checks
+    for batch in batches:
+        for i in range(10):
+            probe_touching = np.random.rand() >= 0.5
+            scene_name = f"test_ground_truth/superquadric_1/scene_{i:03d}/"
+
+            trial_data = construct_gestalt_trial(root_dir, s3_path, scene_name,
+                                                 probe_touching, image_dir="shaded")
+            trial_data["trial_type"] = "attention_check"
+            batch.append(trial_data)
+
+    # Add familiarization trials
+    familiarization_trials = []
+    for texture in ["train_noise", "train_voronoi", "train_wave"]:
+        for i in range(2):
+            obj_split = np.random.choice([1, 2, 3, 4])
+            scene_name = os.path.join(texture, f"superquadric_{obj_split}", f"scene_{i:03d}")
+            probe_touching = i % 2 == 0
+            trial_data = construct_gestalt_trial(root_dir, s3_path, scene_name, probe_touching)
+            trial_data["trial_type"] = "practice"
+            familiarization_trials.append(trial_data)
+
+
+    metadata = {"proj_name": proj_name,
+                "exp_name": exp_name,
+                "iter_name": iter_name,
+                "completion_code": completion_code}
 
     for i, batch in enumerate(batches):
         root_dir = "/home/yyf/mlve/experiments/stimuli/"
+        data = {
+            "metadata": metadata,
+            "trials": batch,
+            "familiarization_trials": familiarization_trials
+        }
+
         experiment_name = f"gestalt_static_localization_batch_{i}.json"
         print("Writing data to " + root_dir + experiment_name)
         with open(os.path.join(root_dir, experiment_name), "w") as f:
-            json.dump({"data": batch}, f)
+            json.dump({"data": data}, f)
 
 if __name__ == "__main__":
     gestalt_main()

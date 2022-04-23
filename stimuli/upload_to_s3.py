@@ -71,7 +71,7 @@ def tdw_main():
         upload(s3, bucket, s3_path, file_path)
 
 def main():
-    bucket = "gestalt-scenes"
+    bucket = "gestalt-scenes-test"
     upload_ground_truth = False
     upload_2afc = True
 
