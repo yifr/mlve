@@ -209,7 +209,7 @@ def gestalt_main():
             scene_name = f"test_ground_truth/superquadric_1/scene_{i:03d}/"
 
             trial_data = construct_gestalt_trial(root_dir, s3_path, scene_name,
-                                                 probe_touching, image_dir="shaded")
+                                                 probe_touching, image_dir="images")
             trial_data["trial_type"] = "attention_check"
             batch.append(trial_data)
 
@@ -217,8 +217,7 @@ def gestalt_main():
     familiarization_trials = []
     for texture in ["train_noise", "train_voronoi", "train_wave"]:
         for i in range(2):
-            obj_split = np.random.choice([1, 2, 3, 4])
-            scene_name = os.path.join(texture, f"superquadric_{obj_split}", f"scene_{i:03d}")
+            scene_name = os.path.join(texture, f"superquadric_{i + 1}", f"scene_{i:03d}")
             probe_touching = i % 2 == 0
             trial_data = construct_gestalt_trial(root_dir, s3_path, scene_name, probe_touching)
             trial_data["trial_type"] = "practice"

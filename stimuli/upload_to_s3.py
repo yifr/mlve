@@ -71,25 +71,39 @@ def tdw_main():
         upload(s3, bucket, s3_path, file_path)
 
 def main():
-    bucket = "gestalt-scenes-test"
-    upload_ground_truth = False
-    upload_2afc = True
+    bucket = "gestalt-scenes"
+    upload_ground_truth = True
+    upload_2afc = False
+    upload_train = False
 
     s3 = get_client()
     b = create_bucket(s3, bucket)
-    root_path = "/om/user/yyf/CommonFate/"
+    root_path = "/om/user/yyf/CommonFate/scenes/"
     overwrite = False
 
+    if upload_train:
+        for texture in ["train_noise", "train_voronoi", "train_wave"]:
+            for obj_split in [f"superquadric_{i}" for i in range(1, 5)]:
+                for i in range(2):
+                    scene = os.path.join(root_path, texture, obj_split, f"scene_{i:03d}")
+                    for file_path in tqdm(glob(scene + "/images/*.png")):
+                        target = file_path.split(root_path)[1]
+                        if check_exists(s3, bucket, target) and not overwrite:
+                            print(target + " exists. Skipping")
+                            continue
+
+                        s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
+                        s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
+
     if upload_ground_truth:
-        data_path = root_path + "/test_ground_truth/superquadric_1/*/*/*" # Upload PNGs
+        data_path = root_path + "test_ground_truth/superquadric_1/*/*/*" # Upload PNGs
         for file_path in tqdm(glob(data_path)):
-            if "shaded" in file_path or "masks" in file_path:
-                target = file_path.split(root_path)[1][1:]
+            if "shaded" in file_path or "images" in file_path:
+                target = file_path.split(root_path)[1]
                 if check_exists(s3, bucket, target) and not overwrite:
                     print(target + " exists. Skipping")
                     continue
 
-                print(target)
                 s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
                 s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
 
