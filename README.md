@@ -1,132 +1,168 @@
-## MLVE (Mid-level visual (psychophysics) experiments)
+# Cognitive-AI Benchmarking (CAB)
+Project Template for Implementing Human Behavioral Experiments
 
-This repository is the official implementation for the Mid-level visual experiments.
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-8-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-It contains the following key subdirectories:
+1. [Overview](#overview)
+2. [Installation](#installation)
+3. [Implementing your experiment](#implementing-your-experiment)
+4. [Contributors](#contributors)
 
-- `analysis`: This contains Jupyter notebooks containing analysis of the human experiments. These are annotated with visualizer links for viewing the notebook HTMLs directly from the browser.
-- `experiments`: This contains the human experiment code. See below (human experiments) for details on developing and running experiments.
-- `model`: This will contain the model.
-- `results`: This contains CSV results with the raw, cleaned, deanonymized data from human experiments. These are generated automatically by running `download_mongo_result.py`.
-- `stimuli`: This does not contain our stimuli. The drawing stimuli are generated at a separate repo, [here](https://github.com/yifr/CommonFate).
-- `utils`: This contains helper functions for loading from the databases.
+-----
+# Overview
 
----
+The purpose of this repo is to provide a starting point for researchers planning to conduct a Cognitive-AI Benchmarking (CAB) project. 
+A CAB project will typically combine three elements: (1) stimulus generation; (2) human behavioral experiments; (3) analysis of behavioral data and comparison to model outputs. 
 
-### Human experiments
+The examples here are adapted from the [Physion project](https://github.com/cogtoolslab/physics-benchmarking-neurips2021).
 
-The `experiments` subdirectory contains the full implementation for our human experiments.
-The human experiments setup has been tested on Node version: v10.16.3 and npm version: 6.14.5
+## Repo organization
+It contains several subdirectories that will contain standard components of the human behavioral experimental infrastructure that will support a variety of Cognitive-AI Benchmarking projects.
 
-### Developing a new human experiment.
+**TODO: Update this**
+- `analysis` (aka `notebooks`): This directory will typically contain jupyter/Rmd notebooks for exploratory code development and data analysis.
+- `experiments`: If this is a project that will involve collecting human behavioral data, this is where you want to put your experimental code. If this is a project that will involve evaluation of a computational model's behavior on a task, this is also where you want to put the task code.
+- `results`: This directory is meant to contain "intermediate" results of your computational/behavioral experiments. It should minimally contain two subdirectories: `csv` and `plots`. So `/results/csv/` is the path to use when saving out `csv` files containing tidy dataframes. And `/results/plots/` is the path to use when saving out `.pdf`/`.png` plots, a small number of which may be then polished and formatted for figures in a publication. *Important: Before pushing any csv files containing human behavioral data to a public code repository, triple check that these data files are properly anonymized. This means no bare AMT Worker ID's.* It is generally recommended that "raw" behavioral data be stored in a database rather than as part of this repo.
+- `stimuli`: This directory is meant to contain any download/preprocessing scripts for data that are _inputs_ to this project. For many projects, these will be images. This is also where you want to place any scripts that will upload your data to our `stimuli`  MongoDB database and any image data to Amazon S3 (so that it has a semi-permanent URL you can use to insert into your web experiment.) This is also where the scripts that determine the order the images or videos are presented in the experiment are located.
 
-The MLVE repository uses a modular, config-based setup to quickly set up and reproduce individual human experiments.
-This section describes how to develop a new human experiment.
+## Different ways to use this repo
 
-1. _Write an experiment config._ Experiment configs contain the full information to launch an experiment, and determine the live URL for a running experiment. Experiment configs are housed at `experiments/{experiment_Group}/configs/{configId}` (e.g `experiments/static_segmentation/configs` contains all of the configs for static segmentation experiments in both domains. An experiment config generally contains the following parameters (aside from the obvious name and metadata:):
+The examples in this repo have been organized in a modular fashion: you can either use  the entire stack or mix and match components of this stack with other tools if you prefer.
 
-```
-{
-  "config_name": "CONFIG_NAME",
-  "metadata": {
-    "human_readable": "HUMAN READABLE EXPERIMENT DESCRIPTION."
-  },
-  "dbname": "lax",  // MongoDB collection name.
-  "colname": "prepost-language-production_lax-drawing-s14-s15-union-all-categorization", // MongoDB table name.
-  "domain": "drawing", // ['towers' or 'drawing']
-  "experiment_type": "prepost_language_production",
-  "experiment_parameters": {
-    "conditions": ["condition_s14", "condition_s15"], // Subjects will be randomly assigned a condition. Use ["all"] for one condition.
-    "stimuli_batch_size": "all", // Batch size of stimuli to sample at each trial block, or 'all' to use all in that block.
-    "stimuli_shuffle_seed": 0, // Random seed for shuffling the stimuli ordering.
-    "s3_bucket": "lax-drawing-s14-s15-union-all", // S3 bucket containing stimuli.
-    "s3_stimuli_path_format": "lax-drawing-s14-s15-union-all-000.png", // Sample path format.
-    "s3_bucket_total_stimuli": 296 // Total stimuli in bucket if we load ALL.
-  },
+- Level 1: Example client-side JavaScript code for prototyping tasks quickly. Check out this [README](OCP_local/README.md).
+- Level 2: Everything in Level 1, plus integration with node.js server for hosting your experiment and writing data to file without a database. See section entitled `Launch your experiment on a web server` below (see `app.js --local_storage`).
+- Level 3: Everything in Level 2, plus integration with an already running mongodb server (`app.js`).
 
-  // List of experiment trial parameters that configure JSPsych timeline. The trial`type` must correspond to a valid type defined in experimentUtils.js. All other parameters are defined and handled within experimentUtils.js, specific to that trila type.
-  // Experiment trial types are handled differently in experimentUtils.js depending on the config `domain` parameter.
- // We currently support the following: [instructions, stimuli-language-production, and stimuli-production]
-  "experiment_trial_parameters": [
-    {
-      "type": "instructions", \\ Currently supports
-      "pages": [
-        "<p>Sample instructions."
-      ]
-    },
-    {
-      "type": "stimuli-language-production",
-      "label_prompt": "This image looks like...",
-      \\ Stimuli determines which stimuli to generate trials for in each condition. List of IDs into the S3 bucket or "all" to use all the stimuli in the S3 bucket (which can be optionally batched per subject.
-      "stimuli": {
-        "condition_s14": [18, 20, 22, 69, 118, 120, 122],
-        "condition_s15": [18, 20, 22, 69, 118, 120, 122]
-      }
-    },
-    {
-      "type": "stimuli-production",
-      "label_prompt": "Please draw the image into the sketchpad with a blue border.",
-      "stimuli": {
-        "condition_s14": [0, 1, 2, 3],
-        "condition_s15": [224, 225, 226]
-      }
-    },
-  ],
-  "development_flags": {}
-}
-```
+## The central concepts in this repo
 
-3. _Modify experimentSetup.js and/or experimentUtils.js with trial-type plug-in specific logic._: Most experiment-specific changes can be made simply by changing an experiment config. However, developing any actual new trial UI (such as a new stimuli production input for a new domain) requires modifying the actual experiment setup logic. The majority of this is handled by the utilities file in `lax/experiments/static/js/lax_shared/experimentUtils.js`. Specifically, the `constructExperimentTrialsForParameters` function contains trial-type-specific handlers for each possible trial in a config.
-   These files also automatically handle and prepend default experimental information (including a consent and exit survey.)
+When working on a project, you will oftentimes run many different experiments that are related to each other. We propose a way of thinking about these related experiments that makes keeping track of them easy.
 
-### Launching a human experiment.
+At the top of the hierarchy is the **project**—for example *Physion*. This corresponds to a repository.
 
-1. If this is a new server, you'll need to clone the repo and install node packages with node and npm.
+There are **datasets**—for example one particular scenario from the Physion dataset, eg. *dominoes*.
+
+The questions that we might ask of these datasets might change: we might ask whether people can predict the outcome a physical interaction (Object Contact Prediction Task, OCP) or whether they find the same video interest. This is what we call a **task**.
+Each task will usually have a different client front end in the `experiments/[task]` directory.
+
+A particular **experiment** is a combination of a dataset and a task. For example, in this repository we show the `dominoes_OCP`. The convention for naming experiments is to use the dataset name followed by a _ followed by the task name.
+Which stimuli are passed to a task are usually determined by an URL parameter when the experiment is loaded in the user's browser.
+
+For each experiment, there are small changes that the researcher might make, for example showing the videos for longer. These different versions of an experiment are called **iterations**. 
+
+| Concept | Example | Correspondence | 
+| --- | --- | --- |
+| **project** | Physion | Repository, name of database (`[proj]_stims`,[proj]_resp`) |
+| **dataset** | dominoes | *lives somewhere else* |
+| **task** | OCP | subfolders of `experiments/` |
+| **experiment** | dominoes_OCP | collection in `[proj]_stims` and `[proj]_resp` database |
+| **iteration** | iteration_1 | field of record in database |
+
+## Database organization
+
+A mongoDB instance is ran by an organization (ie. your lab). 
+For each project, there are two databases: `[proj]_stims` and `[proj]_resp`. 
+In the `[proj]_stims` database (for stimuli, what is shown to the user), each collection determines a set of stimuli in a certain order that can be shown to a user ("sesion template"). 
+While running an experiment, this database will only be read from.
+
+The data that is collected during an experiment goes into the `[proj]_resp` database (for responses, which we get from the user).
+There, each document corresponds to a single event that we care about, such as the user giving a single rating to a single video. Each document contains field that allow us to group it into experiments and iterations, etc.
+While running an experiment, this database will only be written into.
+
+# Installation
+
+## Configuration
+
+To configure your environment for using CAB, you will need to create a config file called `.cabconfig`. 
+The purpose of this file is to define variables that apply to all of your CAB projects (e.g., username and password to access the mongo database).
+By default, this config file should be saved as a hidden file in your home directory, with file path `HOME/.cabconfig`.
+If you want to store this file in a different location, you can specify the path by setting the enviroment variable `CAB_CONFIGFILE` to the desired path.
+
+Here is an example of a `.cabconfig` file, which follows the [INI](https://en.wikipedia.org/wiki/INI_file) file format.
 
 ```
-cd experiments
-npm install
+[DB]
+password=mypassword #required
+username=myusername #optional, default if unspecified is "cabUser"
+host=myhost #optional, default if unspecified is 127.0.0.1
+port=myport #optional, default if unspecified is 27017
 ```
+## Client-side tools
+- [jsPsych](https://www.jspsych.org/7.2/)
 
-2. Configure the database. We currently support writing to a local MongoDB and a cloud-based MongoDB (owned by the MIT group - ask Yoni Friedman for credentials.) You can toggle which one we write to in `experiments/store.js` by setting the `USEMONGOCLOUD` flag (currently this writes to the cloud DB by default.) Actually writing to this database requires a valid auth file in `experiments/auth.js`; credentials for the CloudDB can be obtained from the MIT team.
+## Server-side tools
+- [node.js](https://nodejs.org/en/) 
+- [mongodb](https://www.mongodb.com/)
 
-3. Launch the experiment server. The following instructions below can be used to launch a live server from the cogtools remote machine, but are generally applicable to running and testing locally as well.
+# Implementing your experiment
 
-- SSH into the remote machine: e.g. `ssh <user-name>@cogtoolslab.org`. You should already have the experiment repo and necessary auth files here.
-- Start a tmux session to preserve the running server.
+## Prepare your stimuli
+This repo assumes that you have already generated your stimuli elsewhere. 
+Once you've done this, check out this [README](stimuli/README.md).
 
-```
-tmux new -s lax_exps
-tmux a -t lax_exps
-```
+## Design your task user interface
+Check out this [README](experiments/README.md).
 
-- Kill any existing Node servers (useful if you want to tear down your previous experiments). You can run `ps -U <user_id> | grep node` to find running processes; then `kill -9 <PID>` to kill them
-- Launch the Node server and the database.
+## Configure your experiment according to research design
+- creating and uploading the experiment config (including projName, expName, iterationName)
+- splitting and batching trials into sessions
+- defining the criteria by which a session is valid.
 
-```
-node app.js -gameport 8887 & \\ Specify port if desired.
-node store.js &
-```
+## Launch your experiment on a web server (either with our without mongodb)
 
-4. The live links should have the following URL parameters to work correctly with Prolific:
+If you want to test your experiment on the server but don't want to worry about MongoDB, you can do the following:
 
-- `configId`: the name of the config file under <experiment_group>/configs to serve. No JSON extension.
-- `experimentGroup`: the name of the directory under `experiments` that contains the configs.
-- `batchIndex`: after we randomly shuffle the full stimuli, we will batch the stimuli using this index. 0 gives the first <BATCH_N> in the shuffled set, 1 gives the next, etc.
-- `cc`: Prolific completion code. This allows the experiment to redirect properly on completion. You can get this by starting Prolific.
+First, create a directory in the `stimuli` folder specified by your database name and collection name (e.g. `stimuli/BACH/dominoes/`). 
 
-These lead to a URL like this:
-https://cogtoolslab.org:8899/static/html/experiment.html?configId=<CONFIG_ID>&experimentGroup=<EXPERIMENT_GROUP>&batchIndex=<INDEX_TO_SERVE_BATCHED_DATA_FOR_SHUFFLED_SUBJECTS>&institution=<mit or ucsd to determine consent.)&cc=<PROLIFIC_COMPLETION_CODE>
+Then run the `generate_metadata.ipynb` jupyter notebook to generate your stimuli and save the is as a `.json` file in the directory you just created.
 
-Example: https://cogtoolslab.org:8899/static/html/experiment.html?configId=lax-drawing-s14-s15-union-all-categorization&experimentGroup=prepost_language_production&batchIndex=0&institution=mit&cc=XXXXXX
+Next, run `node app.js --gameport PORT --local_store`. This needs to be ran from the experiments folder (ie. do `cd experiments` before running this).
 
-The Prolific site itself will append other critical information to this URL -- namely, the Prolific ID as a URL parameter. If you are testing without this, you will not be able to run or store data properly.
+This should be it! When you try out the experiment, your data will be saved on the server (as opposed to MongoDB) in the direcotry: `results/databaseName_resp/collectionName.csv` (e.g. `results/BACH_resp/dominoes.csv`) that you can check and help you debug.
 
----
+## Validate data input
+- Once you launch the experiment, test it out and verify that your stimuli are being read in properly from mongodb.
 
-### Results and Experiments
+## Validate data output
+- Next, you will want to verify that all trial metadata and response variables are being written out properly to mongodb. Here is an [example notebook](analysis/analyze_BACH_dominoes.ipynb) you can adapt that guides you through the standard steps involved in fetching & analyzing your data, including constructing exploratory visualizations of response variables w.r.t. key axes of variation in your stimuli.
+- TODO: In a future release of CAN, we will include a tool that enables you to monitor  which sessions are valid on an ongoing basis ("watchdog"), and automatically recruit more participants as needed to reach a target sample size.
 
-We currently provide the following useful utilities for downloading data and viewing results of preliminary experiments:
+## Post your experiment to a recruiting platform (e.g., Prolific)
+- To post your experiment to Prolific, go to [https://www.prolific.co](https://www.prolific.co) and sign in using your lab/organization's account.
+- Click the `New study` tab to create a new study for your experiment. Here are the steps:
+  - give your study a name (title field in the first line), remember that this name is visible to your participants, so please make this title easy to understand (don't use technical terms) and attractive (in order to recruit participants more efficiently).
+  - the internal name (second line) should include some identifier of the experiment, e.g. BACH_dominoes_pilot1, please do not use very generic names like pilot1 because the messaging system only displays the internal name, so it’s hard to know who to poke about messages without diving into the study details.
+  - To include the URL of your study, you can figure it out with the URL parameters (eg. `https://cogtoolslab.org:8881/dominoes/index.html?projName=BACH&expName=dominoes_OCP&iterName=it1`) and choose `I'll use URL parameters` for `How do you want to record Prolific IDs`, which will add additional URL parameters that tell us which participant is doing the study. Please run `app.js` and make sure that your study is accessible from the web.
+  - Prolific will suggest a completion code—this can be added into `setup.js` to automatically accept participants who have finished it in Prolific. So please select "I'll redirect them using a URL".
+  - For study cost, please pay attention to the minimum wage in your state.
+  - Then simply open the Prolific study and watch the responses roll in!
 
-1. `download_mongo_results.py`: a helper script for pulling data based on a config file from MongoDB and writing CSVs out to `results.csv`. This contains further documentation for usage in the script. It will require slight editing to determine which trial results to record to a CSV if you add new trial types (e.g. other stimuli production plugins.)
-2. `analysis` contains several viewable Jupyter notebooks. Since it's convenient to view them on GitHub (and some images don't display automatically), we exported each to an HTML file and the notebooks contain a link (generated with https://htmlpreview.github.io/) to view them in their entirety.
+# Contributors ✨
+
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="http://ac.felixbinder.net"><img src="https://avatars.githubusercontent.com/u/24477285?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Felix Binder</b></sub></a><br /><a href="#maintenance-felixbinder" title="Maintenance">🚧</a> <a href="#mentoring-felixbinder" title="Mentoring">🧑‍🏫</a></td>
+    <td align="center"><a href="http://yonifriedman.com"><img src="https://avatars.githubusercontent.com/u/26826815?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Yoni Friedman</b></sub></a><br /><a href="https://github.com/cogtoolslab/cognitive-ai-benchmarking/commits?author=yifr" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/yamins81"><img src="https://avatars.githubusercontent.com/u/231307?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Dan Yamins</b></sub></a><br /><a href="#eventOrganizing-yamins81" title="Event Organizing">📋</a></td>
+    <td align="center"><a href="https://github.com/thomaspocon"><img src="https://avatars.githubusercontent.com/u/5657644?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Thomas O'Connell</b></sub></a><br /><a href="https://github.com/cogtoolslab/cognitive-ai-benchmarking/commits?author=thomaspocon" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/HaoliangWang"><img src="https://avatars.githubusercontent.com/u/26497509?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Haoliang Wang</b></sub></a><br /><a href="https://github.com/cogtoolslab/cognitive-ai-benchmarking/commits?author=HaoliangWang" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/justintheyang"><img src="https://avatars.githubusercontent.com/u/51468707?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Justin Yang</b></sub></a><br /><a href="https://github.com/cogtoolslab/cognitive-ai-benchmarking/commits?author=justintheyang" title="Code">💻</a></td>
+    <td align="center"><a href="http://rxdhawkins.com"><img src="https://avatars.githubusercontent.com/u/5262024?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Robert Hawkins</b></sub></a><br /><a href="#tool-hawkrobe" title="Tools">🔧</a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://cogtoolslab.github.io"><img src="https://avatars.githubusercontent.com/u/3938264?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Judy Fan</b></sub></a><br /><a href="#example-judithfan" title="Examples">💡</a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
