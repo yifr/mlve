@@ -220,8 +220,7 @@ def gestalt_main():
             num_objs = np.random.choice(range(1, 5))
             scene_name = os.path.join(texture, f"superquadric_{num_objs}", f"scene_{i:03d}")
             probe_touching = i % 2 == 0
-            trial_data = construct_gestalt_trial(root_dir, s3_path, scene_name, probe_touching,
-                                                 image_dir="masks")
+            trial_data = construct_gestalt_trial(root_dir, s3_path, scene_name, probe_touching)
             trial_data["trial_type"] = "practice"
             familiarization_trials.append(trial_data)
 
