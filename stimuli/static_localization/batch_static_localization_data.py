@@ -114,7 +114,7 @@ def construct_gestalt_trial(root_dir, s3_path, scene_name, probe_touching=False,
     while not frame_found:
         frame_idx = np.random.choice(range(1, 64))
         mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
-        masks = np.array(Image.open(mask_path).convert("L"))
+        masks = np.array(Image.open(mask_path).resize((512,512), resample=Image.NEAREST).convert("L"))
         mask_vals = np.unique(masks)
         if  len(mask_vals) > 1:
             frame_found = True

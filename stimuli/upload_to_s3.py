@@ -72,9 +72,9 @@ def tdw_main():
 
 def main():
     bucket = "gestalt-scenes"
-    upload_ground_truth = True
+    upload_ground_truth = False
     upload_2afc = False
-    upload_train = False
+    upload_train = True
 
     s3 = get_client()
     b = create_bucket(s3, bucket)
@@ -86,7 +86,7 @@ def main():
             for obj_split in [f"superquadric_{i}" for i in range(1, 5)]:
                 for i in range(2):
                     scene = os.path.join(root_path, texture, obj_split, f"scene_{i:03d}")
-                    for file_path in tqdm(glob(scene + "/images/*.png")):
+                    for file_path in tqdm(glob(scene + "/masks/*.png")):
                         target = file_path.split(root_path)[1]
                         if check_exists(s3, bucket, target) and not overwrite:
                             print(target + " exists. Skipping")
