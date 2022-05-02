@@ -38,7 +38,7 @@ if (config.get('DB', 'username')) {
   user = config.get('DB', 'username');
 } else {
   user = DEFAULT_MONGODB_USER
-} 
+}
 const pswd = config.get('DB', 'password');
 
 const mongoURL = `mongodb://${user}:${pswd}@${DEFAULT_MONGODB_HOST}:${DEFAULT_MONGODB_PORT}/`;
@@ -218,6 +218,13 @@ function serve() {
       checkEach(collectionList, checkCollectionForHits, query, projection, evaluateTally);
     });
 
+    app.post('/db/checkDuplicate', (request, response) => {
+        const dbName = request.body.dbname;
+        const collectionName = request.body.colname;
+        const userID = request.body.userID;
+        const checkEntireDB = request.body.scan_across_project;
+
+    });
 
     app.listen(port, () => {
       log(`running at http://localhost:${port}`);

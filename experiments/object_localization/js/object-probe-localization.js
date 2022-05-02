@@ -132,7 +132,7 @@ var objectProbeLocalizationTask = (function (jspsych) {
 
   class ProbeDetectionTaskPlugin {
     constructor(jsPsych) {
-      jsPsych = jsPsych;
+      this.jsPsych = jsPsych;
     }
     trial(display_element, trial) {
       var height, width;
@@ -406,7 +406,7 @@ var objectProbeLocalizationTask = (function (jspsych) {
       // function to end trial when it is time
       const end_trial = () => {
         // kill any remaining setTimeout handlers
-        jsPsych.pluginAPI.clearAllTimeouts();
+        this.jsPsych.pluginAPI.clearAllTimeouts();
         if (trial.debug) {
           console.log(
             "correct: ",
@@ -437,7 +437,7 @@ var objectProbeLocalizationTask = (function (jspsych) {
         // clear the display
         display_element.innerHTML = "";
         // move on to the next trial
-        jsPsych.finishTrial(trial_data);
+        this.jsPsych.finishTrial(trial_data);
       };
 
       // function to handle responses by the subject
@@ -692,7 +692,7 @@ var objectProbeLocalizationTask = (function (jspsych) {
       }
       // hide image if timing is set
       if (trial.stimulus_duration !== null) {
-        jsPsych.pluginAPI.setTimeout(() => {
+        this.jsPsych.pluginAPI.setTimeout(() => {
           display_element.querySelector(
             "#jspsych-image-button-response-stimulus"
           ).style.visibility = "hidden";
@@ -700,7 +700,7 @@ var objectProbeLocalizationTask = (function (jspsych) {
       }
       // end trial if time limit is set
       if (trial.trial_duration !== null) {
-        jsPsych.pluginAPI.setTimeout(() => {
+        this.jsPsych.pluginAPI.setTimeout(() => {
           end_trial();
         }, trial.trial_duration);
       } else if (trial.response_ends_trial === false) {

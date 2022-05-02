@@ -18,6 +18,7 @@ var
 var gameport;
 var store_port;
 var store_process;
+var allowed_users = ["yoni"]
 
 var cur_path = process.cwd();
 // make sure that we're launching store.js from the right path
@@ -29,7 +30,7 @@ if (cur_path.indexOf('/experiments') === -1) {
 
 if (argv.gameport) {
   try {
-    if ((argv.gameport < 8850) || (argv.gameport > 8999)) {
+    if ((argv.gameport < 8000) || (argv.gameport > 8999)) {
       throw 'error';
     } else {
       gameport = argv.gameport;
@@ -94,6 +95,23 @@ io.on('connection', function (socket) {
     var iter_name = data.iter_name;
     initializeWithTrials(socket, proj_name, exp_name, iter_name);
   });
+
+  // Checks for duplicate users
+  socket.on('checkDuplicateUser', function(data) {
+    var user_id = data.userID;
+    var scan_across_project = data.scanAcrossProject;
+    var proj_name = data.projName;
+    var exp_name = data.expName;
+    for (var i=0; i < allowed_users.length; i++) {
+      if (allowed_users[i] == user_id) {
+        console.log("userID matches allowed user id: ", allowed_users[i]);
+        socket.emit("duplicateUser", {duplicateUser: false})
+      }
+    }
+    console.log("Checking if user is a duplicate.")
+    checkDuplicates(userID, proj_name, exp_name, scan_across_project)
+  });
+
   // write data to db upon getting current data
   socket.on('currentData', function (data) {
     console.log('currentData received: ' + JSON.stringify(data).substring(0,200));
@@ -101,7 +119,12 @@ io.on('connection', function (socket) {
     var proj_name = data.projName;
     var exp_name = data.expName;
     var iter_name = data.iterName;
-    writeDataToMongo(data, proj_name, exp_name, iter_name);
+    var user_id = data.userID;
+    if (user_id) {
+      writeDataToMongo(data, proj_name, exp_name, iter_name);
+    } else {
+      console.log("No user ID present. No data will be written to the db")
+    }
   });
 });
 
@@ -127,12 +150,27 @@ function omit(obj, props) { //helper function to remove _id of stim object
   }
 }
 
+function checkDuplicates(userID, proj_name, collection, scan_across_project) {
+    sendPostRequest('http://localhost:' + store_port + '/db/checkDuplicate', {
+        json: {
+            dbname: proj_name + '_outputs',
+            colname: collection,
+            scan_across_project: scan_across_project
+        }
+    }, (error, res, body) => {
+        var duplicate_found = body['duplicate'];
+        var packet = {duplicateUser: duplicate_found}
+        console.log(packet)
+        socket.emit('duplicateUser', packet);
+    })
+}
+
 function initializeWithTrials(socket, proj_name, collection, it_name) {
   var gameid = UUID();
   // var colname = 'human-physics-benchmarking-dominoes-pilot_production_1'; //insert STIMULI DATASETNAME here
   sendPostRequest('http://localhost:' + store_port + '/db/getstims', {
     json: {
-      dbname: proj_name + '_stims',
+      dbname: proj_name + '_inputs',
       colname: collection,
       it_name: it_name,
       gameid: gameid
@@ -143,7 +181,7 @@ function initializeWithTrials(socket, proj_name, collection, it_name) {
       var packet = {
         gameid: gameid,
         inputid: body['_id'], // using the mongo record ID
-        stims: omit(body.stims, ['_id']),
+        data: omit(body.data, ['_id']),
         familiarization_stims: omit(body.familiarization_stims, ['_id']),
         stim_version: body.stim_version, //TODO fix stim version
         // TODO add other properties here
@@ -170,7 +208,7 @@ var UUID = function () {
 };
 
 var writeDataToMongo = function (data, proj_name, collection, it_name) {
-  var db = proj_name + '_resp';
+  var db = proj_name + '_outputs';
   sendPostRequest(
     'http://localhost:' + store_port + '/db/insert',
     {

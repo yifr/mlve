@@ -27,6 +27,7 @@ function logTrialtoDB(data) {
   data.expName = expName;
   data.sessionID = sessionID;
   data.studyID = studyID;
+  data.userID = prolificID;
 
   if (DEBUG_MODE) {
     console.log(
@@ -140,7 +141,7 @@ function buildAndRunExperiment(sessionTemplate) {
     var trialData = familiarizationTrials[i];
 
     var trial = {
-      type: objectProbeLocalizationTask,
+      type: objectLocalizationTask,
       stimulus: trialData.image_url,
       probe_location: trialData.probe_location,
       probe_touching: trialData.probe_touching,
@@ -217,9 +218,9 @@ function buildAndRunExperiment(sessionTemplate) {
     };
 
     var trial = {
-      type: objectProbeLocalizationTask,
+      type: objectLocalizationTask,
       stimulus: trialData.image_url,
-      stimulus_index: (trialData.frame_idx, trialData.mask_idx),
+      stimulus_index: trialData.mask_idx,
       probe_location: trialData.probe_location,
       probe_touching: trialData.probe_touching,
       gt_bounding_box: trialData.gt_bounding_box,
