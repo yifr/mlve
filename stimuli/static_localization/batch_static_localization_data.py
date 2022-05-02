@@ -177,7 +177,7 @@ def gestalt_main():
     s3_path = "https://gestalt-scenes.s3.us-east-2.amazonaws.com"
     textures = ["test_wave", "test_voronoi", "test_noise"]
     obj_splits = [f"superquadric_{i}" for i in range(1, 5)]
-    proj_name = "psychophys"
+    proj_name = "mlve"
     exp_name = "gestalt_static_localization"
     iter_name = "v1"
     completion_code = "6713F83E"
@@ -217,9 +217,11 @@ def gestalt_main():
     familiarization_trials = []
     for texture in ["train_noise", "train_voronoi", "train_wave"]:
         for i in range(2):
-            scene_name = os.path.join(texture, f"superquadric_{i + 1}", f"scene_{i:03d}")
+            num_objs = np.random.choice(range(1, 5))
+            scene_name = os.path.join(texture, f"superquadric_{num_objs}", f"scene_{i:03d}")
             probe_touching = i % 2 == 0
-            trial_data = construct_gestalt_trial(root_dir, s3_path, scene_name, probe_touching)
+            trial_data = construct_gestalt_trial(root_dir, s3_path, scene_name, probe_touching,
+                                                 image_dir="masks")
             trial_data["trial_type"] = "practice"
             familiarization_trials.append(trial_data)
 
