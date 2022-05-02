@@ -229,17 +229,18 @@ def gestalt_main():
                 "iter_name": iter_name,
                 "completion_code": completion_code}
 
+    root_dir = "/home/yyf/mlve/experiments/configs/gestalt_static_localization/"
+    os.makedirs(os.path.join(root_dir), exist_ok=True)
     for i, batch in enumerate(batches):
-        root_dir = "/home/yyf/mlve/experiments/stimuli/"
         data = {
             "metadata": metadata,
             "trials": batch,
             "familiarization_trials": familiarization_trials
         }
 
-        experiment_name = f"gestalt_static_localization_batch_{i}.json"
-        print("Writing data to " + root_dir + experiment_name)
-        with open(os.path.join(root_dir, experiment_name), "w") as f:
+        batch_name = f"batch_{i}.json"
+        print("Writing data to " + root_dir + batch_name)
+        with open(os.path.join(root_dir, batch_name), "w") as f:
             json.dump({"data": data}, f)
 
 if __name__ == "__main__":
