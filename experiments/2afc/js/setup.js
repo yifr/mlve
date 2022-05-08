@@ -1,5 +1,3 @@
-var DEBUG_MODE = false; //print debug and piloting information to the console
-
 var queryString = window.location.search;
 var urlParams = new URLSearchParams(queryString);
 var prolificID = urlParams.get("PROLIFIC_PID"); // ID unique to the participant
@@ -8,6 +6,7 @@ var sessionID = urlParams.get("SESSION_ID"); // ID unique to the particular subm
 var projName = urlParams.get("projName");
 var expName = urlParams.get("expName");
 var iterName = urlParams.get("iterName");
+var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
@@ -139,11 +138,12 @@ function buildAndRunExperiment(sessionTemplate) {
     var trialData = familiarizationTrials[i];
 
     var trial = {
-      type: objectLocalizationTask,
+      type: jsPsych2afcResponse,
       stimulus: trialData.image_url,
+      choices: [trialData.gt_shape_url, trialData.alt_shape_url],
+      correct_choice: trialData.gt_shape_url,
       probe_location: trialData.probe_location,
-      probe_touching: trialData.probe_touching,
-      gt_bounding_box: trialData.gt_bounding_box,
+      button_html: "<img height='128px' src=%choice%></img>",
       practice_trial: true,
       debug: DEBUG_MODE,
     };
@@ -216,12 +216,12 @@ function buildAndRunExperiment(sessionTemplate) {
     };
 
     var trial = {
-      type: objectLocalizationTask,
+      type: jsPsych2afcResponse,
       stimulus: trialData.image_url,
-      stimulus_index: trialData.mask_idx,
+      choices: [trialData.gt_shape_url, trialData.alt_shape_url],
+      correct_choice: trialData.gt_shape_url,
       probe_location: trialData.probe_location,
-      probe_touching: trialData.probe_touching,
-      gt_bounding_box: trialData.gt_bounding_box,
+      button_html: "<img height='128px' src=%choice%></img>",
       practice_trial: false,
       debug: DEBUG_MODE,
       on_finish: onFinish,
