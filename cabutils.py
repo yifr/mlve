@@ -117,12 +117,8 @@ def get_db_connection(connectionTimeoutMS=5000):
     host = get_db_host()
     port = get_db_port()
     connstr = "mongodb://%s:%s@%s:%s" % (user, pwd, host, port)
-    try:
-        conn = pm.MongoClient(connstr, serverSelectionTimeoutMS=connectionTimeoutMS)
-        print("Checking database connection...")
-        conn.server_info()
-    except:
-        print('Could not connect to database. Have you set up your SSH tunnel?')
-        sys.exit()
+    conn = pm.MongoClient(connstr, serverSelectionTimeoutMS=connectionTimeoutMS)
+    print("Checking database connection...")
+    conn.server_info()
     return conn
 
