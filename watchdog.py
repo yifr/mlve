@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--db", type=str, required=True, help="name of input db")
 parser.add_argument("--col", type=str, required=True, help="name of experiment / col name")
 parser.add_argument("--experiment_id", type=str, help="Prolific Experiment ID")
+parser.add_argument("--exp_params_file", type=str, help="Path to experiment config")
 args = parser.parse_args()
 
 settings = configparser.ConfigParser()
@@ -34,6 +35,7 @@ AUTH_HEADER = {"Authorization": f"Token {PROLIFIC_API_TOKEN}",
 HITS_PER_BATCH = int(settings["WATCHDOG"].get("HITS_PER_BATCH"))
 SLEEP_TIME = settings["WATCHDOG"].get("SLEEP_TIME", 600)
 
+EXPERIMENT_ID = args.experiment_id if args.experiment_id else None
 
 """
 [DOCS]
@@ -131,23 +133,81 @@ def launch_experiment():
         total_available_places: <n_participants>
         estimated_completion_time: <estimated time>
         max_completion_time: <max time>
-        reward: <amount to pay (documentation says in cents, but example looks like dollars)>
-        device_compatibility: <devices>
+        reward: <amount to pay in cents>
+        device_compatibility: "desktop"
+        eligibility_requirements: []
 
     """
-    exp_params = json.load(open(args.exp_params_file), "r")
+    # Set numGames to 0
+    logging.info("Setting batch hits to 0 for all batches")
+    zero_out_batch_hits()
 
+    exp_params = json.load(open(args.exp_params_file, "r"))
+    url = "https://api.prolific.co/api/v1/studies/"
+    resp = requests.post(url, headers=AUTH_HEADER, data=json.dumps(exp_params))
+    resp_json = resp.json()
+    if "error" in resp_json.keys():
+        logging.info(f"Unable to create study: {resp_json}\nExiting watchdog...")
+        sys.exit(1)
 
+    EXPERIMENT_ID = resp_json["id"]
+    draft_params = resp_json
+    logging.info(f"""
+                Draft experiment created successfully for experiment with parameters:
+                    id: {draft_params['id']}
+                    name: {draft_params['name']}
+                    internal_name: {draft_params['internal_name']}
+                    description: {draft_params['description']}
+                    external_study_url: {draft_params['external_study_url']}
+                    completion_code: {draft_params['completion_code']}
+                    completion_option: {draft_params['completion_option']}
+                    total_available_places: {draft_params['total_available_places']}
+                    estimated_completion_time: {draft_params['estimated_completion_time']}
+                    maximum_allowed_time: {draft_params['maximum_allowed_time']}
+                    reward: {draft_params['reward']}
+                    device_compatibility: {draft_params['device_compatibility']}
+                    status: {draft_params['status']}
+                 """)
+
+    confirmation_key = input("Type the internal name of the experiment to launch (type any other key to abort): ")
+    if confirmation_key == exp_params["internal_name"]:
+
+        # Launch experiment
+        exp_id = EXPERIMENT_ID
+        url = f"https://api.prolific.co/api/v1/studies/{exp_id}/transition/"
+        payload = {"action": "PUBLISH"}
+        resp = requests.post(url, headers=AUTH_HEADER, data=json.dumps(payload))
+        resp_json = resp.json()
+        if "error" in resp_json:
+            logging.info("Experiment failed to publish. \
+                         Please check Prolific and publish from there if necessary...")
+            sys.exit(1)
+        else:
+            logging.info(f"""Experiment launched successfully! Track submission progress here:
+                        https://app.prolific.co/researcher/studies/{EXPERIMENT_ID}/submissions""")
+    else:
+        logging.info(f"""
+        Confirmation key entered: '{confirmation_key}'
+        internal study name: '{exp_params['internal_name']}'
+        Names do not match. Deleting draft and aborting launch...
+        Please launch from Prolific or delete the draft and start again...
+        """)
+        url = f"https://api.prolific.co/api/v1/studies/{EXPERIMENT_ID}/"
+        resp = requests.delete(url, headers=AUTH_HEADER)
+        sys.exit(1)
+
+    return resp_json
 
 def add_participants(total_available_places, num_extra):
-    url = f"https://api.prolific.co/api/v1/studies/{args.experiment_id}/"
+    url = f"https://api.prolific.co/api/v1/studies/{EXPERIMENT_ID}/"
     params = {"total_available_places": total_available_places + num_extra}
     res = requests.patch(url, headers=AUTH_HEADER, data=json.dumps(params))
     res_json = res.json()
     if "error" in res_json:
         logging.info("""Study Update failed. Error: ", res_json,
-                     Are you sure you have the correct experiment ID?""")
-        return None
+                     Are you sure you have the correct experiment ID?
+                     Exiting watchdog to avoid spending accidental $$$...""")
+        sys.exit(1)
 
     return res_json
 
@@ -177,7 +237,7 @@ def maybe_add_participants():
         if submission["status"] == "ACTIVE":
             logging.info(f"Participants still active in experiment: {experiment_name}. \
             Putting Watchdog to sleep for {SLEEP_TIME} seconds...")
-            os.sleep(SLEEP_TIME)
+            return True
 
     batch_hits = calculate_batch_hits(submissions, experiment_details)
     update_batch_hits(batch_hits)
@@ -186,7 +246,6 @@ def maybe_add_participants():
     if not hits_remaining:
         logging.info("No more HITs required. Killing watchdog...")
         sys.exit(1)
-        return False
     else:
         logging.info(f"Adding {hits_remaining} remaining HITs to study")
         res = add_participants(total_available_places, hits_remaining)
@@ -194,7 +253,7 @@ def maybe_add_participants():
 
 def list_submissions():
     """ Returns list of submissions for experiment, given an experiment ID """
-    exp_id = args.experiment_id
+    exp_id = EXPERIMENT_ID
     params = {"study": exp_id}
     url = f"https://api.prolific.co/api/v1/submissions/"
     resp = prolific_get(url, params=params)
@@ -203,11 +262,20 @@ def list_submissions():
 
 def get_experiment_details():
     """ Returns details of an experiment, given an experiment ID """
-    exp_id = args.experiment_id
+    exp_id = EXPERIMENT_ID
     url = f"https://api.prolific.co/api/v1/studies/{exp_id}/"
     resp = prolific_get(url)
     return resp
 
+
+def zero_out_batch_hits():
+    conn = cabutils.get_db_connection()
+    input_db = conn[args.db + "_inputs"]
+    col = input_db[args.col]
+    batches = col.find()
+    for i, batch in enumerate(batches):
+        logging.info(f"Updating batch: {i} to numGames=0...")
+        res = col.update_one({"batch": i}, {"$set": {"numGames": 0}})
 
 def get_batch_inputs():
     """ Returns the input batches of data (including the numGames fields) """
@@ -227,4 +295,11 @@ def get_experiment_results():
 
 
 def main():
+    resp = launch_experiment()
+    hits_remaining = True
+    while(hits_remaining):
+        hits_remaining = maybe_add_participants()
+        os.sleep(SLEEP_TIME)
 
+if __name__=="__main__":
+    main()
