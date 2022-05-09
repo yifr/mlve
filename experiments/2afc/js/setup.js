@@ -215,10 +215,12 @@ function buildAndRunExperiment(sessionTemplate) {
       logTrialtoDB(trial_data);
     };
 
+    choices = Math.random() > 0.5 ? [trialData.gt_shape_url, trialData.alt_shape_url] :
+                                    [trialData.alt_shape_url, trialData.gt_shape_url]
     var trial = {
       type: jsPsych2afcResponse,
       stimulus: trialData.image_url,
-      choices: [trialData.gt_shape_url, trialData.alt_shape_url],
+      choices: choices,
       correct_choice: trialData.gt_shape_url,
       probe_location: trialData.probe_location,
       button_html: "<img height='128px' src=%choice%></img>",
