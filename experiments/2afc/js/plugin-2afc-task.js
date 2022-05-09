@@ -45,6 +45,11 @@ var jsPsych2afcResponse = (function (jspsych) {
               default: undefined,
               array: true,
           },
+          practice_trial: {
+            type: jspsych.ParameterType.BOOL,
+            pretty_name: "Instructions",
+            default: false,
+          },
           /** The HTML for creating button. Can create own style. Use the "%choice%" string to indicate where the label from the choices parameter should be inserted. */
           button_html: {
               type: jspsych.ParameterType.HTML_STRING,
@@ -356,6 +361,10 @@ var jsPsych2afcResponse = (function (jspsych) {
               this.jsPsych.pluginAPI.clearAllTimeouts();
               // gather the data to store for the trial
               var correct = response.button == trial.correct_choice;
+              if (trial.debug) {
+                  console.log("Correct: " + correct);
+              }
+              
               var trial_data = {
                   rt: response.rt,
                   stimulus: trial.stimulus,
