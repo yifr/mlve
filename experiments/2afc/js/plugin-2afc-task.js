@@ -61,7 +61,7 @@ var jsPsych2afcResponse = (function (jspsych) {
           prompt: {
               type: jspsych.ParameterType.HTML_STRING,
               pretty_name: "Prompt",
-              default: null,
+              default: "<p id='prompt'>Which shape is the dot touching?</p>",
           },
           /** How long to show the stimulus. */
           stimulus_duration: {
