@@ -136,12 +136,14 @@ function buildAndRunExperiment(sessionTemplate) {
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
-
+    var gt_first = Math.random() > 0.5
+    choices = gt_first ? [trialData.gt_shape_url, trialData.alt_shape_url] :
+                                    [trialData.alt_shape_url, trialData.gt_shape_url]
     var trial = {
       type: jsPsych2afcResponse,
       stimulus: trialData.image_url,
-      choices: [trialData.gt_shape_url, trialData.alt_shape_url],
-      correct_choice: trialData.gt_shape_url,
+      choices: [choices],
+      correct_choice: gt_first? 0 : 1,
       probe_location: trialData.probe_location,
       button_html: "<img height='128px' src=%choice%></img>",
       practice_trial: true,

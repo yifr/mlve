@@ -61,7 +61,7 @@ var jsPsych2afcResponse = (function (jspsych) {
           prompt: {
               type: jspsych.ParameterType.HTML_STRING,
               pretty_name: "Prompt",
-              default: null,
+              default: "<p id='prompt'>Which shape is the dot touching? </p>",
           },
           /** How long to show the stimulus. */
           stimulus_duration: {
@@ -361,10 +361,17 @@ var jsPsych2afcResponse = (function (jspsych) {
               this.jsPsych.pluginAPI.clearAllTimeouts();
               // gather the data to store for the trial
               var correct = response.button == trial.correct_choice;
+              if (trial.practice_trial) {
+                  if (!correct) {
+                    var prompt = "Good try! The correct answer is actually the other shape! Click the correct shape to continue."
+                    display_element.querySelector("#prompt").innerHTML = prompt;
+                    return;
+                  }
+              }
               if (trial.debug) {
                   console.log("Correct: " + correct);
               }
-              
+
               var trial_data = {
                   rt: response.rt,
                   stimulus: trial.stimulus,
