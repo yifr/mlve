@@ -120,5 +120,6 @@ def get_db_connection(connectionTimeoutMS=5000):
     conn = pm.MongoClient(connstr, serverSelectionTimeoutMS=connectionTimeoutMS)
     print("Checking database connection...")
     conn.server_info()
+    print("Connection established!")
     return conn
 
