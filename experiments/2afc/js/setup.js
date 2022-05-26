@@ -156,7 +156,7 @@ function buildAndRunExperiment(sessionTemplate) {
   trials.push({
     type: jsPsychInstructions,
     pages: [
-      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on the ground truth bounding boxes. \
+      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct shape. The scenes will also be camoflauged with a synthetic camoflauge texture, so get ready! \
       Click 'Start' to begin the experiment.",
     ],
     allow_backward: false,
@@ -202,7 +202,8 @@ function buildAndRunExperiment(sessionTemplate) {
     var trialData = experimentTrials[i];
 
     var onFinish = function (responseData) {
-      var trial_data = [trialData, responseData].reduce(function (r, o) {
+      trial_index = responseData["trial_index"]
+      var trial_data = [experimentTrials[trial_index], responseData].reduce(function (r, o) {
         Object.keys(o).forEach(function (k) {
           r[k] = o[k];
         });
@@ -222,6 +223,7 @@ function buildAndRunExperiment(sessionTemplate) {
 
     var trial = {
       type: jsPsych2afcResponse,
+      trial_index: i,
       stimulus: trialData.image_url,
       choices: choices,
       correct_choice: gt_first? 0 : 1,
