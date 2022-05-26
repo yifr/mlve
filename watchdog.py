@@ -15,8 +15,9 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 parser = argparse.ArgumentParser()
 parser.add_argument("--db", type=str, required=True, help="name of input db")
 parser.add_argument("--col", type=str, required=True, help="name of experiment / col name")
+parser.add_argument("--hits_per_batch", type=int, required=True, help="how many hits per batch")
 parser.add_argument("--experiment_id", type=str, help="Prolific Experiment ID")
-parser.add_argument("--exp_params_file", type=str, help="Path to experiment config")
+parser.add_argument("--experiment_config_path", type=str, help="Path to experiment config")
 args = parser.parse_args()
 
 settings = configparser.ConfigParser()
@@ -32,7 +33,7 @@ AUTH_HEADER = {"Authorization": f"Token {PROLIFIC_API_TOKEN}",
 
 
 # Get desired number of HITs per batch
-HITS_PER_BATCH = int(settings["WATCHDOG"].get("HITS_PER_BATCH"))
+HITS_PER_BATCH = args.hits_per_batch
 SLEEP_TIME = settings["WATCHDOG"].get("SLEEP_TIME", 600)
 
 EXPERIMENT_ID = args.experiment_id if args.experiment_id else None
@@ -76,7 +77,6 @@ def calculate_batch_hits(submissions, experiment_details):
 
     inputs = get_batch_inputs()
     logging.info(inputs.info())
-    logging.info(inputs["batch"])
     batch_hits = [0 for i in range(len(inputs))]
     experiment_results = get_experiment_results()
 
@@ -142,16 +142,15 @@ def launch_experiment():
     logging.info("Setting batch hits to 0 for all batches")
     zero_out_batch_hits()
 
-    exp_params = json.load(open(args.exp_params_file, "r"))
+    exp_params = json.load(open(args.experiment_config_path, "r"))
     url = "https://api.prolific.co/api/v1/studies/"
     resp = requests.post(url, headers=AUTH_HEADER, data=json.dumps(exp_params))
-    resp_json = resp.json()
+    draft_params = resp.json()
     if "error" in resp_json.keys():
         logging.info(f"Unable to create study: {resp_json}\nExiting watchdog...")
         sys.exit(1)
 
-    EXPERIMENT_ID = resp_json["id"]
-    draft_params = resp_json
+    EXPERIMENT_ID = draft_params["id"]
     logging.info(f"""
                 Draft experiment created successfully for experiment with parameters:
                     id: {draft_params['id']}
@@ -173,8 +172,7 @@ def launch_experiment():
     if confirmation_key == exp_params["internal_name"]:
 
         # Launch experiment
-        exp_id = EXPERIMENT_ID
-        url = f"https://api.prolific.co/api/v1/studies/{exp_id}/transition/"
+        url = f"https://api.prolific.co/api/v1/studies/{EXPERIMENT_ID}/transition/"
         payload = {"action": "PUBLISH"}
         resp = requests.post(url, headers=AUTH_HEADER, data=json.dumps(payload))
         resp_json = resp.json()
@@ -213,7 +211,6 @@ def add_participants(total_available_places, num_extra):
 
 def maybe_add_participants():
     experiment_details = get_experiment_details()
-    num_submissions = experiment_details["number_of_submissions"]
     experiment_name = experiment_details["name"]
     internal_name = experiment_details["internal_name"]
     external_url = experiment_details["external_study_url"]
@@ -222,7 +219,6 @@ def maybe_add_participants():
     logging.info(f"""Checking whether to add participants to experiment:
                         Name: {experiment_name}
                         Internal: {internal_name}
-                        Submissions So Far: {num_submissions}
                         URL: {external_url}
                         Expected Completion Time: {est_completion_time} minutes
                         Average Completion Time: {avg_time} minutes""")
@@ -253,8 +249,7 @@ def maybe_add_participants():
 
 def list_submissions():
     """ Returns list of submissions for experiment, given an experiment ID """
-    exp_id = EXPERIMENT_ID
-    params = {"study": exp_id}
+    params = {"study": EXPERIMENT_ID}
     url = f"https://api.prolific.co/api/v1/submissions/"
     resp = prolific_get(url, params=params)
     return resp
@@ -262,8 +257,7 @@ def list_submissions():
 
 def get_experiment_details():
     """ Returns details of an experiment, given an experiment ID """
-    exp_id = EXPERIMENT_ID
-    url = f"https://api.prolific.co/api/v1/studies/{exp_id}/"
+    url = f"https://api.prolific.co/api/v1/studies/{EXPERIMENT_ID}/"
     resp = prolific_get(url)
     return resp
 
@@ -295,11 +289,12 @@ def get_experiment_results():
 
 
 def main():
-    resp = launch_experiment()
+    if args.experiment_config_path:
+        resp = launch_experiment()
     hits_remaining = True
     while(hits_remaining):
         hits_remaining = maybe_add_participants()
-        os.sleep(SLEEP_TIME)
+        time.sleep(SLEEP_TIME)
 
 if __name__=="__main__":
     main()
