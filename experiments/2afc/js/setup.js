@@ -186,9 +186,8 @@ function buildAndRunExperiment(sessionTemplate) {
 
   /******************* Construct Actual Experiments ************************/
   experimentTrials = shuffle(experimentTrials);
-
-  for (var i = 0; i < experimentTrials.length; i++) {
-    if (i == Math.floor(experimentTrials.length / 2)) {
+  for (var index = 0; index < experimentTrials.length; index++) {
+    if (index == Math.floor(experimentTrials.length / 2)) {
       var progressTrial = {
         type: jsPsychInstructions,
         pages: ["You're halfway through the experiment! Great job so far!"],
@@ -199,10 +198,13 @@ function buildAndRunExperiment(sessionTemplate) {
       trials.push(progressTrial);
     }
 
-    var trialData = experimentTrials[i];
+    var trialData = experimentTrials[index];
 
     var onFinish = function (responseData) {
-      trial_index = responseData["trial_index"]
+      trial_index = responseData["index"]
+        if (DEBUG_MODE) {
+            console.log(trial_index)
+        }
       var trial_data = [experimentTrials[trial_index], responseData].reduce(function (r, o) {
         Object.keys(o).forEach(function (k) {
           r[k] = o[k];
@@ -223,7 +225,7 @@ function buildAndRunExperiment(sessionTemplate) {
 
     var trial = {
       type: jsPsych2afcResponse,
-      trial_index: i,
+      index: index,
       stimulus: trialData.image_url,
       choices: choices,
       correct_choice: gt_first? 0 : 1,

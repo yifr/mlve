@@ -146,8 +146,8 @@ def launch_experiment():
     url = "https://api.prolific.co/api/v1/studies/"
     resp = requests.post(url, headers=AUTH_HEADER, data=json.dumps(exp_params))
     draft_params = resp.json()
-    if "error" in resp_json.keys():
-        logging.info(f"Unable to create study: {resp_json}\nExiting watchdog...")
+    if "error" in draft_params.keys():
+        logging.info(f"Unable to create study: {draft_params} \nExiting watchdog...")
         sys.exit(1)
 
     EXPERIMENT_ID = draft_params["id"]
@@ -291,6 +291,8 @@ def get_experiment_results():
 def main():
     if args.experiment_config_path:
         resp = launch_experiment()
+        time.sleep(SLEEP_TIME)
+
     hits_remaining = True
     while(hits_remaining):
         hits_remaining = maybe_add_participants()

@@ -39,7 +39,7 @@ var jsPsych2afcResponse = (function (jspsych) {
               default: true,
           },
           /** Array containing the label(s) for the button(s). */
-          trial_index: {
+          index: {
               type: jspsych.ParameterType.INT,
               pretty_name: "Trial Index",
               default: 0,
@@ -379,7 +379,7 @@ var jsPsych2afcResponse = (function (jspsych) {
 
               var trial_data = {
                   rt: response.rt,
-                  trial_index: trial.trial_index,
+                  index: trial.index,
                   stimulus: trial.stimulus,
                   response: response.button,
                   correct: correct,
