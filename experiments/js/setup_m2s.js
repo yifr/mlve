@@ -229,7 +229,7 @@ function buildAndRunExperiment(sessionTemplate) {
       : [trialData.alt_shape_url, trialData.gt_shape_url];
 
     var trial = {
-      type: jsPsych2afcResponse,
+      type: m2sTrial,
       index: index,
       stimulus: trialData.image_url,
       choices: choices,
