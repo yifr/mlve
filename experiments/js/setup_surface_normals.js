@@ -75,7 +75,7 @@ function launchExperiment() {
 // Modified by Rylan Schaeffer (2022)
 // Originally implemented by Judith E. Fan and Justin Yang (2020)
 
-function setupGame() {
+function buildAndRunExperiment() {
   var dbname = "human_physics_benchmarking";
   var colname = "surface_normals";
   var iterationName = "20220316";
@@ -116,28 +116,7 @@ function setupGame() {
     };
     // Need to stringify, otherwise result is Object
     // Send number of requested trials.
-    let jsonData = JSON.stringify({
-      num_trials: requestedNumTrials,
-      dbname: dbName,
-      colname: colname,
-      iterationname: iterationName,
-      prolificID: prolificID,
-      studyID: studyID,
-      sessionID: sessionID,
-    });
-    // console.log(jsonData)
-    xhr.send(jsonData);
-  }
-  getSessionTrials(
-    numTrialsInSession,
-    dbname,
-    colname,
-    iterationName,
-    prolificID,
-    studyID,
-    sessionID
-  );
-
+  
   var sessionTrials = tutorialTrials.concat(realTrials);
 
   // At end of each trial, send trial data to server.
@@ -506,250 +485,206 @@ function duplicateAndPushArrElements(arr, startIdx, numDuplicates) {
   return arr;
 }
 
-// https://stackoverflow.com/questions/4027910/how-to-randomize-subset-of-array-in-javascript
-function shuffleSubArrayInPlace(arr, startIdx) {
-  let i = arr.length - startIdx,
-    temp,
-    index;
-  while (i--) {
-    index = startIdx + Math.floor(i * Math.random());
-    temp = arr[index];
-    arr[index] = arr[startIdx + i];
-    arr[startIdx + i] = temp;
-  }
-  return arr;
-}
+// function buildAndRunExperiment(sessionTemplate) {
+//   /*
+//   This function should be modified to fit your specific experiment needs.
+//   The code you see here is an example for one kind of experiment.
 
-// https://github.com/cogtoolslab/physics-benchmarking-neurips2021/blob/master/experiments/rollingsliding_pilot/app.js#L116
-// var writeDataToMongo = function(data) {
-//   request.post(
-//     'http://localhost:8075/db/insert',
-//     { json: data },
-//     (error, res, body) => {
-//       if (!error && res.statusCode === 200) {
-//         console.log(`sent data to store`);
-//       } else {
-// 	      console.log(`error sending data to store: ${error} ${body}`);
-//       }
+//   The function receives stimuli / experiment configs from your database,
+//   and should build the appropriate jsPsych timeline. For each trial, make
+//   sure to specify an onFinish function that saves the trial response.
+//     --> see `stim_on_finish` function for an example.
+// */
+//   if (DEBUG_MODE) {
+//     console.log("building experiment with config: ", sessionTemplate);
+//   }
+//   var gameid = sessionTemplate.gameid;
+//   var inputID = sessionTemplate.inputid;
+
+//   var timeline = [];
+
+//   var experimentTrials = sessionTemplate.data["trials"];
+//   var familiarizationTrials = sessionTemplate.data["familiarization_trials"];
+//   var metadata = sessionTemplate.data["metadata"];
+
+//   var instruction_pages = [
+//     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
+//     "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
+//     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for match-to-sample experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
+//     "<p>In this experiment, you will be asked to determine the shape of an object, indicated by a red dot.\nDuring the experiment, objects will be camouflaged against the background. The objects in question are simple, 3D shapes, \n and when they're not camouflaged, look like these shapes: <br><br> \n<img height=450, width=800, src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/static_detection/all_stims.gif'></img></p>",
+//     "<p>Objects can appear anywhere in a scene. At the start of a trial, the red dot will flash over the object you need to identify. There will be two options underneath - all you need to do is simply click the correct shape below! You can see an example trial here: <br><img src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/m2s/m2s_example.gif' width=512, height=512></p>",
+//     "<p>Sometimes, the options you need to choose between might look very similar (even indistinguishable). Don't get frustrated - that's just part of the experiment! You should expect that some of these trials <i>might</i> be too difficult to solve, so if you're having a hard time figuring out the correct answer just go with your best guess and move on to the next trial.</p>",
+//     "<p>If you guess randomly on every trial you should expect to get a score of 50%. We have some checks in place to detect random guessing - low effort responses will be removed and won't be compensated. Bonuses will be given out to participants who score high enough above random chance.</p>",
+//     "<p>Ready? Once you continue there will be six practice trials, and then the experiment will begin.</p><p>You won't be able to review any of the instructions after this page, so to review any of the instructions now just hit the back arrow to return to a previous page.</p>",
+//   ];
+
+//   var trials = [];
+//   var preload = {
+//     type: jsPsychPreload,
+//     auto_preload: true,
+//     on_start: function () {
+//       document.body.style.backgroundColor = "#fff";
+//     },
+//   };
+
+//   var consent = {
+//     type: jsPsychExternalHtml,
+//     url: "consent.html",
+//     cont_btn: "start",
+//   };
+
+//   var instructions = {
+//     type: jsPsychInstructions,
+//     pages: instruction_pages,
+//     show_clickable_nav: true,
+//   };
+
+//   trials.push(preload);
+//   if (!DEBUG_MODE) {
+//     trials.push(consent);
+//   }
+//   trials.push(instructions);
+
+//   /******************** Familiarization Trials **********************/
+//   for (var i = 0; i < familiarizationTrials.length; i++) {
+//     var trialData = familiarizationTrials[i];
+//     var gt_first = Math.random() > 0.5;
+//     var choices = gt_first
+//       ? [trialData.gt_shape_url, trialData.alt_shape_url]
+//       : [trialData.alt_shape_url, trialData.gt_shape_url];
+//     var trial = {
+//       type: m2sTrial,
+//       stimulus: trialData.image_url,
+//       choices: choices,
+//       correct_choice: gt_first ? 0 : 1,
+//       probe_location: trialData.probe_location,
+//       button_html: "<img height='128px' src=%choice%></img>",
+//       practice_trial: true,
+//       debug: DEBUG_MODE,
+//     };
+
+//     trials.push(trial);
+//   }
+
+//   /****************** Pre-Experiment Warning ***************************/
+//   trials.push({
+//     type: jsPsychInstructions,
+//     pages: [
+//       "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct shape. The scenes will also be camoflauged with a synthetic camoflauge texture, so get ready! \
+//       Click 'Start' to begin the experiment.",
+//     ],
+//     allow_backward: false,
+//     show_clickable_nav: true,
+//     button_label_next: "Start",
+//   });
+
+//   function shuffle(array) {
+//     let currentIndex = array.length,
+//       randomIndex;
+
+//     // While there remain elements to shuffle.
+//     while (currentIndex != 0) {
+//       // Pick a remaining element.
+//       randomIndex = Math.floor(Math.random() * currentIndex);
+//       currentIndex--;
+
+//       // And swap it with the current element.
+//       [array[currentIndex], array[randomIndex]] = [
+//         array[randomIndex],
+//         array[currentIndex],
+//       ];
 //     }
-//   );
 
-// https://www.jspsych.org/6.3/overview/data/
-function postTrialDataOnceFinished(trialData) {
-  var xhr = new XMLHttpRequest();
-  xhr.open("POST", "/save_trial_data"); // change 'write_data.php' to point to php script.
-  xhr.setRequestHeader("Content-Type", "application/json");
-  xhr.onload = function () {
-    if (xhr.status == 200) {
-      var response = JSON.parse(xhr.responseText);
-      // console.log(response.success);
-    }
-  };
-  // Need to stringify, otherwise result is Object
-  // See: https://stackoverflow.com/questions/49455639/post-form-request-object-is-object-object
-  xhr.send(JSON.stringify(trialData));
-}
+//     return array;
+//   }
 
-function buildAndRunExperiment(sessionTemplate) {
-  /*
-  This function should be modified to fit your specific experiment needs.
-  The code you see here is an example for one kind of experiment.
+//   /******************* Construct Actual Experiments ************************/
+//   experimentTrials = shuffle(experimentTrials);
+//   for (var index = 0; index < experimentTrials.length; index++) {
+//     if (index == Math.floor(experimentTrials.length / 2)) {
+//       var progressTrial = {
+//         type: jsPsychInstructions,
+//         pages: ["You're halfway through the experiment! Great job so far!"],
+//         show_clickable_nav: true,
+//         button_label_next: "Continue",
+//         allow_backward: false,
+//       };
+//       trials.push(progressTrial);
+//     }
 
-  The function receives stimuli / experiment configs from your database,
-  and should build the appropriate jsPsych timeline. For each trial, make
-  sure to specify an onFinish function that saves the trial response.
-    --> see `stim_on_finish` function for an example.
-*/
-  if (DEBUG_MODE) {
-    console.log("building experiment with config: ", sessionTemplate);
-  }
-  var gameid = sessionTemplate.gameid;
-  var inputID = sessionTemplate.inputid;
+//     var trialData = experimentTrials[index];
 
-  var timeline = [];
+//     var onFinish = function (responseData) {
+//       trial_index = responseData["index"];
+//       if (DEBUG_MODE) {
+//         console.log(trial_index);
+//       }
+//       var trial_data = [experimentTrials[trial_index], responseData].reduce(
+//         function (r, o) {
+//           Object.keys(o).forEach(function (k) {
+//             r[k] = o[k];
+//           });
+//           return r;
+//         },
+//         {}
+//       );
+//       trial_data["gameid"] = gameid;
 
-  var experimentTrials = sessionTemplate.data["trials"];
-  var familiarizationTrials = sessionTemplate.data["familiarization_trials"];
-  var metadata = sessionTemplate.data["metadata"];
+//       if (DEBUG_MODE) {
+//         console.log(trial_data);
+//       }
+//       logTrialtoDB(trial_data);
+//     };
 
-  var instruction_pages = [
-    "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
-    "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
-    "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for match-to-sample experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
-    "<p>In this experiment, you will be asked to determine the shape of an object, indicated by a red dot.\nDuring the experiment, objects will be camouflaged against the background. The objects in question are simple, 3D shapes, \n and when they're not camouflaged, look like these shapes: <br><br> \n<img height=450, width=800, src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/static_detection/all_stims.gif'></img></p>",
-    "<p>Objects can appear anywhere in a scene. At the start of a trial, the red dot will flash over the object you need to identify. There will be two options underneath - all you need to do is simply click the correct shape below! You can see an example trial here: <br><img src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/m2s/m2s_example.gif' width=512, height=512></p>",
-    "<p>Sometimes, the options you need to choose between might look very similar (even indistinguishable). Don't get frustrated - that's just part of the experiment! You should expect that some of these trials <i>might</i> be too difficult to solve, so if you're having a hard time figuring out the correct answer just go with your best guess and move on to the next trial.</p>",
-    "<p>If you guess randomly on every trial you should expect to get a score of 50%. We have some checks in place to detect random guessing - low effort responses will be removed and won't be compensated. Bonuses will be given out to participants who score high enough above random chance.</p>",
-    "<p>Ready? Once you continue there will be six practice trials, and then the experiment will begin.</p><p>You won't be able to review any of the instructions after this page, so to review any of the instructions now just hit the back arrow to return to a previous page.</p>",
-  ];
+//     var gt_first = Math.random() > 0.5;
+//     choices = gt_first
+//       ? [trialData.gt_shape_url, trialData.alt_shape_url]
+//       : [trialData.alt_shape_url, trialData.gt_shape_url];
 
-  var trials = [];
-  var preload = {
-    type: jsPsychPreload,
-    auto_preload: true,
-    on_start: function () {
-      document.body.style.backgroundColor = "#fff";
-    },
-  };
+//     var trial = {
+//       type: jsPsych2afcResponse,
+//       index: index,
+//       stimulus: trialData.image_url,
+//       choices: choices,
+//       correct_choice: gt_first ? 0 : 1,
+//       probe_location: trialData.probe_location,
+//       button_html: "<img height='128px' src=%choice%></img>",
+//       practice_trial: false,
+//       debug: DEBUG_MODE,
+//       on_finish: onFinish,
+//     };
 
-  var consent = {
-    type: jsPsychExternalHtml,
-    url: "consent.html",
-    cont_btn: "start",
-  };
+//     trials.push(trial);
+//   }
 
-  var instructions = {
-    type: jsPsychInstructions,
-    pages: instruction_pages,
-    show_clickable_nav: true,
-  };
+//   var commentsBlock = {
+//     type: jsPsychSurveyText,
+//     preamble: `<p>Thank you for participating in our study.</p><p><strong>Click "Finish" to complete the experiment and
+//       receive compensation.</strong> If you have any comments, please let us know in the form below.</p>`,
+//     questions: [{ prompt: "Do you have any comments to share with us?" }],
+//     button_label: "Finish",
+//     on_finish: function (comments) {
+//       logTrialtoDB(comments);
+//       document.body.innerHTML = `<p> Please wait. You will be redirected back to Prolific in a few moments.
+//         </p> If not, please use the following completion code to ensure \
+//         compensation for this study: B4A98EE7`;
+//       setTimeout(function () {
+//         location.href =
+//           "https://app.prolific.co/submissions/complete?cc=B4A98EE7";
+//       }, 500);
+//     },
+//   };
+//   trials.push(commentsBlock);
 
-  trials.push(preload);
-  if (!DEBUG_MODE) {
-    trials.push(consent);
-  }
-  trials.push(instructions);
+//   if (DEBUG_MODE) {
+//     console.log(trials);
+//   }
 
-  /******************** Familiarization Trials **********************/
-  for (var i = 0; i < familiarizationTrials.length; i++) {
-    var trialData = familiarizationTrials[i];
-    var gt_first = Math.random() > 0.5;
-    var choices = gt_first
-      ? [trialData.gt_shape_url, trialData.alt_shape_url]
-      : [trialData.alt_shape_url, trialData.gt_shape_url];
-    var trial = {
-      type: m2sTrial,
-      stimulus: trialData.image_url,
-      choices: choices,
-      correct_choice: gt_first ? 0 : 1,
-      probe_location: trialData.probe_location,
-      button_html: "<img height='128px' src=%choice%></img>",
-      practice_trial: true,
-      debug: DEBUG_MODE,
-    };
+//   var jsPsych = initJsPsych({
+//     timeline: trials,
+//     default_iti: 1000,
+//     show_progress_bar: true,
+//   });
 
-    trials.push(trial);
-  }
-
-  /****************** Pre-Experiment Warning ***************************/
-  trials.push({
-    type: jsPsychInstructions,
-    pages: [
-      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct shape. The scenes will also be camoflauged with a synthetic camoflauge texture, so get ready! \
-      Click 'Start' to begin the experiment.",
-    ],
-    allow_backward: false,
-    show_clickable_nav: true,
-    button_label_next: "Start",
-  });
-
-  function shuffle(array) {
-    let currentIndex = array.length,
-      randomIndex;
-
-    // While there remain elements to shuffle.
-    while (currentIndex != 0) {
-      // Pick a remaining element.
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
-
-      // And swap it with the current element.
-      [array[currentIndex], array[randomIndex]] = [
-        array[randomIndex],
-        array[currentIndex],
-      ];
-    }
-
-    return array;
-  }
-
-  /******************* Construct Actual Experiments ************************/
-  experimentTrials = shuffle(experimentTrials);
-  for (var index = 0; index < experimentTrials.length; index++) {
-    if (index == Math.floor(experimentTrials.length / 2)) {
-      var progressTrial = {
-        type: jsPsychInstructions,
-        pages: ["You're halfway through the experiment! Great job so far!"],
-        show_clickable_nav: true,
-        button_label_next: "Continue",
-        allow_backward: false,
-      };
-      trials.push(progressTrial);
-    }
-
-    var trialData = experimentTrials[index];
-
-    var onFinish = function (responseData) {
-      trial_index = responseData["index"];
-      if (DEBUG_MODE) {
-        console.log(trial_index);
-      }
-      var trial_data = [experimentTrials[trial_index], responseData].reduce(
-        function (r, o) {
-          Object.keys(o).forEach(function (k) {
-            r[k] = o[k];
-          });
-          return r;
-        },
-        {}
-      );
-      trial_data["gameid"] = gameid;
-
-      if (DEBUG_MODE) {
-        console.log(trial_data);
-      }
-      logTrialtoDB(trial_data);
-    };
-
-    var gt_first = Math.random() > 0.5;
-    choices = gt_first
-      ? [trialData.gt_shape_url, trialData.alt_shape_url]
-      : [trialData.alt_shape_url, trialData.gt_shape_url];
-
-    var trial = {
-      type: jsPsych2afcResponse,
-      index: index,
-      stimulus: trialData.image_url,
-      choices: choices,
-      correct_choice: gt_first ? 0 : 1,
-      probe_location: trialData.probe_location,
-      button_html: "<img height='128px' src=%choice%></img>",
-      practice_trial: false,
-      debug: DEBUG_MODE,
-      on_finish: onFinish,
-    };
-
-    trials.push(trial);
-  }
-
-  var commentsBlock = {
-    type: jsPsychSurveyText,
-    preamble: `<p>Thank you for participating in our study.</p><p><strong>Click "Finish" to complete the experiment and
-      receive compensation.</strong> If you have any comments, please let us know in the form below.</p>`,
-    questions: [{ prompt: "Do you have any comments to share with us?" }],
-    button_label: "Finish",
-    on_finish: function (comments) {
-      logTrialtoDB(comments);
-      document.body.innerHTML = `<p> Please wait. You will be redirected back to Prolific in a few moments.
-        </p> If not, please use the following completion code to ensure \
-        compensation for this study: B4A98EE7`;
-      setTimeout(function () {
-        location.href =
-          "https://app.prolific.co/submissions/complete?cc=B4A98EE7";
-      }, 500);
-    },
-  };
-  trials.push(commentsBlock);
-
-  if (DEBUG_MODE) {
-    console.log(trials);
-  }
-
-  var jsPsych = initJsPsych({
-    timeline: trials,
-    default_iti: 1000,
-    show_progress_bar: true,
-  });
-
-  jsPsych.run(trials);
-}
+//   jsPsych.run(trials);
+// }

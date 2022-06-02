@@ -16,22 +16,47 @@ jsPsych.plugins["jspsych-surface-normals"] = (function () {
     parameters: {
       imageURL: {
         type: jsPsych.plugins.parameterType.STRING,
-        pretty_name: "imageURLs",
+        pretty_name: "imageURL",
         default: undefined,
         array: true,
         description: "The URL for the image cues.",
-      },
-      cue_duration: {
-        type: jsPsych.plugins.parameterType.INT,
-        pretty_name: "cue_duration",
-        default: 1000,
-        description: "How long to show the cue (in milliseconds).",
       },
       prompt: {
         type: jsPsych.plugins.parameterType.STRING,
         pretty_name: "prompt",
         default: null,
         description: "What to display to the participant as the instructions.",
+      },
+      trialType: {
+        type: jsPsych.plugins.parameterType.STRING,
+        pretty_name: "Trial type",
+        default: "test",
+        description:
+          "What type of trial is it: supervised | reinforcement | unsupervised",
+      },
+      arrowPosition: {
+        type: jsPsych.plugins.parameterType.Array,
+        pretty_name: "Arrow Position",
+        default: null,
+        description: "Where  to place the arrow",
+      },
+      randomizeArrowInitialDirection: {
+        type: jsPsych.plugins.parameterType.BOOL,
+        pretty_name: "Randomize Arrow Initial Direction",
+        default: false,
+        description: "Whether or not to randomize arrow's initial direction",
+      },
+      trueArrowDirection: {
+        type: jsPsych.plugins.parameterType.Array,
+        pretty_name: "True Arrow Direction",
+        default: null,
+        description: "Ground truth arrow direction",
+      },
+      is_duplicate: {
+        type: jsPsych.plugins.parameterType.BOOL,
+        pretty_name: "Is Duplicate",
+        default: false,
+        description: "Whether the trial is a repeat of another image",
       },
     },
   };
