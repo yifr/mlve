@@ -6,316 +6,344 @@
  *
  **/
 
-jsPsych.plugins["jspsych-surface-normals"] = (function () {
-  var plugin = {};
+
+  
+var surfaceNormalsTask = (function(jspsych) {
+  "use strict";
   var canvasWidthPercent = 0.8;
   var canvasHeightPercent = 0.8;
 
-  plugin.info = {
+  const info = {
     name: "jspsych-surface-normals",
     parameters: {
       imageURL: {
-        type: jsPsych.plugins.parameterType.STRING,
+        type: jspsych.ParameterType.STRING,
         pretty_name: "imageURL",
         default: undefined,
         array: true,
         description: "The URL for the image cues.",
       },
       prompt: {
-        type: jsPsych.plugins.parameterType.STRING,
+        type: jspsych.ParameterType.STRING,
         pretty_name: "prompt",
         default: null,
-        description: "What to display to the participant as the instructions.",
+          description: "What to display to the participant as the instructions.",
       },
       trialType: {
-        type: jsPsych.plugins.parameterType.STRING,
+        type: jspsych.ParameterType.STRING,
         pretty_name: "Trial type",
         default: "test",
         description:
           "What type of trial is it: supervised | reinforcement | unsupervised",
       },
       arrowPosition: {
-        type: jsPsych.plugins.parameterType.Array,
+        type: jspsych.ParameterType.Array,
         pretty_name: "Arrow Position",
         default: null,
         description: "Where  to place the arrow",
       },
       randomizeArrowInitialDirection: {
-        type: jsPsych.plugins.parameterType.BOOL,
+        type: jspsych.ParameterType.BOOL,
         pretty_name: "Randomize Arrow Initial Direction",
         default: false,
         description: "Whether or not to randomize arrow's initial direction",
       },
       trueArrowDirection: {
-        type: jsPsych.plugins.parameterType.Array,
+        type: jspsych.ParameterType.Array,
         pretty_name: "True Arrow Direction",
         default: null,
         description: "Ground truth arrow direction",
       },
       is_duplicate: {
-        type: jsPsych.plugins.parameterType.BOOL,
+        type: jspsych.ParameterType.BOOL,
         pretty_name: "Is Duplicate",
         default: false,
         description: "Whether the trial is a repeat of another image",
       },
-    },
-  };
-
-  INDICATOR_ON_COLOR = 0xff00ff;
-  INDICATOR_OFF_COLOR = 0x000000;
-
-  TRUE_INDICATOR_ON_COLOR = 0xff00ff;
-  TRUE_INDICATOR_OFF_COLOR = 0x000000;
-
-  IN_TRIAL = false;
-  _current_trial = null;
-
-  radius = 5;
-  radiusSquared = radius * radius;
-  rotationQuaternion = new THREE.Quaternion();
-  rotate_indicator = false;
-
-  mouseStartOrthographicPosition = new THREE.Vector3();
-  mousePenultimateOrthographicPosition = new THREE.Vector3();
-  mouseCurrentOrthographicPosition = new THREE.Vector3();
-  distanceCurrentMinusPenultimate = new THREE.Vector3();
-  negativeZVector = new THREE.Vector3(0, 0, -1);
-  errorThreshold = 0.2;
-
-  function setMouseCurrentOrthographicPosition(event) {
-    let canvasBoundingBox = canvas.getBoundingClientRect();
-    let sketchpadCurrentHeight =
-      canvasBoundingBox.bottom - canvasBoundingBox.top;
-    let sketchpadCurrentWidth =
-      canvasBoundingBox.right - canvasBoundingBox.left;
-
-    // Compute mouse location relative to canvasBoundingBox, then normalize to [-1, 1]
-    // I think this is correct
-
-    pointer.x =
-      ((event.clientX - canvasBoundingBox.left) / sketchpadCurrentWidth) * 2 -
-      1;
-    pointer.y =
-      -((event.clientY - canvasBoundingBox.top) / sketchpadCurrentHeight) * 2 +
-      1;
-
-    // First computes location of mouse on z=0 plane
-    // See: https://stackoverflow.com/a/13091694/4570472
-    // Third argument is irrelevant.
-    mouseCurrentOrthographicPosition.set(pointer.x, pointer.y, 0);
-
-    // Projects from ThreeJS-independent "normalized device coordinate space" (i.e. -1 to 1)
-    // to "world space" i.e. the coordinates used by ThreeJS
-    mouseCurrentOrthographicPosition.unproject(camera);
-
-    return mouseCurrentOrthographicPosition;
+      index: {
+        type: jspsych.ParameterType.INT,
+        pretty_name: "Trial Index",
+        default: 0,
+        description: "What number trial this is"
+      },
+      indicator_type: {
+        type: jspsych.ParameterType.STRING,
+        pretty_name: "Indicator Type",
+        default: "relative",
+        description: "How the koenderink indicator moves"
+      },
+    }
   }
+  
+  
+  class surfaceNormalsTaskPlugin { 
+    constructor(jsPsych) { 
+      this.jsPsych = jsPsych;
+    }
+  
+    trial(display_element, trial) {
+ 
+      const INDICATOR_ON_COLOR = 0xff00ff;
+      const INDICATOR_OFF_COLOR = 0x000000;
 
-  document.addEventListener("click", function (event) {
-    if (IN_TRIAL) {
-      if (!rotate_indicator) {
-        console.log("enabling indicator");
-        mouseStartOrthographicPosition.copy(
-          setMouseCurrentOrthographicPosition(event)
-        );
-        mousePenultimateOrthographicPosition.copy(
-          mouseStartOrthographicPosition
-        );
-        rotate_indicator = true;
-        indicator.ring.material.color.setHex(INDICATOR_ON_COLOR);
-        indicator.ring2.material.color.setHex(INDICATOR_ON_COLOR);
-        indicator.ring3.material.color.setHex(INDICATOR_ON_COLOR);
-        indicator.cylinder.material.color.setHex(INDICATOR_ON_COLOR);
-        trueIndicator.ring.material.color.setHex(TRUE_INDICATOR_ON_COLOR);
-        trueIndicator.cylinder.material.color.setHex(TRUE_INDICATOR_ON_COLOR);
+      const TRUE_INDICATOR_ON_COLOR = 0xff00ff;
+      const TRUE_INDICATOR_OFF_COLOR = 0x000000;
+
+      var IN_TRIAL = false;
+      var _current_trial = null;
+
+      var radius = 5;
+      var radiusSquared = radius * radius;
+      var rotationQuaternion = new THREE.Quaternion();
+      var rotate_indicator = false;
+      var mouseStartOrthographicPosition = new THREE.Vector3();
+      var mousePenultimateOrthographicPosition = new THREE.Vector3();
+      var mouseCurrentOrthographicPosition = new THREE.Vector3();
+      var distanceCurrentMinusPenultimate = new THREE.Vector3();
+      const negativeZVector = new THREE.Vector3(0, 0, -1);
+      const errorThreshold = 0.2;
+
+      // init global timestamps
+      var indicatorDirection = new THREE.Vector3();
+      var indicatorPosition = new THREE.Vector3();
+      var indicatorTrueDirection = new THREE.Vector3();
+      var indicatorTruePosition = new THREE.Vector3();
+      var indicatorDirectionTrajectory = new Array();
+      var indicatorDirectionTimes = new Array();
+      var mousePositionTrajectory = new Array();
+      var pointer = new THREE.Vector3();
+      var distanceCurrentMinusPenultimate = new THREE.Vector3();
+      var axis = new THREE.Vector3();
+      
+      var scene;
+      var indicator;
+      var trueIndicator;
+      var camera;
+      var renderer;
+      
+    function setMouseCurrentOrthographicPosition(event) {
+      var canvas = $("#threejs_covering_canvas")[0];
+
+      let canvasBoundingBox = canvas.getBoundingClientRect();
+      let sketchpadCurrentHeight =
+        canvasBoundingBox.bottom - canvasBoundingBox.top;
+      let sketchpadCurrentWidth =
+        canvasBoundingBox.right - canvasBoundingBox.left;
+      
+      // Compute mouse location relative to canvasBoundingBox, then normalize to [-1, 1]
+      // I think this is correct
+
+      pointer.x =
+        ((event.clientX - canvasBoundingBox.left) / sketchpadCurrentWidth) * 2 -
+        1;
+      pointer.y =
+        -((event.clientY - canvasBoundingBox.top) / sketchpadCurrentHeight) * 2 +
+        1;
+
+      // First computes location of mouse on z=0 plane
+      // See: https://stackoverflow.com/a/13091694/4570472
+      // Third argument is irrelevant.
+      mouseCurrentOrthographicPosition.set(pointer.x, pointer.y, 0);
+
+      // Projects from ThreeJS-independent "normalized device coordinate space" (i.e. -1 to 1)
+      // to "world space" i.e. the coordinates used by ThreeJS
+      mouseCurrentOrthographicPosition.unproject(camera);
+      return mouseCurrentOrthographicPosition;
+    }
+
+    document.addEventListener("click", function (event) {
+      if (IN_TRIAL) {
+        if (!rotate_indicator) {
+          console.log("enabling indicator");
+          mouseStartOrthographicPosition.copy(
+            setMouseCurrentOrthographicPosition(event)
+          );
+          mousePenultimateOrthographicPosition.copy(
+            mouseStartOrthographicPosition
+          );
+          rotate_indicator = true;
+          indicator.ring.material.color.setHex(INDICATOR_ON_COLOR);
+          indicator.ring2.material.color.setHex(INDICATOR_ON_COLOR);
+          indicator.ring3.material.color.setHex(INDICATOR_ON_COLOR);
+          indicator.cylinder.material.color.setHex(INDICATOR_ON_COLOR);
+          trueIndicator.ring.material.color.setHex(TRUE_INDICATOR_ON_COLOR);
+          trueIndicator.cylinder.material.color.setHex(TRUE_INDICATOR_ON_COLOR);
+        } else {
+          console.log("disabling indicator");
+          rotate_indicator = false;
+          indicator.ring.material.color.setHex(INDICATOR_OFF_COLOR);
+          indicator.ring2.material.color.setHex(INDICATOR_OFF_COLOR);
+          indicator.ring3.material.color.setHex(INDICATOR_OFF_COLOR);
+          indicator.cylinder.material.color.setHex(INDICATOR_OFF_COLOR);
+          trueIndicator.ring.material.color.setHex(TRUE_INDICATOR_OFF_COLOR);
+          trueIndicator.cylinder.material.color.setHex(TRUE_INDICATOR_OFF_COLOR);
+        }
+      }
+    });
+
+    function rotateIndicator(event) {
+      if (trial.indicator_type == "absolute") {
+        absoluteRotateIndicator(event);
       } else {
-        console.log("disabling indicator");
-        rotate_indicator = false;
-        indicator.ring.material.color.setHex(INDICATOR_OFF_COLOR);
-        indicator.ring2.material.color.setHex(INDICATOR_OFF_COLOR);
-        indicator.ring3.material.color.setHex(INDICATOR_OFF_COLOR);
-        indicator.cylinder.material.color.setHex(INDICATOR_OFF_COLOR);
-        trueIndicator.ring.material.color.setHex(TRUE_INDICATOR_OFF_COLOR);
-        trueIndicator.cylinder.material.color.setHex(TRUE_INDICATOR_OFF_COLOR);
+        relativeRotateIndicator(event);
       }
     }
-  });
 
-  function rotateIndicator(event) {
-    if (indicator_type == "absolute") {
-      absoluteRotateIndicator(event);
-    } else {
-      relativeRotateIndicator(event);
+    function relativeRotateIndicator(event) {
+      var submit_button =  $("#submit_button")[0];
+      if (IN_TRIAL & rotate_indicator) {
+        submit_button.style.visibility = "visible";
+
+        mousePenultimateOrthographicPosition.copy(
+          mouseCurrentOrthographicPosition
+        );
+
+        // console.log('mouseStartOrthographicPosition 2: ', mouseStartOrthographicPosition)
+
+        setMouseCurrentOrthographicPosition(event);
+
+        distanceCurrentMinusPenultimate.subVectors(
+          mouseCurrentOrthographicPosition,
+          mousePenultimateOrthographicPosition
+        );
+
+        let v0 = new THREE.Vector3(0, 0, radius);
+
+        let radDivSqrt2 = radius / Math.sqrt(2);
+        let magnitudeSqrdCurrentMinusPenultimate = Math.pow(
+          distanceCurrentMinusPenultimate.length(),
+          2
+        );
+
+        let v1 = new THREE.Vector3(
+          (radDivSqrt2 * distanceCurrentMinusPenultimate.x) /
+            magnitudeSqrdCurrentMinusPenultimate,
+          (radDivSqrt2 * distanceCurrentMinusPenultimate.y) /
+            magnitudeSqrdCurrentMinusPenultimate,
+          radDivSqrt2
+        );
+
+        let angleArg = v0.dot(v1) / radiusSquared;
+        let safeAngleArg = Math.max(Math.min(angleArg, 0.999), -0.999);
+        var angle = Math.acos(safeAngleArg);
+        angle = Math.sign(angle) * 0.1; // replace with safe rate of rotation
+
+        axis.crossVectors(v0, v1).normalize();
+
+        rotationQuaternion.setFromAxisAngle(axis, angle);
+
+        // Check whether rotation would result in line facing backwards.
+        // Step 1: Get direction of line.
+        let lineDirection = indicator.getDirection();
+        // indicator.ring.getWorldDirection(lineDirection);
+        // // Step 2: For some reason, line points in opposite direction.
+        // // Multiply by -1 to get correct direction.
+        // lineDirection.multiplyScalar(-1.)
+
+        // console.log('First line: ', lineDirection)
+        // Step 3: Apply quaternion.
+        lineDirection.applyQuaternion(rotationQuaternion);
+        // console.log('Second line: ', lineDirection)
+
+        let dotWithZDirection = lineDirection.dot(negativeZVector);
+        // console.log(dotWithZDirection)
+        if (dotWithZDirection < 0.0) {
+          indicator.applyQuaternion(rotationQuaternion);
+
+          indicatorDirectionTrajectory.push(indicator.getDirection());
+          mousePositionTrajectory.push(mouseCurrentOrthographicPosition);
+          indicatorDirectionTimes.push(Date.now());
+
+          //indicator.updateLineColor();
+        }
+
+        if (
+          _current_trial.trialType === "supervised" ||
+          _current_trial.trialType === "reinforcement"
+        ) {
+          let error = computeGeodesicDistance(
+            indicator.getDirection(),
+            trueIndicator.getDirection()
+          );
+        
+          var submit_button = $("#submit_button")[0];
+          submit_button.disabled = error > errorThreshold;
+
+          $("#percent_correct")[0].value =
+            100 - Math.round((100 * error) / Math.PI);
+        } else {
+          submit_button.disabled = false;
+        }
+      }
     }
-  }
 
-  function relativeRotateIndicator(event) {
-    if (IN_TRIAL & rotate_indicator) {
-      submit_button.style.visibility = "visible";
+    function absoluteRotateIndicator(event) {
+      // console.log(mouseDown);
 
-      mousePenultimateOrthographicPosition.copy(
-        mouseCurrentOrthographicPosition
-      );
+      if (IN_TRIAL && rotate_indicator) {
+        var submit_button = $("#submit_button")[0];
+        submit_button.style.visibility = "visible";
+        setMouseCurrentOrthographicPosition(event);
 
-      // console.log('mouseStartOrthographicPosition 2: ', mouseStartOrthographicPosition)
+        let x0 = _current_trial.arrowPosition[0];
+        let y0 = _current_trial.arrowPosition[1];
 
-      setMouseCurrentOrthographicPosition(event);
+        let x1 = mouseCurrentOrthographicPosition.x;
+        let y1 = mouseCurrentOrthographicPosition.y;
 
-      distanceCurrentMinusPenultimate.subVectors(
-        mouseCurrentOrthographicPosition,
-        mousePenultimateOrthographicPosition
-      );
+        let R = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
+        let R1 = Math.min(R, radius - 0.0001);
 
-      let v0 = new THREE.Vector3(0, 0, radius);
+        let theta = Math.sign(y1 - y0) * Math.acos((x1 - x0) / R);
 
-      let radDivSqrt2 = radius / Math.sqrt(2);
-      let magnitudeSqrdCurrentMinusPenultimate = Math.pow(
-        distanceCurrentMinusPenultimate.length(),
-        2
-      );
+        let x2 = x0 + R1 * Math.cos(theta);
+        let y2 = y0 + R1 * Math.sin(theta);
 
-      let v1 = new THREE.Vector3(
-        (radDivSqrt2 * distanceCurrentMinusPenultimate.x) /
-          magnitudeSqrdCurrentMinusPenultimate,
-        (radDivSqrt2 * distanceCurrentMinusPenultimate.y) /
-          magnitudeSqrdCurrentMinusPenultimate,
-        radDivSqrt2
-      );
+        let z2 = Math.sqrt(
+          Math.pow(radius, 2) - Math.pow(x2 - x0, 2) - Math.pow(y2 - y0, 2)
+        );
 
-      let angleArg = v0.dot(v1) / radiusSquared;
-      let safeAngleArg = Math.max(Math.min(angleArg, 0.999), -0.999);
-      angle = Math.acos(safeAngleArg);
-      angle = Math.sign(angle) * 0.1; // replace with safe rate of rotation
+        let v1 = new THREE.Vector3(x2 - x0, y2 - y0, z2).normalize();
 
-      axis.crossVectors(v0, v1).normalize();
+        let v0 = new THREE.Vector3(0, 1, 0);
 
-      rotationQuaternion.setFromAxisAngle(axis, angle);
+        let angleArg = v0.dot(v1);
+        let safeAngleArg = Math.max(Math.min(angleArg, 0.999), -0.999);
+        var angle = Math.acos(safeAngleArg);
 
-      // Check whether rotation would result in line facing backwards.
-      // Step 1: Get direction of line.
-      let lineDirection = indicator.getDirection();
-      // indicator.ring.getWorldDirection(lineDirection);
-      // // Step 2: For some reason, line points in opposite direction.
-      // // Multiply by -1 to get correct direction.
-      // lineDirection.multiplyScalar(-1.)
+        axis.crossVectors(v0, v1).normalize();
 
-      // console.log('First line: ', lineDirection)
-      // Step 3: Apply quaternion.
-      lineDirection.applyQuaternion(rotationQuaternion);
-      // console.log('Second line: ', lineDirection)
+        indicator.setRotationFromAxisAngle(axis, angle);
 
-      let dotWithZDirection = lineDirection.dot(negativeZVector);
-      // console.log(dotWithZDirection)
-      if (dotWithZDirection < 0.0) {
-        indicator.applyQuaternion(rotationQuaternion);
+        //console.log(v0, v1, axis, angle, indicator.getDirection());
 
         indicatorDirectionTrajectory.push(indicator.getDirection());
         mousePositionTrajectory.push(mouseCurrentOrthographicPosition);
         indicatorDirectionTimes.push(Date.now());
 
-        //indicator.updateLineColor();
-      }
+        if (
+          _current_trial.trialType === "supervised" ||
+          _current_trial.trialType === "reinforcement"
+        ) {
+          let error = computeGeodesicDistance(
+            indicator.getDirection(),
+            trueIndicator.getDirection()
+          );
 
-      if (
-        _current_trial.trialType === "supervised" ||
-        _current_trial.trialType === "reinforcement"
-      ) {
-        let error = computeGeodesicDistance(
-          indicator.getDirection(),
-          trueIndicator.getDirection()
-        );
+          submit_button.disabled = error > errorThreshold;
 
-        submit_button.disabled = error > errorThreshold;
-
-        $("#percent_correct")[0].value =
-          100 - Math.round((100 * error) / Math.PI);
-      } else {
-        submit_button.disabled = false;
-      }
-    }
-  }
-
-  function absoluteRotateIndicator(event) {
-    // console.log(mouseDown);
-
-    if (IN_TRIAL && rotate_indicator) {
-      submit_button = $("#submit_button")[0];
-      submit_button.style.visibility = "visible";
-      setMouseCurrentOrthographicPosition(event);
-
-      let x0 = _current_trial.arrowPosition[0];
-      let y0 = _current_trial.arrowPosition[1];
-
-      let x1 = mouseCurrentOrthographicPosition.x;
-      let y1 = mouseCurrentOrthographicPosition.y;
-
-      let R = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
-      let R1 = Math.min(R, radius - 0.0001);
-
-      let theta = Math.sign(y1 - y0) * Math.acos((x1 - x0) / R);
-
-      let x2 = x0 + R1 * Math.cos(theta);
-      let y2 = y0 + R1 * Math.sin(theta);
-
-      let z2 = Math.sqrt(
-        Math.pow(radius, 2) - Math.pow(x2 - x0, 2) - Math.pow(y2 - y0, 2)
-      );
-
-      let v1 = new THREE.Vector3(x2 - x0, y2 - y0, z2).normalize();
-
-      let v0 = new THREE.Vector3(0, 1, 0);
-
-      let angleArg = v0.dot(v1);
-      let safeAngleArg = Math.max(Math.min(angleArg, 0.999), -0.999);
-      angle = Math.acos(safeAngleArg);
-
-      axis.crossVectors(v0, v1).normalize();
-
-      indicator.setRotationFromAxisAngle(axis, angle);
-
-      //console.log(v0, v1, axis, angle, indicator.getDirection());
-
-      indicatorDirectionTrajectory.push(indicator.getDirection());
-      mousePositionTrajectory.push(mouseCurrentOrthographicPosition);
-      indicatorDirectionTimes.push(Date.now());
-
-      if (
-        _current_trial.trialType === "supervised" ||
-        _current_trial.trialType === "reinforcement"
-      ) {
-        let error = computeGeodesicDistance(
-          indicator.getDirection(),
-          trueIndicator.getDirection()
-        );
-
-        submit_button.disabled = error > errorThreshold;
-
-        // reinforcementErrorSprite.text = percentCorrect + "%";
-        // reinforcementErrorSprite.color = convertPercentCorrectToColorHex(percentCorrect);
-        $("#percent_correct")[0].value =
-          100 - Math.round((100 * error) / Math.PI);
-      } else {
-        submit_button.disabled = false;
+          // reinforcementErrorSprite.text = percentCorrect + "%";
+          // reinforcementErrorSprite.color = convertPercentCorrectToColorHex(percentCorrect);
+          $("#percent_correct")[0].value =
+            100 - Math.round((100 * error) / Math.PI);
+        } else {
+          submit_button.disabled = false;
+        }
       }
     }
-  }
 
-  document.addEventListener("mousemove", rotateIndicator);
+    document.addEventListener("mousemove", rotateIndicator);
 
-  plugin.trial = function (display_element, trial) {
-    // init global timestamps
-    indicatorDirection = new THREE.Vector3();
-    indicatorPosition = new THREE.Vector3();
-    indicatorTrueDirection = new THREE.Vector3();
-    indicatorTruePosition = new THREE.Vector3();
-    indicatorDirectionTrajectory = new Array();
-    indicatorDirectionTimes = new Array();
-    mousePositionTrajectory = new Array();
-
-    pointer = new THREE.Vector3();
-
-    distanceCurrentMinusPenultimate = new THREE.Vector3();
-    axis = new THREE.Vector3();
     // This vector will be used to check that rotation doesn't permit pointing
     // line in negative Z direction.
 
@@ -342,16 +370,17 @@ jsPsych.plugins["jspsych-surface-normals"] = (function () {
       // create threejs_covering_canvas
       html += '<div class="threejs_outer_container">';
       html += '<div class="threejs_inner_container">';
-      html +=
-        '<img class="threejs_background_image" src="' + trial.imageURL + '">';
-
       // Get image height and width
-      const img = new Image(640, 425);
+      var imageHeight = 768;
+      var imageWidth = 1024;
+      html +=
+        '<img class="threejs_background_image" src="' + trial.imageURL + '" width=' + imageWidth + " height=" + imageHeight + ">";
+
+      const img = new Image(imageHeight, imageWidth);
+      img.src = trial.imageURL;
+
       img.onload = function () {
         // https://stackoverflow.com/questions/2342132/waiting-for-image-to-load-in-javascript
-        imageHeight = img.height;
-        imageWidth = img.width;
-
         html +=
           '<canvas class="threejs_covering_canvas" id="threejs_covering_canvas" height=' +
           imageHeight +
@@ -362,7 +391,7 @@ jsPsych.plugins["jspsych-surface-normals"] = (function () {
 
         // display button to submit drawing when finished
         html +=
-          '<div><img src="/static/images/colormap_white.png" style="float:left; margin: 0px 15px 15px 0px;" width="3%">';
+          '<div><img src="/img/colormap_white.png" style="float:left; margin: 0px 15px 15px 0px;" width="3%">';
         html +=
           '<button id="submit_button" class="green" style="vertical-align:middle">submit</button></div>';
 
@@ -375,7 +404,7 @@ jsPsych.plugins["jspsych-surface-normals"] = (function () {
         // };
 
         // add event listener to submit button once response window opens
-        submit_button = $("#submit_button")[0];
+        var submit_button = $("#submit_button")[0];
         submit_button.addEventListener("click", end_trial);
 
         // button is disabled until at least one rotation
@@ -384,20 +413,19 @@ jsPsych.plugins["jspsych-surface-normals"] = (function () {
 
         start_threejs();
         // record trial start timestamp
-        startTrialTime = Date.now();
+        var startTrialTime = Date.now();
 
         update_threejs();
-        startResponseTime = Date.now();
+        var startResponseTime = Date.now();
       };
-      img.src = trial.imageURL;
     }
 
     // triggered either when submit button is clicked or time runs out
     // sends trial data to database
     function start_threejs() {
-      canvas = $("#threejs_covering_canvas")[0];
-
+      var canvas = $("#threejs_covering_canvas")[0];
       scene = new THREE.Scene();
+
       scene.background = null;
       // The canvas will have canvas.width, canvas.height in pixels of order 100
       // Convert to integers e.g. 1000-by-500 image will become -10, 10, 5, -5,
@@ -417,14 +445,14 @@ jsPsych.plugins["jspsych-surface-normals"] = (function () {
 
       // Init the renderer.
 
-      renderer = new THREE.WebGLRenderer({
+     renderer = new THREE.WebGLRenderer({
         canvas,
         alpha: true, // Necessary to make background transparent.
       });
       // Set background to clear color
-      renderer.setClearColor(0x000000, 0);
+     renderer.setClearColor(0x000000, 0);
 
-      indicatorPosition = new THREE.Vector3(...trial.arrowPosition);
+      var indicatorPosition = new THREE.Vector3(...trial.arrowPosition);
 
       if (trial.randomizeArrowInitialDirection) {
         let randomDirection = new THREE.Vector3().random();
@@ -441,6 +469,7 @@ jsPsych.plugins["jspsych-surface-normals"] = (function () {
       }
 
       // arrow = new THREE.ArrowHelper( arrowDirection, arrowPosition, arrowLength, 0xfffff00, arrowHeadLength, arrowHeadWidth);
+      console.log(indicatorDirection, indicatorPosition);
       indicator = new KoenderinkCircle(
         indicatorDirection,
         indicatorPosition,
@@ -484,7 +513,7 @@ jsPsych.plugins["jspsych-surface-normals"] = (function () {
     }
     // animate();
 
-    function end_trial(e) {
+    function end_trial(e) { 
       IN_TRIAL = false;
       if (trial.trialType !== "unsupervised") {
         //console.log("HERE", indicator.getDirection());
@@ -519,40 +548,37 @@ jsPsych.plugins["jspsych-surface-normals"] = (function () {
       // mousePressTimesAndArrowDirections = mapArraytoObjArray(mousePressTimesAndArrowDirections);
 
       // data saving
-      var trial_data = _.extend({}, trial, {
-        prolificID: trial.prolificID,
-        studyID: trial.studyID,
-        sessionID: trial.sessionID,
-        dbname: trial.dbname,
-        colname: trial.colname,
-        iterationname: trial.iterationName,
-        startTrialTime: startTrialTime,
-        endTrialTime: endTrialTime,
-        totalTrialTime: endTrialTime - startTrialTime,
+      var trial_data = {
+        // startTrialTime: startTrialTime,
+        // endTrialTime: endTrialTime,
+        // totalTrialTime: endTrialTime - startTrialTime,
         randomizeArrowInitialDirection: trial.randomizeArrowInitialDirection,
-        trialNum: trial.trialNum,
         trialType: trial.trialType,
-        image_url_path: trial.url_path,
+        imageURL: trial.imageURL,
         indicatorDirectionTrajectory: indicatorDirectionTrajectory,
         indicatorDirectionTimes: indicatorDirectionTimes,
+        indicator_type: trial.indicator_type,
         mousePositionTrajectory: mousePositionTrajectory,
         is_duplicate: trial.is_duplicate,
-      });
-
+        index: trial.index,
+      };
+      console.log(trial_data);
+      
+      console.log(this.jsPsych);
+      
       // clear the HTML in the display element
       display_element.innerHTML = "";
 
-      // Disable the "Changes you made may not be saved" pop-up window
-      window.onbeforeunload = null;
-
       // end trial
-      //console.log("BORK", trial, trial_data);
-      jsPsych.finishTrial(trial_data);
+      console.log("BORK", trial, trial_data);
+      this.jsPsych.finishTrial(trial_data);
     }
   };
-
-  return plugin;
-})();
+ }
+  surfaceNormalsTaskPlugin.info = info;
+  return surfaceNormalsTaskPlugin;
+  
+})(jsPsychModule);
 
 function computeGeodesicDistance(participantVec, trueVec) {
   let normalizedParticipantVec = participantVec.normalize();
