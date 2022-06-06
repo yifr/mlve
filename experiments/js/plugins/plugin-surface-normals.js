@@ -76,7 +76,8 @@ var surfaceNormalsTask = (function (jspsych) {
   class surfaceNormalsTaskPlugin {
     constructor(jsPsych) {
       this.jsPsych = jsPsych;
-      this.scene;
+      this.scene = new THREE.Scene();
+      console.log("Constructor called.");
     }
 
     trial(display_element, trial) {
@@ -432,7 +433,6 @@ var surfaceNormalsTask = (function (jspsych) {
       // sends trial data to database
       function start_threejs() {
         var canvas = $("#threejs_covering_canvas")[0];
-        this.scene = new THREE.Scene();
 
         this.scene.background = null;
         // The canvas will have canvas.width, canvas.height in pixels of order 100
@@ -584,6 +584,7 @@ var surfaceNormalsTask = (function (jspsych) {
     }
   }
   surfaceNormalsTaskPlugin.info = info;
+
   return surfaceNormalsTaskPlugin;
 })(jsPsychModule);
 
