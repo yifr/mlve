@@ -16,11 +16,12 @@
   <script src="js/jspsych/dist/plugin-external-html.js"></script>
   <script src="js/jspsych/dist/plugin-survey-multi-choice.js"></script>
   <script src="js/plugins/plugin-surface-normals.js"></script>
+  <script src="js/assets/paper-full.js"></script>
   <script src="js/jquery/dist/jquery.min.js"></script>
   <script src="js/consent.js"></script>
   <link rel="stylesheet" href="css/styles.css" />
   <link href="js/jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
-
+  <link rel="stylesheet" href="css/surface-normals.css" />
 
   <script type="text/javascript">
     socket = io.connect();
@@ -38,10 +39,7 @@
       <div style="margin: 50px 0 0 -50px">
         Please wait momentarily while the experiment loads...
       </div>
-      <div id="loader">
-        <div id="shadow"></div>
-        <div id="box"></div>
-      </div>
+       <div id="display-area">
     </div>
 </body>
 

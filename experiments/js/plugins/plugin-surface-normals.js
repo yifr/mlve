@@ -72,14 +72,16 @@ var surfaceNormalsTask = (function (jspsych) {
       },
     },
   };
+  
 
+  
   class surfaceNormalsTaskPlugin {
     constructor(jsPsych) {
       this.jsPsych = jsPsych;
       this.scene = new THREE.Scene();
-      console.log("Constructor called.");
+      this.camera;
+      this.renderer;
     }
-
     trial(display_element, trial) {
       const INDICATOR_ON_COLOR = 0xff00ff;
       const INDICATOR_OFF_COLOR = 0x000000;
@@ -115,10 +117,8 @@ var surfaceNormalsTask = (function (jspsych) {
 
       var indicator;
       var trueIndicator;
-      var camera;
-      var renderer;
 
-      function setMouseCurrentOrthographicPosition(event) {
+      const setMouseCurrentOrthographicPosition =(event) => {
         var canvas = $("#threejs_covering_canvas")[0];
 
         let canvasBoundingBox = canvas.getBoundingClientRect();
@@ -146,10 +146,10 @@ var surfaceNormalsTask = (function (jspsych) {
 
         // Projects from ThreeJS-independent "normalized device coordinate space" (i.e. -1 to 1)
         // to "world space" i.e. the coordinates used by ThreeJS
-        mouseCurrentOrthographicPosition.unproject(camera);
+        mouseCurrentOrthographicPosition.unproject(this.camera);
         return mouseCurrentOrthographicPosition;
       }
-
+      
       document.addEventListener("click", function (event) {
         if (IN_TRIAL) {
           if (!rotate_indicator) {
@@ -165,10 +165,12 @@ var surfaceNormalsTask = (function (jspsych) {
             indicator.ring2.material.color.setHex(INDICATOR_ON_COLOR);
             indicator.ring3.material.color.setHex(INDICATOR_ON_COLOR);
             indicator.cylinder.material.color.setHex(INDICATOR_ON_COLOR);
-            trueIndicator.ring.material.color.setHex(TRUE_INDICATOR_ON_COLOR);
-            trueIndicator.cylinder.material.color.setHex(
-              TRUE_INDICATOR_ON_COLOR
-            );
+            if (trueIndicator) {
+              trueIndicator.ring.material.color.setHex(TRUE_INDICATOR_ON_COLOR);
+              trueIndicator.cylinder.material.color.setHex(
+                TRUE_INDICATOR_ON_COLOR
+              );
+            }
           } else {
             console.log("disabling indicator");
             rotate_indicator = false;
@@ -176,14 +178,16 @@ var surfaceNormalsTask = (function (jspsych) {
             indicator.ring2.material.color.setHex(INDICATOR_OFF_COLOR);
             indicator.ring3.material.color.setHex(INDICATOR_OFF_COLOR);
             indicator.cylinder.material.color.setHex(INDICATOR_OFF_COLOR);
-            trueIndicator.ring.material.color.setHex(TRUE_INDICATOR_OFF_COLOR);
-            trueIndicator.cylinder.material.color.setHex(
-              TRUE_INDICATOR_OFF_COLOR
-            );
+            if (trueIndicator) {
+              trueIndicator.ring.material.color.setHex(TRUE_INDICATOR_OFF_COLOR);
+              trueIndicator.cylinder.material.color.setHex(
+                TRUE_INDICATOR_OFF_COLOR
+              );
+            }
           }
         }
       });
-
+      
       function rotateIndicator(event) {
         if (trial.indicator_type == "absolute") {
           absoluteRotateIndicator(event);
@@ -192,7 +196,7 @@ var surfaceNormalsTask = (function (jspsych) {
         }
       }
 
-      function relativeRotateIndicator(event) {
+      const relativeRotateIndicator = (event) => {
         var submit_button = $("#submit_button")[0];
         if (IN_TRIAL & rotate_indicator) {
           submit_button.style.visibility = "visible";
@@ -280,7 +284,7 @@ var surfaceNormalsTask = (function (jspsych) {
         }
       }
 
-      function absoluteRotateIndicator(event) {
+     const absoluteRotateIndicator = (event) => {
         // console.log(mouseDown);
 
         if (IN_TRIAL && rotate_indicator) {
@@ -345,8 +349,6 @@ var surfaceNormalsTask = (function (jspsych) {
         }
       }
 
-      document.addEventListener("mousemove", rotateIndicator);
-
       // This vector will be used to check that rotation doesn't permit pointing
       // line in negative Z direction.
 
@@ -355,7 +357,7 @@ var surfaceNormalsTask = (function (jspsych) {
         start_trial(trial);
       }, 400);
 
-      function start_trial(trial) {
+      const start_trial = (trial) => {
         IN_TRIAL = true;
         _current_trial = trial;
         rotate_indicator = true;
@@ -373,9 +375,11 @@ var surfaceNormalsTask = (function (jspsych) {
         // create threejs_covering_canvas
         html += '<div class="threejs_outer_container">';
         html += '<div class="threejs_inner_container">';
+        
+        
         // Get image height and width
-        var imageHeight = 768;
-        var imageWidth = 1024;
+        var imageHeight = 426;
+        var imageWidth = 640;
         html +=
           '<img class="threejs_background_image" src="' +
           trial.imageURL +
@@ -386,9 +390,9 @@ var surfaceNormalsTask = (function (jspsych) {
           ">";
 
         const img = new Image(imageHeight, imageWidth);
-        img.src = trial.imageURL;
 
         img.onload = function () {
+          console.log("Loaded image");
           // https://stackoverflow.com/questions/2342132/waiting-for-image-to-load-in-javascript
           html +=
             '<canvas class="threejs_covering_canvas" id="threejs_covering_canvas" height=' +
@@ -399,13 +403,14 @@ var surfaceNormalsTask = (function (jspsych) {
           html += "</div></div>";
 
           // display button to submit drawing when finished
-          html +=
-            '<div><img src="/img/colormap_white.png" style="float:left; margin: 0px 15px 15px 0px;" width="3%">';
+          // html +=
+          //   '<div><img src="/img/colormap_white.png" style="float:left; margin: 0px 15px 15px 0px;" width="3%">';
           html +=
             '<button id="submit_button" class="green" style="vertical-align:middle">submit</button></div>';
 
           // actually assign html to display_element.innerHTML
           display_element.innerHTML = html;
+          document.addEventListener("mousemove", rotateIndicator);
 
           // warn against refreshing page
           // window.onbeforeunload = function() {
@@ -415,7 +420,7 @@ var surfaceNormalsTask = (function (jspsych) {
           // add event listener to submit button once response window opens
           var submit_button = $("#submit_button")[0];
           submit_button.addEventListener("click", end_trial);
-
+          
           // button is disabled until at least one rotation
           submit_button.style.visibility = "hidden";
           submit_button.disabled = true;
@@ -427,11 +432,13 @@ var surfaceNormalsTask = (function (jspsych) {
           update_threejs();
           var startResponseTime = Date.now();
         };
+        img.src = trial.imageURL;
+
       }
 
       // triggered either when submit button is clicked or time runs out
       // sends trial data to database
-      function start_threejs() {
+      const start_threejs = () => {
         var canvas = $("#threejs_covering_canvas")[0];
 
         this.scene.background = null;
@@ -439,7 +446,8 @@ var surfaceNormalsTask = (function (jspsych) {
         // Convert to integers e.g. 1000-by-500 image will become -10, 10, 5, -5,
         let cameraRightFulstrum = canvas.width / 100;
         let cameraTopFulstrum = canvas.height / 100;
-        camera = new THREE.OrthographicCamera(
+
+        this.camera = new THREE.OrthographicCamera(
           -cameraRightFulstrum,
           cameraRightFulstrum,
           cameraTopFulstrum,
@@ -449,16 +457,17 @@ var surfaceNormalsTask = (function (jspsych) {
         );
 
         // camera.position.z = 5;
-        camera.position.set(0, 0, 5);
-
+        // this.camera.position.set(0, 0, 5);
+        this.camera.position.set(0,100,0); 
+        this.camera.lookAt(this.scene.position);
         // Init the renderer.
 
-        renderer = new THREE.WebGLRenderer({
+        this.renderer = new THREE.WebGLRenderer({
           canvas,
           alpha: true, // Necessary to make background transparent.
         });
         // Set background to clear color
-        renderer.setClearColor(0x000000, 0);
+        this.renderer.setClearColor(0x000000, 0);
 
         var indicatorPosition = new THREE.Vector3(...trial.arrowPosition);
 
@@ -472,12 +481,11 @@ var surfaceNormalsTask = (function (jspsych) {
         } else {
           // Look directly at the camera.
           indicatorDirection
-            .subVectors(camera.position, indicatorPosition)
+            .subVectors(this.camera.position, indicatorPosition)
             .normalize();
         }
 
         // arrow = new THREE.ArrowHelper( arrowDirection, arrowPosition, arrowLength, 0xfffff00, arrowHeadLength, arrowHeadWidth);
-        console.log(indicatorDirection, indicatorPosition);
         indicator = new KoenderinkCircle(
           indicatorDirection,
           indicatorPosition,
@@ -486,7 +494,7 @@ var surfaceNormalsTask = (function (jspsych) {
           1.0
         );
         this.scene.add(indicator);
-
+        console.log(this.scene);
         // add initial ArrowDirection to trajectory
         indicatorDirectionTrajectory.push(indicator.getDirection());
         indicatorDirectionTimes.push(Date.now());
@@ -514,14 +522,14 @@ var surfaceNormalsTask = (function (jspsych) {
         }
       }
 
-      function update_threejs() {
+      const update_threejs = () => {
         // TODO: should these be switched?
         requestAnimationFrame(update_threejs);
-        renderer.render(this.scene, camera);
+        this.renderer.render(this.scene, this.camera);
       }
       // animate();
 
-      function end_trial(e) {
+      const end_trial = (e) => {
         IN_TRIAL = false;
         if (trial.trialType !== "unsupervised") {
           //console.log("HERE", indicator.getDirection());
@@ -570,15 +578,12 @@ var surfaceNormalsTask = (function (jspsych) {
           is_duplicate: trial.is_duplicate,
           index: trial.index,
         };
-        console.log(trial_data);
-
-        console.log(this.jsPsych);
 
         // clear the HTML in the display element
         display_element.innerHTML = "";
 
         // end trial
-        console.log("BORK", trial, trial_data);
+        // console.log("BORK", trial, trial_data);
         this.jsPsych.finishTrial(trial_data);
       }
     }
