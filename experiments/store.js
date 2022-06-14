@@ -79,8 +79,8 @@ function mongoConnectWithRetry(delayInMilliseconds, callback) {
   });
 }
 
-function markAnnotation(collection, gameid, sketchid) {
-  collection.update({ _id: ObjectID(sketchid) }, {
+function markAnnotation(collection, gameid, batch_id) {
+  collection.update({ _id: ObjectID(batch_id) }, {
     $push: { games: gameid },
     $inc: { numGames: 1 }
   }, function (err, items) {
@@ -113,9 +113,9 @@ function serve() {
       if (!databaseName) {
         return failure(response, '/db/insert needs database');
       }
-      if (!databaseName.includes('_resp')) {
-        console.log(`${databaseName}/${collectionName} is not a response database, appending _resp`);
-        databaseName = databaseName.concat('_resp');
+      if (!databaseName.includes('_outputs')) {
+        console.log(`${databaseName}/${collectionName} is not a response database, appending _outputs`);
+        databaseName = databaseName.concat('_outputs');
       }
 
       const database = connection.db(databaseName);

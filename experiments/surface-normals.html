@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<!-- https://stackoverflow.com/questions/31075893/im-getting-favicon-ico-error -->
+<link rel="shortcut icon" href="">
+<link rel="shortcut icon" href="#">
+<title>Scene Understanding Experiment</title>
+
+<head>
+  <script type="text/javascript" src="js/assets/socket.io.js"></script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'></script>
+  <script src="js/setup_surface_normals.js"></script>
+  <script src="js/jspsych/dist/jspsych.js"></script>
+  <script src="js/jspsych/dist/plugin-preload.js"></script>
+  <script src="js/jspsych/dist/plugin-instructions.js"></script>
+  <script src="js/jspsych/dist/plugin-survey-text.js"></script>
+  <script src="js/jspsych/dist/plugin-external-html.js"></script>
+  <script src="js/jspsych/dist/plugin-survey-multi-choice.js"></script>
+  <script src="js/plugins/plugin-surface-normals.js"></script>
+  <script src="js/assets/paper-full.js"></script>
+  <script src="js/jquery/dist/jquery.min.js"></script>
+  <script src="js/consent.js"></script>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link href="js/jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="css/surface-normals.css" />
+
+  <script type="text/javascript">
+    socket = io.connect();
+    window.onload = function () {
+      launchExperiment();
+    }
+  </script>
+
+</head>
+
+<body class="jspsych-content-wrapper jspsych-display-element" tabindex="0"
+  style="margin: 0px; height: 100%; width: 100%;">
+  <div class="jspsych-content-wrapper">
+    <div id="jspsych-content" class="jspsych-content">
+      <div style="margin: 50px 0 0 -50px">
+        Please wait momentarily while the experiment loads...
+      </div>
+       <div id="display-area">
+    </div>
+</body>
+
+</html>

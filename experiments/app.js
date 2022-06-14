@@ -99,21 +99,12 @@ try {
 
 // serve stuff that the client requests
 app.get("/*", (req, res) => {
-  const isResearcher = _.includes(researchers, id);
-
-  if (!id || id === "undefined" || (isResearcher && !blockResearcher)) {
-    // Let through if researcher, or in 'testing' mode
     serveFile(req, res);
-    // } else if (!valid_id(id)) {
-    //   // If invalid id, block them
-    //   console.log("invalid id, blocked");
-    //   return handleInvalidID(req, res);
-  } else {
     // If the database shows they've already participated, block them.
-    checkPreviousParticipant(id, (exists) => {
-      return exists ? handleDuplicate(req, res) : serveFile(req, res);
-    });
-  }
+    //checkPreviousParticipant(id, (exists) => {
+    //  return exists ? handleDuplicate(req, res) : serveFile(req, res);
+    //});
+
 });
 
 io.on("connection", function (socket) {
