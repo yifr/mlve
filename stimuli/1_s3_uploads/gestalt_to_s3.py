@@ -70,64 +70,89 @@ def tdw_main():
         s3_path = file_path.split("/om2/user/yyf/")[1]
         upload(s3, bucket, s3_path, file_path)
 
+
+def delete(file_path):
+    os.remove(file_path)
+
+def render_video(root_path, video_name):
+    output_path = os.path.join(root_path, video_name)
+    img_path = os.path.join(root_path, "images")
+    cmd = f"ffmpeg -y -framerate 20 -i {img_path}/Image%04d.png \
+            -pix_fmt yuv420p -c:v libx264 {output_path}"
+    os.system(cmd)
+    return output_path
+
+def upload(file_path, root_path, s3, bucket, overwrite=False):
+    target = file_path.split(root_path)[1]
+    target = target.strip("/") # Remove any leading or trailing slashes
+    if check_exists(s3, bucket, target) and not overwrite:
+        print(target + " exists. Skipping")
+        return
+
+    s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
+    s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
+
+
 def main():
     bucket = "gestalt-scenes"
-    upload_ground_truth = False
+    upload_video = True
+    upload_ground_truth = True
     upload_2afc = False
-    upload_train = True
+    upload_train = False
+    overwrite = False
 
     s3 = get_client()
     b = create_bucket(s3, bucket)
-    root_path = "/om/user/yyf/CommonFate/scenes/"
-    overwrite = False
+    root_path = "/om/user/yyf/CommonFate/scenes"
 
     if upload_train:
         for texture in ["train_noise", "train_voronoi", "train_wave"]:
             for obj_split in [f"superquadric_{i}" for i in range(1, 5)]:
                 for i in range(2):
-                    scene = os.path.join(root_path, texture, obj_split, f"scene_{i:03d}")
-                    for file_path in tqdm(glob(scene + "/masks/*.png")):
-                        target = file_path.split(root_path)[1]
-                        if check_exists(s3, bucket, target) and not overwrite:
-                            print(target + " exists. Skipping")
-                            continue
+                    scene_dir = os.path.join(root_path, texture, obj_split, f"scene_{i:03d}")
+                    if upload_video:
+                        if not os.path.exists(os.path.join(scene_dir, f"scene_{i:03d}.mp4")):
+                            video_path = render_video(scene_dir, f"scene_{i:03d}.mp4")
+                        upload(video_path, root_path, s3, bucket, overwrite)
+                        delete(video_path)
 
-                        s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
-                        s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
+                    for file_path in tqdm(glob(scene_dir + "/masks/*.png")):
+                        upload(file_path, root_path, s3, bucket, overwrite)
 
     if upload_ground_truth:
-        data_path = root_path + "test_ground_truth/superquadric_1/*/*/*" # Upload PNGs
-        for file_path in tqdm(glob(data_path)):
-            if "shaded" in file_path or "images" in file_path:
-                target = file_path.split(root_path)[1]
-                if check_exists(s3, bucket, target) and not overwrite:
-                    print(target + " exists. Skipping")
-                    continue
-
-                s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
-                s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
+        print("Uploading Ground Truth")
+        scene_dirs = os.path.join(root_path, "test_ground_truth/superquadric_1/*") # Upload PNGs
+        for scene_dir in tqdm(glob(scene_dirs)):
+            if upload_video:
+                scene = scene_dir.split("/")[-1]
+                print(scene_dir)
+                video_path = render_video(scene_dir, f"{scene}.mp4")
+                upload(video_path, root_path, s3, bucket, overwrite)
+                delete(video_path)
+            if "shaded" in scene_dir or "images" in scene_dir:
+                upload(fscene_dir, root_path, s3, bucket, overwrite)
 
     elif upload_2afc:
         data_path = root_path + "/media/2-afc/*"
         for file_path in tqdm(glob(data_path)):
-            target = file_path.split(root_path)[1][1:]
-            if check_exists(s3, bucket, target) and not overwrite:
-                print(target + " exists. Skipping")
-                continue
-
-            s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
-            s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
+            upload(file_path, root_path, s3, bucket, overwrite)
     else:
+        for texture in ["test_noise", "test_voronoi", "test_wave"]:
+            for obj_split in [f"superquadric_{i}" for i in range(1,5)]:
+                scene_dirs = glob(os.path.join(root_path, texture, obj_split, "*"))
+                for scene_dir in scene_dirs:
+                    print("scene_dir: ", scene_dir)
+                    if upload_video:
+                        scene = scene_dir.split("/")[-1]
+                        if not os.path.exists(os.path.join(scene_dir, f"{scene}.mp4")):
+                            video_path = render_video(scene_dir, f"{scene}.mp4")
+                        upload(video_path, root_path, s3, bucket, overwrite)
+                        delete(video_path)
+
         data_path = root_path + "/test_*/**/*/images/*" # Upload everything else
         for file_path in tqdm(glob(data_path)):
             if "." in file_path:
-                target = file_path.split(root_path)[1][1:]
-                if check_exists(s3, bucket, target) and not overwrite:
-                    print(target + " exists. Skipping")
-                    continue
-                s3.Object(bucket, target).put(Body=open(file_path,'rb')) ## upload stimuli
-                s3.Object(bucket, target).Acl().put(ACL='public-read') ## set access controls
-                # print(target)
+                upload(file_path, root_path, s3, bucket, overwrite)
 
     # target = "detection_pilot_batch_0.csv"
     # s3.Object(bucket, target).put(Body=open(target, "rb"))
