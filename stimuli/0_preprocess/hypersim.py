@@ -35,7 +35,9 @@ def format_hypersim():
         geom_data.sort()
         cam_data.sort()
 
+        ###############################
         # copy images
+        ###############################
         images = os.path.join(cam_data[0], "frame.*.tonemap.jpg")
         images = glob(images)
         images.sort()
@@ -45,7 +47,9 @@ def format_hypersim():
         save_path = os.path.join(mlve_path, "images", image_name)
         image.save(save_path)
 
+        ###############################
         # copy semantic instance masks
+        ###############################
         masks = glob(os.path.join(geom_data[0], "frame.*.semantic_instance.hdf5"))
         masks.sort()
         mask_path = masks[-1]
@@ -56,25 +60,42 @@ def format_hypersim():
         save_path = os.path.join(mlve_path, "masks", f"mask_{i:03d}.png")
         mask_image.save(save_path)
 
+        ###############################
         # copy depth
+        ###############################
         depths = glob(os.path.join(geom_data[0], "frame.*.depth_meters.hdf5"))
         depths.sort()
         depth_path = depths[-1]
         distance = h5py.File(depth_path, "r")["dataset"][:]
         depth = hypersim_distance_to_depth(distance)
-        depth = (depth - np.nanmin(depth)) / (np.nanmax(depth) - np.nanmin(depth))
+        depth = (depth - np.nanmin(depth)) / (np.nanmax(depth) - np.nanmin(depth))  # normalize to [0, 1]
         depth_image = Image.fromarray(np.uint8(depth * 255))
-        save_path = os.path.join(mlve_path, "depths", f"depth_{i:03d}.png")
-        depth_image.save(save_path)
+        save_path = os.path.join(mlve_path, "depths", f"depth_{i:03d}")
+        with h5py.File(save_path + ".hdf5", "w", swmr=True) as f:
+            f.create_dataset("dataset", data=depth, dtype=np.float32)
+        depth_image.save(save_path + ".png")
 
+        ###############################
         # copy normals
+        ###############################
         normals = glob(os.path.join(geom_data[0], "frame.*.normal_cam.hdf5"))
         normals.sort()
         normal_path = normals[-1]
-        save_path = os.path.join(mlve_path, "normals", f"normal_{i:03d}.png")
-        shutil.copyfile(normal_path, save_path)
+        f = h5py.File(normal_path, "r")
+        normal = f["dataset"][:]
+        coloring = (normal * 0.5 + 0.5) * 255
+        rgba = np.concatenate((coloring, np.ones_like(coloring[:, :, :1]) * 255), axis=-1)
+        rgba[np.logical_and(rgba[:, :, 0] == 127.5, \
+                            rgba[:, :, 1] == 127.5, \
+                            rgba[:, :, 2] == 127.5), :] = 0.
+        img = Image.fromarray(np.uint8(rgba))
+        save_path = os.path.join(mlve_path, "normals", f"normal_{i:03d}")
+        img.save(save_path + ".png")
+        shutil.copyfile(normal_path, save_path + ".hdf5")
 
+        ###############################
         # format metadata
+        ###############################
         meta = {}
         meta["volume"] = volume
         cam_data = glob(meta_path + "*")

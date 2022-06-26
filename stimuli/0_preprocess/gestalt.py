@@ -6,6 +6,7 @@ import pickle
 import numpy as np
 from glob import glob
 from tqdm import tqdm
+from PIL import Image
 
 def load_pose(filename):
     lines = open(filename).read().splitlines()
@@ -36,7 +37,7 @@ def exr2numpy(exr, maxvalue=15., normalize=True):
     """
     # normalize
     data = cv2.imread(exr, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
-    data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+    # data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
     data = np.array(data)
     data[data > maxvalue] = maxvalue
     data[data == maxvalue] = 0.
@@ -69,32 +70,54 @@ def format_gestalt():
         n_frames = 64
         frame_idx = np.random.randint(1, 65)
 
+        #######################
         # copy images
+        #######################
         image_path = os.path.join(scene_dir, "images", f"Image{frame_idx:04d}.png")
         save_path = os.path.join(mlve_dir, "images", f"image_{scene_idx:03d}.png")
         shutil.copy(image_path, save_path)
 
+        #######################
         # copy masks
+        #######################
         mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
         save_path = os.path.join(mlve_dir, "masks", f"mask_{scene_idx:03d}.png")
         shutil.copy(mask_path, save_path)
 
+        #######################
         # copy depths
+        #######################
         depth_path = os.path.join(scene_dir, "depths", f"Image{frame_idx:04d}.png")
-        save_path = os.path.join(mlve_dir, "depths", f"depth_{scene_idx:03d}.png")
-        shutil.copy(depth_path, save_path)
+        depth_data = np.array(Image.open(depth_path))
+        depth_data = 1 - depth_data # reverse depths
 
+        save_path = os.path.join(mlve_dir, "depths", f"depth_{scene_idx:03d}")
+        with h5py.File(save_path + ".hdf5", "w") as f:
+            f.create_dataset("dataset", data=depth_data)
+
+        depth_snapshot = Image.fromarray(depth_data.astype(np.uint8))
+        depth_snapshot.save(save_path  + ".png")
+
+        #######################
         # copy surface normals
+        #######################
         exr_path = os.path.join(scene_dir, "normals", f"Image{frame_idx:04d}.exr")
         normal_data = exr2numpy(exr_path)
         cam_normals = world2cam_normals(normal_data)
+        coloring = ((cam_normals * 0.5 + 0.5) * 255)
+        rgba = np.concatenate((coloring, np.ones_like(coloring[:, :, :1]) * 255), axis=-1)
+        rgba[np.logical_and(rgba[:, :, 0] == 127.5, rgba[:, :, 1] == 127.5, rgba[:, :, 2] == 127.5), :] = 0.
 
-        save_path = os.path.join(mlve_dir, "normals", f"normal_{scene_idx:03d}.hdf5")
-        normal_h5 = h5py.File(save_path, "w")
-        normal_h5.create_dataset("dataset", data=cam_normals)
-        normal_h5.close()
+        normals = Image.fromarray(np.uint8(rgba))
+        save_path = os.path.join(mlve_dir, "normals", f"normal_{scene_idx:03d}")
+        with h5py.File(save_path + ".hdf5", "w") as f:
+            f.create_dataset("dataset", data=cam_normals)
 
+        normals.save(save_path + ".png")
+
+        #######################
         #  Write out metadata
+        #######################
         scene_config = pickle.load(open(os.path.join(scene_dir, "scene_config.pkl"), "rb"))
         objects = scene_config["objects"]
         del objects["h1"]
