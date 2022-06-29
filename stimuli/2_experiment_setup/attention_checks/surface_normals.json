@@ -1,0 +1,14 @@
+{
+    "0": 
+    ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/surface_normals/Image0001.png", [220, 175], [-0.7798796251482258, -0.10006639212241043, 0.6178790233097954], [512, 512]],
+
+    "1": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/surface_normals/Image0002.png", [250, 250], [0.024752627999656586, -0.09381008232829204, 0.9952823598661185], [512, 512]],
+
+    "2": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/surface_normals/Image0003.png", [200, 250], [-0.017620609129229182, 0.5059989813832899, 0.8623540716973441], [512, 512]],
+
+    "3": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/surface_normals/Image0001.png", [165, 250], [-0.03086138907129517, 0.8785541802709403, 0.4766446548457733], [512, 512]],
+
+    "4": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/surface_normals/Image0002.png", [108, 240], [0.020315807134660982, 0.944555875035678, 0.32772163022304823], [512, 512]],
+
+    "6": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/surface_normals/Image0003.png", [318, 175], [-0.7507127574984022, -0.4659581267265271, 0.46830906447201187], [512, 512]]
+}

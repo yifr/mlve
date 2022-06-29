@@ -13,19 +13,19 @@ import cabutils
 def map_range(X, A, B, C, D):
     return (X - A) / (B - A) * (D - C) + C
 
-def main():
+def main(dataset):
     conn = cabutils.get_db_connection()
     proj_name = "mlve"
     exp_name = "hypersim_surface-normals"
-    iter_name = "v1"
+    iter_name = "v2"
 
     db = conn["mlve_inputs"]
     col = db[exp_name]
     col.drop()
 
     n_batches = 20
-    root_path = "/om/user/yyf/hypersim/"
-    s3_root = "https://ml-hypersim-scenes.s3.us-east-2.amazonaws.com/"
+    root_path = "/om/user/yyf/mlve/stimuli/" + dataset
+    s3_root = "https://mlve-v1.s3.us-east-2.amazonaws.com/" + dataset
     scenes = glob(root_path + "*")
     scenes.sort()
 

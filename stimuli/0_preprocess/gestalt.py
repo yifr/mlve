@@ -58,7 +58,11 @@ def format_gestalt():
     noise = 0
     dot = 0
     wave = 0
-    for scene_idx in tqdm(range(100)):
+    os.makedirs(os.path.join(mlve_dir, "train"), exist_ok=True)
+
+    for scene_idx in tqdm(range(105)):
+        if scene_idx < 100:
+            continue
         scene_dir = scene_dirs[scene_idx]
         if "wave" in scene_dir:
             wave += 1
@@ -74,14 +78,24 @@ def format_gestalt():
         # copy images
         #######################
         image_path = os.path.join(scene_dir, "images", f"Image{frame_idx:04d}.png")
-        save_path = os.path.join(mlve_dir, "images", f"image_{scene_idx:03d}.png")
+        if scene_idx >= 100:
+            os.makedirs(os.path.join(mlve_dir, "train", "images"), exist_ok=True)
+            idx = scene_idx % 100
+            save_path = os.path.join(mlve_dir, "train", "images", f"image_{idx:03d}.png")
+        else:
+            save_path = os.path.join(mlve_dir, "images", f"image_{scene_idx:03d}.png")
         shutil.copy(image_path, save_path)
 
         #######################
         # copy masks
         #######################
         mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
-        save_path = os.path.join(mlve_dir, "masks", f"mask_{scene_idx:03d}.png")
+        if scene_idx >= 100:
+            os.makedirs(os.path.join(mlve_dir, "train", "masks"), exist_ok=True)
+            idx = scene_idx % 100
+            save_path = os.path.join(mlve_dir, "train", "masks", f"mask_{idx:03d}.png")
+        else:
+            save_path = os.path.join(mlve_dir, "masks", f"mask_{scene_idx:03d}.png")
         shutil.copy(mask_path, save_path)
 
         #######################
@@ -91,7 +105,13 @@ def format_gestalt():
         depth_data = np.array(Image.open(depth_path))
         depth_data = 1 - depth_data # reverse depths
 
-        save_path = os.path.join(mlve_dir, "depths", f"depth_{scene_idx:03d}")
+        if scene_idx >= 100:
+            os.makedirs(os.path.join(mlve_dir, "train", "depths"), exist_ok=True)
+            idx = scene_idx % 100
+            save_path = os.path.join(mlve_dir, "train", "depths", f"depth_{idx:03d}")
+        else:
+            save_path = os.path.join(mlve_dir, "depths", f"depth_{scene_idx:03d}")
+
         with h5py.File(save_path + ".hdf5", "w") as f:
             f.create_dataset("dataset", data=depth_data)
 
@@ -109,7 +129,13 @@ def format_gestalt():
         rgba[np.logical_and(rgba[:, :, 0] == 127.5, rgba[:, :, 1] == 127.5, rgba[:, :, 2] == 127.5), :] = 0.
 
         normals = Image.fromarray(np.uint8(rgba))
-        save_path = os.path.join(mlve_dir, "normals", f"normal_{scene_idx:03d}")
+        if scene_idx >= 100:
+            os.makedirs(os.path.join(mlve_dir, "train", "normals"), exist_ok=True)
+            idx = scene_idx % 100
+            save_path = os.path.join(mlve_dir, "train", "normals", f"normal_{idx:03d}")
+        else:
+            save_path = os.path.join(mlve_dir, "normals", f"normal_{scene_idx:03d}")
+
         with h5py.File(save_path + ".hdf5", "w") as f:
             f.create_dataset("dataset", data=cam_normals)
 
@@ -128,7 +154,13 @@ def format_gestalt():
             del objects[obj]["angle"]
             del objects[obj]["rotation_matrix"]
 
-        save_path = os.path.join(mlve_dir, "meta", f"meta_{scene_idx:03d}.pkl")
+        if scene_idx >= 100:
+            os.makedirs(os.path.join(mlve_dir, "train", "meta"), exist_ok=True)
+            idx = scene_idx % 100
+            save_path = os.path.join(mlve_dir, "train", "meta", f"meta_{idx:03d}.pkl")
+        else:
+            save_path = os.path.join(mlve_dir, "meta", f"meta_{scene_idx:03d}.pkl")
+
         with open(save_path, "wb") as f:
             pickle.dump(scene_config, f)
 

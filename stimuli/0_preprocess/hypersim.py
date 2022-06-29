@@ -8,6 +8,14 @@ from glob import glob
 from tqdm import tqdm
 
 
+def center_crop(data, width=512, height=512):
+    print(data.shape)
+    y, x = data.shape[:2]
+    startx = x // 2 - width // 2
+    starty = y // 2 - height // 2
+    cropped = data[starty:starty + height, startx:startx + width]
+    return cropped
+
 def hypersim_distance_to_depth(npyDistance):
     intWidth = 1024
     intHeight = 768
@@ -25,7 +33,10 @@ def format_hypersim():
     mlve_path = "/om/user/yyf/mlve/stimuli/hypersim"
     volumes = glob(hypersim_path + "/*")
     volumes.sort()
+    os.makedirs(mlve_path + "/train/", exist_ok=True)
     for i, volume in tqdm(enumerate(volumes)):
+        if i > 104:
+            break
         path = os.path.join(hypersim_path, volume)
         meta_path = path + "/_detail/"
         data_path = path + "/images/"
@@ -43,8 +54,26 @@ def format_hypersim():
         images.sort()
         image_path = images[-1]
         image = Image.open(image_path)
+
+        width, height = image.size   # Get dimensions
+
+        left = (width - 512) / 2
+        top = (height - 512) / 2
+        right = (width + 512) / 2
+        bottom = (height + 512) / 2
+
+        image = image.crop((left, top, right, bottom))
         image_name = f"image_{i:03d}.png"
-        save_path = os.path.join(mlve_path, "images", image_name)
+
+        if i > 99:
+            idx = i % 100
+            image_name = f"image_{idx:03d}.png"
+            os.makedirs(os.path.join(mlve_path, "train", "images"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "train", "images", image_name)
+        else:
+            os.makedirs(os.path.join(mlve_path, "images"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "images", image_name)
+
         image.save(save_path)
 
         ###############################
@@ -55,9 +84,25 @@ def format_hypersim():
         mask_path = masks[-1]
         mask = h5py.File(mask_path, "r")
         data = mask["dataset"][:]
-        data[data < 0] = 0
+        data += 1
+
         mask_image = Image.fromarray(np.uint8(data))
-        save_path = os.path.join(mlve_path, "masks", f"mask_{i:03d}.png")
+        width, height = mask_image.size   # Get dimensions
+
+        left = (width - 512)/2
+        top = (height - 512)/2
+        right = (width + 512)/2
+        bottom = (height + 512)/2
+
+        mask_image = mask_image.crop((left, top, right, bottom))
+
+        if i > 99:
+            idx = i % 100
+            os.makedirs(os.path.join(mlve_path, "train", "masks"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "train", "masks", f"mask_{idx:03d}.png")
+        else:
+            os.makedirs(os.path.join(mlve_path, "masks"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "masks", f"mask_{i:03d}.png")
         mask_image.save(save_path)
 
         ###############################
@@ -69,10 +114,20 @@ def format_hypersim():
         distance = h5py.File(depth_path, "r")["dataset"][:]
         depth = hypersim_distance_to_depth(distance)
         depth = (depth - np.nanmin(depth)) / (np.nanmax(depth) - np.nanmin(depth))  # normalize to [0, 1]
+        depth = center_crop(depth)
         depth_image = Image.fromarray(np.uint8(depth * 255))
-        save_path = os.path.join(mlve_path, "depths", f"depth_{i:03d}")
-        with h5py.File(save_path + ".hdf5", "w", swmr=True) as f:
+
+        if i > 99:
+            idx = i % 100
+            os.makedirs(os.path.join(mlve_path, "train", "depths"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "train", "depths", f"depth_{idx:03d}")
+        else:
+            os.makedirs(os.path.join(mlve_path, "depths"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "depths", f"depth_{i:03d}")
+
+        with h5py.File(save_path + ".hdf5", "w") as f:
             f.create_dataset("dataset", data=depth, dtype=np.float32)
+
         depth_image.save(save_path + ".png")
 
         ###############################
@@ -83,15 +138,27 @@ def format_hypersim():
         normal_path = normals[-1]
         f = h5py.File(normal_path, "r")
         normal = f["dataset"][:]
+        normal = center_crop(normal)
+        print(normal.shape)
         coloring = (normal * 0.5 + 0.5) * 255
         rgba = np.concatenate((coloring, np.ones_like(coloring[:, :, :1]) * 255), axis=-1)
         rgba[np.logical_and(rgba[:, :, 0] == 127.5, \
                             rgba[:, :, 1] == 127.5, \
                             rgba[:, :, 2] == 127.5), :] = 0.
         img = Image.fromarray(np.uint8(rgba))
-        save_path = os.path.join(mlve_path, "normals", f"normal_{i:03d}")
+        if i >= 100:
+            idx = i % 100
+            os.makedirs(os.path.join(mlve_path, "train", "normals"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "train", "normals", f"normal_{idx:03d}")
+        else:
+            os.makedirs(os.path.join(mlve_path, "normals"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "normals", f"normal_{i:03d}")
+
         img.save(save_path + ".png")
-        shutil.copyfile(normal_path, save_path + ".hdf5")
+        with h5py.File(save_path + ".hdf5", "w") as f:
+            f.create_dataset("dataset", data=normal)
+
+        # shutil.copyfile(normal_path, save_path + ".hdf5")
 
         ###############################
         # format metadata
@@ -111,12 +178,16 @@ def format_hypersim():
         meta["cam_position"] = position
         meta["cam_id"] = cam_dir.split("/")[-1]
         meta["frame_idx"] = int(normal_path.split("frame.")[1].split(".")[0])
-        save_path = os.path.join(mlve_path, "meta", f"meta_{i:03d}.pkl")
+        if i > 99:
+            idx = i % 100
+            os.makedirs(os.path.join(mlve_path, "train", "meta"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "train", "meta", f"meta_{idx:03d}.pkl")
+        else:
+            os.makedirs(os.path.join(mlve_path, "meta"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "meta", f"meta_{i:03d}.pkl")
         with open(save_path, "wb") as f:
             pickle.dump(meta, f)
 
-        if i >= 100:
-            break
 
 if __name__=="__main__":
     format_hypersim()
