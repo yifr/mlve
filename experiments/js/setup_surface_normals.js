@@ -6,10 +6,18 @@ var sessionID = urlParams.get("SESSION_ID"); // ID unique to the particular subm
 var projName = urlParams.get("projName");
 var expName = urlParams.get("expName");
 var iterName = urlParams.get("iterName");
+var imagesAsNormals = urlParams.get("imagesAsNormals");
+var allSupervised = urlParams.get("allSupervised");
+var indicatorType = urlParams.get("indicatorType");
+var ignoreInstructions = urlParams.get("ignoreInstructions");
 var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
+
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
+if (!(indicatorType)) {
+ indicatorType = "relative"; 
+}
 /****************************************************
   If you have any other URL Parameters that you need
   for your experiment, read them in them here.
@@ -87,8 +95,8 @@ function buildAndRunExperiment(sessionTemplate) {
 
   var instructionPages = [
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
-    "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>.</p>" +
-    "<p> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
+    "<p>Welcome to this experiment. This experiment should take a total of <strong>30 minutes</strong>.</p>" +
+    "<p> You will be compensated at a base rate of $15/hour for a total of $7.00, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>." + 
     "<p> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for perception experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
     "<p>In this study, on every trial, you will be shown a picture of several objects.</p>" +
@@ -123,8 +131,9 @@ function buildAndRunExperiment(sessionTemplate) {
   if (!DEBUG_MODE) {
     trials.push(consent);
   }
-  trials.push(instructions);
-  
+  if (!(ignoreInstructions)) {
+    trials.push(instructions);
+  }
   
   // Create comprehension check survey
   var comprehensionSurvey = {
@@ -175,8 +184,9 @@ function buildAndRunExperiment(sessionTemplate) {
     }, // close loop_function
   }; // close loopNode
   
-  trials.push(comprehensionSurvey);
-  
+  if (!(ignoreInstructions)) {
+    trials.push(comprehensionSurvey);
+  } 
   
   // Create consent + instructions trial
   var supervisedTrialInstructions = {
@@ -197,6 +207,9 @@ function buildAndRunExperiment(sessionTemplate) {
   
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
+    if (DEBUG_MODE) {
+      console.log(trialData);
+    }
     if (i == 3) {
       var reinforcementTrialInstructions = {
         type: jsPsychInstructions,
@@ -211,14 +224,18 @@ function buildAndRunExperiment(sessionTemplate) {
       trials.push(reinforcementTrialInstructions);
     }
     
+    var imageURL = imagesAsNormals ? trialData["normalImageURL"] : trialData["imageURL"];
+    
     var trial = {
       type: surfaceNormalsTask,
-      imageURL: trialData["imageURL"],
+      imageURL: imageURL,
       trialType: trialData["trialType"],
       arrowPosition: trialData["arrowPosition"],
       randomizeArrowInitialDirection: trialData["randomizeArrowInitialDirection"],
       trueArrowDirection: trialData["trueArrowDirection"],
-      index: i
+      index: i,
+      indicatorType: indicatorType,
+      arrowPixelPosition: trialData["arrowPixelPosition"]
     }
     trials.push(trial)
   }
@@ -249,11 +266,12 @@ function buildAndRunExperiment(sessionTemplate) {
     }
     
     var trialData = experimentTrials[index]; 
+    if (DEBUG_MODE) {
+      console.log(trialData);
+    }
     var onFinish = function (responseData) {
       trial_index = responseData["index"];
-      if (DEBUG_MODE) {
-        console.log(trial_index);
-      }
+
       var trial_data = [experimentTrials[trial_index], responseData].reduce(
         function (r, o) {
           Object.keys(o).forEach(function (k) {
@@ -271,14 +289,17 @@ function buildAndRunExperiment(sessionTemplate) {
       logTrialtoDB(trial_data);
     };
     
+    var imageURL = imagesAsNormals ? trialData["normalImageURL"] : trialData["imageURL"];
+    var trialType = allSupervised ? "supervised" : trialData["trialType"];
     var trial = {
       type: surfaceNormalsTask,
-      imageURL: trialData["imageURL"],
-      trialType: trialData["trialType"],
+      imageURL: imageURL,
+      trialType: trialType,
       arrowPosition: trialData["arrowPosition"],
       randomizeArrowInitialDirection: trialData["randomizeArrowInitialDirection"],
       trueArrowDirection: trialData["trueArrowDirection"],
       index: index,
+      indicatorType: indicatorType,
       on_finish: onFinish,
     }
 
@@ -307,6 +328,16 @@ function buildAndRunExperiment(sessionTemplate) {
     var exitSurveyText = {
       type: jsPsychSurveyText,
       preamble: "<strong><u>Exit Survey</u></strong>",
+      on_finish: function (comments) {
+      logTrialtoDB(comments);
+        document.body.innerHTML = `<p> Please wait. You will be redirected back to Prolific in a few moments.
+          </p> If not, please use the following completion code to ensure \
+          compensation for this study: B4A98EE7`;
+        setTimeout(function () {
+        location.href =
+          "https://app.prolific.co/submissions/complete?cc=B4A98EE7";
+        }, 500);
+      },
       questions: [
         {
           name: "TechnicalDifficultiesFreeResp",
@@ -316,19 +347,6 @@ function buildAndRunExperiment(sessionTemplate) {
           rows: 5,
           columns: 50,
           required: false,
-        },
-        {
-          name: "participantAge",
-          prompt: "What is your year of birth?",
-          placeholder: "e.g. 1766",
-          required: true,
-        },
-        {
-          prompt: "What is your gender?",
-          name: "participantSex",
-          horizontal: false,
-          options: ["Male", "Female", "Other", "Do Not Wish To Say"],
-          required: true,
         },
         {
           name: "participantComments",

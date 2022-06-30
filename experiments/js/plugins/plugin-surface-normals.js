@@ -8,8 +8,8 @@
 
 var surfaceNormalsTask = (function (jspsych) {
   "use strict";
-  var canvasWidthPercent = 0.8;
-  var canvasHeightPercent = 0.8;
+  var canvasWidthPercent = 1.0;
+  var canvasHeightPercent = 1.0;
 
   const info = {
     name: "jspsych-surface-normals",
@@ -40,6 +40,12 @@ var surfaceNormalsTask = (function (jspsych) {
         default: null,
         description: "Where  to place the arrow",
       },
+      arrowPixelPosition: {
+        type: jspsych.ParameterType.Array,
+        pretty_name: "Arrow Pixel Position",
+        default: null,
+        description: "Pixel coordinates of arrow"
+      },
       randomizeArrowInitialDirection: {
         type: jspsych.ParameterType.BOOL,
         pretty_name: "Randomize Arrow Initial Direction",
@@ -64,7 +70,7 @@ var surfaceNormalsTask = (function (jspsych) {
         default: 0,
         description: "What number trial this is",
       },
-      indicator_type: {
+      indicatorType: {
         type: jspsych.ParameterType.STRING,
         pretty_name: "Indicator Type",
         default: "relative",
@@ -72,9 +78,9 @@ var surfaceNormalsTask = (function (jspsych) {
       },
     },
   };
-  
 
-  
+
+
   class surfaceNormalsTaskPlugin {
     constructor(jsPsych) {
       this.jsPsych = jsPsych;
@@ -83,10 +89,11 @@ var surfaceNormalsTask = (function (jspsych) {
       this.renderer;
     }
     trial(display_element, trial) {
-      const INDICATOR_ON_COLOR = 0xff00ff;
+
+      const INDICATOR_ON_COLOR = 0xff0000;
       const INDICATOR_OFF_COLOR = 0x000000;
 
-      const TRUE_INDICATOR_ON_COLOR = 0xff00ff;
+      const TRUE_INDICATOR_ON_COLOR = 0xff0000;
       const TRUE_INDICATOR_OFF_COLOR = 0x000000;
 
       var IN_TRIAL = false;
@@ -107,7 +114,6 @@ var surfaceNormalsTask = (function (jspsych) {
       var indicatorDirection = new THREE.Vector3();
       var indicatorPosition = new THREE.Vector3();
       var indicatorTrueDirection = new THREE.Vector3();
-      var indicatorTruePosition = new THREE.Vector3();
       var indicatorDirectionTrajectory = new Array();
       var indicatorDirectionTimes = new Array();
       var mousePositionTrajectory = new Array();
@@ -129,16 +135,12 @@ var surfaceNormalsTask = (function (jspsych) {
 
         // Compute mouse location relative to canvasBoundingBox, then normalize to [-1, 1]
         // I think this is correct
-
         pointer.x =
           ((event.clientX - canvasBoundingBox.left) / sketchpadCurrentWidth) *
-            2 -
-          1;
+            2 - 1;
         pointer.y =
           -((event.clientY - canvasBoundingBox.top) / sketchpadCurrentHeight) *
-            2 +
-          1;
-
+            2 + 1;
         // First computes location of mouse on z=0 plane
         // See: https://stackoverflow.com/a/13091694/4570472
         // Third argument is irrelevant.
@@ -149,7 +151,7 @@ var surfaceNormalsTask = (function (jspsych) {
         mouseCurrentOrthographicPosition.unproject(this.camera);
         return mouseCurrentOrthographicPosition;
       }
-      
+
       document.addEventListener("click", function (event) {
         if (IN_TRIAL) {
           if (!rotate_indicator) {
@@ -187,19 +189,21 @@ var surfaceNormalsTask = (function (jspsych) {
           }
         }
       });
-      
+
       function rotateIndicator(event) {
-        if (trial.indicator_type == "absolute") {
+        if (trial.indicatorType == "absolute") {
           absoluteRotateIndicator(event);
         } else {
           relativeRotateIndicator(event);
+          console.log(indicator.getDirection());
         }
       }
 
       const relativeRotateIndicator = (event) => {
         var submit_button = $("#submit_button")[0];
-        if (IN_TRIAL & rotate_indicator) {
+        if (IN_TRIAL && rotate_indicator) {
           submit_button.style.visibility = "visible";
+          submit_button.disabled = true;
 
           mousePenultimateOrthographicPosition.copy(
             mouseCurrentOrthographicPosition
@@ -291,7 +295,7 @@ var surfaceNormalsTask = (function (jspsych) {
           var submit_button = $("#submit_button")[0];
           submit_button.style.visibility = "visible";
           setMouseCurrentOrthographicPosition(event);
-
+          
           let x0 = _current_trial.arrowPosition[0];
           let y0 = _current_trial.arrowPosition[1];
 
@@ -344,7 +348,7 @@ var surfaceNormalsTask = (function (jspsych) {
             $("#percent_correct")[0].value =
               100 - Math.round((100 * error) / Math.PI);
           } else {
-            submit_button.disabled = false;
+            submit_button.disabled = true;
           }
         }
       }
@@ -375,11 +379,11 @@ var surfaceNormalsTask = (function (jspsych) {
         // create threejs_covering_canvas
         html += '<div class="threejs_outer_container">';
         html += '<div class="threejs_inner_container">';
-        
-        
+
+
         // Get image height and width
-        var imageHeight = 426;
-        var imageWidth = 640;
+        var imageHeight = 512;
+        var imageWidth = 512;
         html +=
           '<img class="threejs_background_image" src="' +
           trial.imageURL +
@@ -402,7 +406,7 @@ var surfaceNormalsTask = (function (jspsych) {
             "></canvas>";
           html += "</div></div>";
 
-          // display button to submit drawing when finished
+          // // display button to submit drawing when finished
           // html +=
           //   '<div><img src="/img/colormap_white.png" style="float:left; margin: 0px 15px 15px 0px;" width="3%">';
           html +=
@@ -420,7 +424,7 @@ var surfaceNormalsTask = (function (jspsych) {
           // add event listener to submit button once response window opens
           var submit_button = $("#submit_button")[0];
           submit_button.addEventListener("click", end_trial);
-          
+
           // button is disabled until at least one rotation
           submit_button.style.visibility = "hidden";
           submit_button.disabled = true;
@@ -457,9 +461,9 @@ var surfaceNormalsTask = (function (jspsych) {
         );
 
         // camera.position.z = 5;
-        // this.camera.position.set(0, 0, 5);
-        this.camera.position.set(0,100,0); 
-        this.camera.lookAt(this.scene.position);
+        this.camera.position.set(0, 0, 5);
+        // this.camera.position.set(0,100,0);
+        // this.camera.lookAt(this.scene.position);
         // Init the renderer.
 
         this.renderer = new THREE.WebGLRenderer({
@@ -468,9 +472,11 @@ var surfaceNormalsTask = (function (jspsych) {
         });
         // Set background to clear color
         this.renderer.setClearColor(0x000000, 0);
-
-        var indicatorPosition = new THREE.Vector3(...trial.arrowPosition);
-
+        
+        var posX = trial.arrowPosition[0];
+        var posY = trial.arrowPosition[1];
+        var indicatorPosition = new THREE.Vector3(posX, -posY, 0);
+                                                 
         if (trial.randomizeArrowInitialDirection) {
           let randomDirection = new THREE.Vector3().random();
           // Ensure random direction is facing forward
@@ -494,7 +500,7 @@ var surfaceNormalsTask = (function (jspsych) {
           1.0
         );
         this.scene.add(indicator);
-        console.log(this.scene);
+
         // add initial ArrowDirection to trajectory
         indicatorDirectionTrajectory.push(indicator.getDirection());
         indicatorDirectionTimes.push(Date.now());
@@ -506,13 +512,14 @@ var surfaceNormalsTask = (function (jspsych) {
           indicatorTrueDirection = new THREE.Vector3(
             ...trial.trueArrowDirection
           ).normalize();
-          indicatorTruePosition.copy(indicatorPosition);
+          
+          var indicatorTruePosition = indicatorPosition;
           trueIndicator = new KoenderinkCircle(
             indicatorTrueDirection,
             indicatorTruePosition,
             TRUE_INDICATOR_ON_COLOR,
             false,
-            0.4
+            0.7
           );
           this.scene.add(trueIndicator);
 
@@ -562,7 +569,9 @@ var surfaceNormalsTask = (function (jspsych) {
         //   return objArray
         // };
         // mousePressTimesAndArrowDirections = mapArraytoObjArray(mousePressTimesAndArrowDirections);
-
+        var indicatorFinal = indicator.getDirection();
+        indicatorFinal = [indicatorFinal.x, indicatorFinal.y, indicatorFinal.z];
+        
         // data saving
         var trial_data = {
           // startTrialTime: startTrialTime,
@@ -571,9 +580,10 @@ var surfaceNormalsTask = (function (jspsych) {
           randomizeArrowInitialDirection: trial.randomizeArrowInitialDirection,
           trialType: trial.trialType,
           imageURL: trial.imageURL,
+          indicatorFinalDirection: indicatorFinal,
           indicatorDirectionTrajectory: indicatorDirectionTrajectory,
           indicatorDirectionTimes: indicatorDirectionTimes,
-          indicator_type: trial.indicator_type,
+          indicatorType: trial.indicatorType,
           mousePositionTrajectory: mousePositionTrajectory,
           is_duplicate: trial.is_duplicate,
           index: trial.index,

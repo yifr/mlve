@@ -117,7 +117,9 @@ def prolific_get(url, params=None):
     if resp:
         return resp.json()
     else:
-        return None
+        logging.info("Error: No data received for url: ", url)
+        print(resp)
+        return resp
 
 
 def launch_experiment():
