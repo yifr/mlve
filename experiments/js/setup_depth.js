@@ -134,10 +134,13 @@ function buildAndRunExperiment(sessionTemplate) {
 
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
+    if (DEBUG) {
+      console.log(familiarizationTrials[i]);
+    }
     var trialData = familiarizationTrials[i];
     var trial = {
       type: depthTrial,
-      stimulus: trialData.image_url,
+      stimulus: trialData.imageURL,
       choices: ["Red", "Green"],
       correct_choice: trialData.correct_choice,
       probe_locations: trialData.probe_locations,
@@ -218,15 +221,10 @@ function buildAndRunExperiment(sessionTemplate) {
       logTrialtoDB(trial_data);
     };
 
-    var gt_first = Math.random() > 0.5;
-    choices = gt_first
-      ? [trialData.gt_shape_url, trialData.alt_shape_url]
-      : [trialData.alt_shape_url, trialData.gt_shape_url];
-
     var trial = {
       type: depthTrial,
       index: index,
-      stimulus: trialData.image_url,
+      stimulus: trialData.imageURL,
       choices: ["Red", "Green"],
       correct_choice: trialData.correct_choice,
       probe_location: trialData.probe_locations,
