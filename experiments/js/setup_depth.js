@@ -135,17 +135,12 @@ function buildAndRunExperiment(sessionTemplate) {
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
-    var gt_first = Math.random() > 0.5;
-    var choices = gt_first
-      ? [trialData.gt_shape_url, trialData.alt_shape_url]
-      : [trialData.alt_shape_url, trialData.gt_shape_url];
     var trial = {
-      type: m2sTrial,
+      type: depthTrial,
       stimulus: trialData.image_url,
-      choices: choices,
-      correct_choice: gt_first ? 0 : 1,
+      choices: ["Red", "Green"],
+      correct_choice: trialData.correct_choice,
       probe_locations: trialData.probe_locations,
-      button_html: "<img height='128px' src=%choice%></img>",
       practice_trial: true,
       debug: DEBUG_MODE,
     };
@@ -232,10 +227,9 @@ function buildAndRunExperiment(sessionTemplate) {
       type: depthTrial,
       index: index,
       stimulus: trialData.image_url,
-      choices: choices,
-      correct_choice: gt_first ? 0 : 1,
-      probe_location: trialData.probe_location,
-      button_html: "<img height='128px' src=%choice%></img>",
+      choices: ["Red", "Green"],
+      correct_choice: trialData.correct_choice,
+      probe_location: trialData.probe_locations,
       practice_trial: false,
       debug: DEBUG_MODE,
       on_finish: onFinish,
