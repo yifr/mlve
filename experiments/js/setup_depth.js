@@ -134,9 +134,6 @@ function buildAndRunExperiment(sessionTemplate) {
 
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
-    if (DEBUG) {
-      console.log(familiarizationTrials[i]);
-    }
     var trialData = familiarizationTrials[i];
     var trial = {
       type: depthTrial,
