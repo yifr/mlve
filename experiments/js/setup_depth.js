@@ -98,11 +98,6 @@ function buildAndRunExperiment(sessionTemplate) {
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
     "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for match-to-sample experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
-    "<p>In this experiment, you will be asked to determine the shape of an object, indicated by a red dot.\nDuring the experiment, objects will be camouflaged against the background. The objects in question are simple, 3D shapes, \n and when they're not camouflaged, look like these shapes: <br><br> \n<img height=450, width=800, src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/static_detection/all_stims.gif'></img></p>",
-    "<p>Objects can appear anywhere in a scene. At the start of a trial, the red dot will flash over the object you need to identify. There will be two options underneath - all you need to do is simply click the correct shape below! You can see an example trial here: <br><img src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/m2s/m2s_example.gif' width=512, height=512></p>",
-    "<p>Sometimes, the options you need to choose between might look very similar (even indistinguishable). Don't get frustrated - that's just part of the experiment! You should expect that some of these trials <i>might</i> be too difficult to solve, so if you're having a hard time figuring out the correct answer just go with your best guess and move on to the next trial.</p>",
-    "<p>If you guess randomly on every trial you should expect to get a score of 50%. We have some checks in place to detect random guessing - low effort responses will be removed and won't be compensated. Bonuses will be given out to participants who score high enough above random chance.</p>",
-    "<p>Ready? Once you continue there will be six practice trials, and then the experiment will begin.</p><p>You won't be able to review any of the instructions after this page, so to review any of the instructions now just hit the back arrow to return to a previous page.</p>",
   ];
 
   var trials = [];
@@ -135,10 +130,12 @@ function buildAndRunExperiment(sessionTemplate) {
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
+    console.log("correct choice:" + trialData.correct_choice, trialData)
     var trial = {
       type: depthTrial,
       stimulus: trialData.imageURL,
-      choices: ["Red", "Green"],
+      true_depths: trialData.gt_depths ? trialData.gt_depths : null,
+      choices: ["Left", "Right", "Same"],
       correct_choice: trialData.correct_choice,
       probe_locations: trialData.probe_locations,
       practice_trial: true,
@@ -152,7 +149,7 @@ function buildAndRunExperiment(sessionTemplate) {
   trials.push({
     type: jsPsychInstructions,
     pages: [
-      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct shape. The scenes will also be camoflauged with a synthetic camoflauge texture, so get ready! \
+      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct \
       Click 'Start' to begin the experiment.",
     ],
     allow_backward: false,
@@ -222,9 +219,10 @@ function buildAndRunExperiment(sessionTemplate) {
       type: depthTrial,
       index: index,
       stimulus: trialData.imageURL,
-      choices: ["Red", "Green"],
+      choices: ["Left", "Right", "Same"],
+      true_depths: trialData.gt_depths ? trialData.gt_depths : null,
       correct_choice: trialData.correct_choice,
-      probe_location: trialData.probe_locations,
+      probe_locations: trialData.probe_locations,
       practice_trial: false,
       debug: DEBUG_MODE,
       on_finish: onFinish,

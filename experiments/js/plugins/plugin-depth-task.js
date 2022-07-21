@@ -11,14 +11,19 @@ var depthTrial = (function (jspsych) {
         default: undefined,
       },
       probe_locations: {
-        type: jspsych.Array,
+        type: jspsych.ParameterType.Array,
         pretty_name: "Probe Location",
         default: undefined,
       },
       correct_choice: {
-        type: jspsych.STRING,
+        type: jspsych.ParameterType.HTML_STRING,
         pretty_name: "Correct Choice",
         default: undefined,
+      },
+      true_depths: {
+       type: jspsych.ParameterType.Array,
+        pretty_name: "Ground Truth Depths",
+        default: [],
       },
       /** Array containing the label(s) for the button(s). */
       index: {
@@ -48,7 +53,7 @@ var depthTrial = (function (jspsych) {
       prompt: {
         type: jspsych.ParameterType.HTML_STRING,
         pretty_name: "Prompt",
-        default: "<p id='prompt'>Which color dot is closer to the camerak?</p>",
+        default: "<p id='prompt'>Which color dot is closer to the camera?</p>",
       },
       /** The vertical margin of the button. */
       margin_vertical: {
@@ -119,6 +124,7 @@ var depthTrial = (function (jspsych) {
       var height, width;
       var html;
       if (trial.debug) {
+        console.log("Probe Locations: (" + trial.probe_locations[0] + "), (" + trial.probe_locations[1] + ")")
         console.log("Correct Answer: " + trial.correct_choice);
       }
       if (trial.render_on_canvas) {
@@ -143,10 +149,9 @@ var depthTrial = (function (jspsych) {
           // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
           getHeightWidth(); // only possible to get width/height after image loads
           ctx.drawImage(img, 0, 0, width, height);
-
-          function drawProbe(ctx, x, y) {
+          
+          function drawProbe(ctx, x, y, color) {
             ctx.globalCompositeOperation = "source-over";
-            ctx.drawImage(img, 0, 0, width, height);
 
             // Draw outer probe on canvas
             ctx.beginPath();
@@ -155,7 +160,7 @@ var depthTrial = (function (jspsych) {
             var radius = 12;
 
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = "rgba(70, 50, 100, 0.75)";
+            ctx.fillStyle = "rgba(70, 50, 100, 0.5)";
             ctx.fill();
 
             // Draw inner probe on canvas
@@ -163,46 +168,47 @@ var depthTrial = (function (jspsych) {
             var radius = 4;
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
             if (color == "green") {
-              ctx.fillStyle = "rgba(6, 255, 0, 1)";
+              ctx.fillStyle = "rgba(6, 255, 0, 0.5)";
             } else if (color == "red") {
-              ctx.fillStyle = "rgba(255, 6, 0, 1)";
+              ctx.fillStyle = "rgba(255, 6, 0, 0.5)";
             }
             ctx.fill();
             return ctx;
           }
 
-          function clearProbe(ctx, x, y) {
-            // Create transparent circle at probe point
-            var x = parseInt(x);
-            var y = parseInt(y);
-            var radius = 12;
-            ctx.globalCompositeOperation = "destination-out";
-            ctx.arc(x, y, radius, 0, Math.PI * 2, true);
-            ctx.fill();
-          }
+        function clearProbe(ctx, x, y) {
+          // Create transparent circle at probe point
+          var x = parseInt(x);
+          var y = parseInt(y);
+          var radius = 12;
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.arc(x, y, radius, 0, Math.PI * 2, true);
+          ctx.fill();
+        }
 
-          function flashProbe(ctx, x, y) {
-            drawProbe(ctx, x, y);
-            setTimeout(function () {
-              clearProbe(ctx, x, y);
-            }, 200);
-            setTimeout(function () {
-              drawProbe(ctx, x, y);
-            }, 400);
-            setTimeout(function () {
-              clearProbe(ctx, x, y);
-            }, 600);
-            setTimeout(function () {
-              drawProbe(ctx, x, y);
-            }, 800);
-            //setTimeout(drawProbe(ctx), 400);
-          }
+        function flashProbe(ctx, x, y, color) {
+          drawProbe(ctx, x, y, color);
+          setTimeout(function () {
+            clearProbe(ctx, x, y);
+          }, 200);
+          setTimeout(function () {
+            drawProbe(ctx, x, y, color);
+          }, 400);
+          // setTimeout(function () {
+          //   clearProbe(ctx, x, y);
+          // }, 600);
+          // setTimeout(function () {
+          //   drawProbe(ctx, x, y, color);
+          // }, 800);
+        }
 
-          var point0 = trial.probe_locations[0];
-          var point1 = trial.probe_locations[1];
-          flashProbe(ctx, point0[1], point0[0], "red");
-          flashProbe(ctx, point1[1], point1[0], "green");
-        };
+        var point0 = trial.probe_locations[0];
+        var point1 = trial.probe_locations[1];
+        flashProbe(ctx, point0[1], point0[0], "red");
+        flashProbe(ctx, point1[1], point1[0], "red");
+
+        }
+
 
         // get/set image height and width - this can only be done after image loads because uses image's naturalWidth/naturalHeight properties
         const getHeightWidth = () => {
@@ -231,8 +237,8 @@ var depthTrial = (function (jspsych) {
           canvas.height = height;
           canvas.width = width;
         };
-
         getHeightWidth(); // call now, in case image loads immediately (is cached)
+
         // create buttons
         var buttons = [];
         if (Array.isArray(trial.button_html)) {
@@ -266,6 +272,7 @@ var depthTrial = (function (jspsych) {
             str +
             "</div>";
         }
+        
         btngroup_div.innerHTML = html;
         // add canvas to screen and draw image
         display_element.insertBefore(canvas, null);
@@ -275,6 +282,7 @@ var depthTrial = (function (jspsych) {
           ctx.drawImage(img, 0, 0, width, height);
           image_drawn = true;
         }
+      
         // add buttons to screen
         display_element.insertBefore(btngroup_div, canvas.nextElementSibling);
         // add prompt if there is one
@@ -329,31 +337,11 @@ var depthTrial = (function (jspsych) {
         var img = display_element.querySelector(
           "#jspsych-image-button-response-stimulus"
         );
-        if (trial.stimulus_height !== null) {
-          height = trial.stimulus_height;
-          if (trial.stimulus_width == null && trial.maintain_aspect_ratio) {
-            width =
-              img.naturalWidth * (trial.stimulus_height / img.naturalHeight);
-          }
-        } else {
-          height = img.naturalHeight;
-        }
-        if (trial.stimulus_width !== null) {
-          width = trial.stimulus_width;
-          if (trial.stimulus_height == null && trial.maintain_aspect_ratio) {
-            height =
-              img.naturalHeight * (trial.stimulus_width / img.naturalWidth);
-          }
-        } else if (
-          !(trial.stimulus_height !== null && trial.maintain_aspect_ratio)
-        ) {
-          // if stimulus width is null, only use the image's natural width if the width value wasn't set
-          // in the if statement above, based on a specified height and maintain_aspect_ratio = true
-          width = img.naturalWidth;
-        }
+
         img.style.height = height.toString() + "px";
         img.style.width = width.toString() + "px";
       }
+
       // start timing
       var start_time = performance.now();
       for (var i = 0; i < trial.choices.length; i++) {
@@ -370,22 +358,41 @@ var depthTrial = (function (jspsych) {
         rt: null,
         button: null,
       };
+      
       // function to end trial when it is time
       const end_trial = () => {
         // kill any remaining setTimeout handlers
         this.jsPsych.pluginAPI.clearAllTimeouts();
         // gather the data to store for the trial
+  
         var correct = response.button == trial.correct_choice;
         if (trial.practice_trial) {
           if (!correct) {
+            if (trial.correct_choice == 0) {
+              var true_choice = "left";
+            } else if (trial.correct_choice == 1) {
+              var true_choice = "right" 
+            } else {
+              var true_choice = "same";
+            }
             var prompt =
-              "Good try! The correct answer is actually the other probe! Click the correct probe color to continue.";
+              "Good try! The correct answer is actually " + true_choice + "! Click the correct button to continue.";
             display_element.querySelector("#prompt").innerHTML = prompt;
+
+            // enable all the buttons after a response
+            var btns = document.querySelectorAll(
+              ".jspsych-image-button-response-button button"
+            );
+            for (var i = 0; i < btns.length; i++) {
+              //btns[i].removeEventListener('click');
+              btns[i].disabled = false;
+            }
             return;
           }
         }
         if (trial.debug) {
           console.log("Correct: " + correct);
+          console.log("Depths: ", trial.true_depths)
         }
 
         var trial_data = {
@@ -394,7 +401,7 @@ var depthTrial = (function (jspsych) {
           stimulus: trial.stimulus,
           response: response.button,
           correct: correct,
-          probe_location: trial.probe_location,
+          probe_locations: trial.probe_locations,
           correct_choice: trial.correct_choice,
           choices: trial.choices,
         };
@@ -404,6 +411,7 @@ var depthTrial = (function (jspsych) {
         // move on to the next trial
         this.jsPsych.finishTrial(trial_data);
       };
+
       // function to handle responses by the subject
       function after_response(choice) {
         // measure rt
@@ -427,24 +435,6 @@ var depthTrial = (function (jspsych) {
         if (trial.response_ends_trial) {
           end_trial();
         }
-      }
-      // hide image if timing is set
-      if (trial.stimulus_duration !== null) {
-        this.jsPsych.pluginAPI.setTimeout(() => {
-          display_element.querySelector(
-            "#jspsych-image-button-response-stimulus"
-          ).style.visibility = "hidden";
-        }, trial.stimulus_duration);
-      }
-      // end trial if time limit is set
-      if (trial.trial_duration !== null) {
-        this.jsPsych.pluginAPI.setTimeout(() => {
-          end_trial();
-        }, trial.trial_duration);
-      } else if (trial.response_ends_trial === false) {
-        console.warn(
-          "The experiment may be deadlocked. Try setting a trial duration or set response_ends_trial to true."
-        );
       }
     }
   }

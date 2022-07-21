@@ -86,7 +86,7 @@ var surfaceNormalsTask = (function (jspsych) {
       this.jsPsych = jsPsych;
       this.scene = new THREE.Scene();
       this.camera;
-      this.renderer;
+      
     }
     trial(display_element, trial) {
 
@@ -108,7 +108,7 @@ var surfaceNormalsTask = (function (jspsych) {
       var mouseCurrentOrthographicPosition = new THREE.Vector3();
       var distanceCurrentMinusPenultimate = new THREE.Vector3();
       const negativeZVector = new THREE.Vector3(0, 0, -1);
-      const errorThreshold = 0.2;
+      const errorThreshold = 0.3;
 
       // init global timestamps
       var indicatorDirection = new THREE.Vector3();
@@ -195,7 +195,6 @@ var surfaceNormalsTask = (function (jspsych) {
           absoluteRotateIndicator(event);
         } else {
           relativeRotateIndicator(event);
-          console.log(indicator.getDirection());
         }
       }
 
@@ -299,11 +298,11 @@ var surfaceNormalsTask = (function (jspsych) {
           let x0 = _current_trial.arrowPosition[0];
           let y0 = _current_trial.arrowPosition[1];
 
-          let x1 = mouseCurrentOrthographicPosition.x;
-          let y1 = mouseCurrentOrthographicPosition.y;
+          let x1 = mouseCurrentOrthographicPosition.x * 1.5
+          let y1 = mouseCurrentOrthographicPosition.y * 1.5
 
           let R = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
-          let R1 = Math.min(R, radius - 0.0001);
+          let R1 = Math.min(R, radius - 0.00001);
 
           let theta = Math.sign(y1 - y0) * Math.acos((x1 - x0) / R);
 
@@ -348,7 +347,7 @@ var surfaceNormalsTask = (function (jspsych) {
             $("#percent_correct")[0].value =
               100 - Math.round((100 * error) / Math.PI);
           } else {
-            submit_button.disabled = true;
+            submit_button.disabled = false;
           }
         }
       }
@@ -405,7 +404,7 @@ var surfaceNormalsTask = (function (jspsych) {
             imageWidth +
             "></canvas>";
           html += "</div></div>";
-
+          
           // // display button to submit drawing when finished
           // html +=
           //   '<div><img src="/img/colormap_white.png" style="float:left; margin: 0px 15px 15px 0px;" width="3%">';
@@ -464,14 +463,6 @@ var surfaceNormalsTask = (function (jspsych) {
         this.camera.position.set(0, 0, 5);
         // this.camera.position.set(0,100,0);
         // this.camera.lookAt(this.scene.position);
-        // Init the renderer.
-
-        this.renderer = new THREE.WebGLRenderer({
-          canvas,
-          alpha: true, // Necessary to make background transparent.
-        });
-        // Set background to clear color
-        this.renderer.setClearColor(0x000000, 0);
         
         var posX = trial.arrowPosition[0];
         var posY = trial.arrowPosition[1];
@@ -532,7 +523,7 @@ var surfaceNormalsTask = (function (jspsych) {
       const update_threejs = () => {
         // TODO: should these be switched?
         requestAnimationFrame(update_threejs);
-        this.renderer.render(this.scene, this.camera);
+        renderer.render(this.scene, this.camera);
       }
       // animate();
 
@@ -588,7 +579,6 @@ var surfaceNormalsTask = (function (jspsych) {
           is_duplicate: trial.is_duplicate,
           index: trial.index,
         };
-
         // clear the HTML in the display element
         display_element.innerHTML = "";
 
@@ -685,7 +675,7 @@ class KoenderinkCircle extends THREE.Object3D {
           color: on_color,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.5,
+          opacity: 0.25,
         })
       );
       //Rotate the ring such that line is normal to plane the ring lies on.
@@ -700,7 +690,7 @@ class KoenderinkCircle extends THREE.Object3D {
           color: on_color,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.5,
+          opacity: 0.25,
         })
       );
       //Rotate the ring such that line is normal to plane the ring lies on.

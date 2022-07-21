@@ -12,11 +12,20 @@ var indicatorType = urlParams.get("indicatorType");
 var ignoreInstructions = urlParams.get("ignoreInstructions");
 var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
 
+var canvas = $("#threejs_covering_canvas")[0];
+var renderer = new THREE.WebGLRenderer({
+        canvas,
+        alpha: true, // Necessary to make background transparent.
+      });
+// Set background to clear color
+renderer.setClearColor(0x000000, 0);
+  
+
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
 if (!(indicatorType)) {
- indicatorType = "relative"; 
+ indicatorType = "absolute"; 
 }
 /****************************************************
   If you have any other URL Parameters that you need
@@ -102,8 +111,9 @@ function buildAndRunExperiment(sessionTemplate) {
     "<p>In this study, on every trial, you will be shown a picture of several objects.</p>" +
     "<p>In each picture, there will be an indicator next to or on an object.</p>" +
     "<p><b>Your goal is to point the indicator away from the surface of that object.</b></p>",  
-    "<p>To aim the indicator, click and drag your mouse. As you drag your mouse, the indicator will rotate.</p>" +
-    "<p>When you are satisfied the indicator points away from the surface of the object, click SUBMIT.", // +
+    "<p>To aim the indicator, click once to unfreeze the indicator and move your mouse around the screen. As you move your mouse, the indicator will rotate.</p>" +
+    "<p>When you are satisfied the indicator points away from the surface of the object, click again to freeze the indicator in place and hit SUBMIT.", // +
+    "<p> <strong>Note: </strong>This experiment works best in full screen, especially on smaller screens.</p>"
     ]
       
   var trials = [];
@@ -168,7 +178,7 @@ function buildAndRunExperiment(sessionTemplate) {
   var checkComprehensionSurvey = {
     timeline: [comprehensionSurvey],
     loop_function: function (data) {
-      resp = JSON.parse(data.values()[0]["responses"]);
+      resp = data.values()[0]["response"];
       if (
         resp["goalOfSurfaceNormal"] ===
           "To point the indicator away from the surface of the object" &&
@@ -185,7 +195,8 @@ function buildAndRunExperiment(sessionTemplate) {
   }; // close loopNode
   
   if (!(ignoreInstructions)) {
-    trials.push(comprehensionSurvey);
+    // trials.push(comprehensionSurvey);
+    trials.push(checkComprehensionSurvey);
   } 
   
   // Create consent + instructions trial
@@ -201,6 +212,7 @@ function buildAndRunExperiment(sessionTemplate) {
     allow_keys: true,
     allow_backward: true,
   }
+  
   
   trials.push(supervisedTrialInstructions)
   /***************** Familiarization Trials *********************/
@@ -253,6 +265,7 @@ function buildAndRunExperiment(sessionTemplate) {
   
   /******************* Construct Experiment Trials ************************/
   experimentTrials = shuffle(experimentTrials);
+  
   for (var index = 0; index < experimentTrials.length; index++) {
     if (index == Math.floor(experimentTrials.length / 2)) {
       var progressTrial = {
@@ -311,7 +324,7 @@ function buildAndRunExperiment(sessionTemplate) {
     var goodbye = {
       type: jsPsychInstructions,
       pages: [
-        "Thanks for participating in our experiment! You are all done. Please click the 'Next' button to submit this study. The following page will be blank but means that your participation has been submitted.<br> \
+        "Thanks for participating in our experiment! You are all done. Please click the 'Next' button to submit this study. Your completion code for this study is: LMOBKZYB. <br> \
       If you have any questions, feel free to email us at <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>.",
       ],
       show_clickable_nav: true,
@@ -332,10 +345,10 @@ function buildAndRunExperiment(sessionTemplate) {
       logTrialtoDB(comments);
         document.body.innerHTML = `<p> Please wait. You will be redirected back to Prolific in a few moments.
           </p> If not, please use the following completion code to ensure \
-          compensation for this study: B4A98EE7`;
+          compensation for this study: WRT7R373`;
         setTimeout(function () {
         location.href =
-          "https://app.prolific.co/submissions/complete?cc=B4A98EE7";
+          "https://app.prolific.co/submissions/complete?cc=LMOBKZYB";
         }, 500);
       },
       questions: [
