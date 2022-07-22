@@ -20,26 +20,30 @@ var videoAutoPlay = (function (jspsych) {
         constructor(jsPsych) {
             this.jsPsych = jsPsych;
           }
-          trial(display_element, trial) {
+        trial(display_element, trial) {
+
             var html = `
                 <div>
-                    <video id="video" src="${trial.imageURL}" controls="false" autoplay="true"/>
+                    <video id="video" src="${trial.imageURL}" type="video/mp4"
+                    preload autoplay style="pointer-events: none;"/>
                 </div>
+                <br><br>
             `
-            document.getElementById('video').addEventListener('ended', end_trial(), false);
-            
-            const end_trial = () => {
+            display_element.innerHTML = html
+            var video = document.getElementById("video");
+            var jsp = this.jsPsych
+
+            video.addEventListener("ended", function() {
                 // kill any remaining setTimeout handlers
-                this.jsPsych.pluginAPI.clearAllTimeouts();
+                jsp.pluginAPI.clearAllTimeouts();
                 var trial_data = {}
                 // clear the display
-                display_element.innerHTML = "";
+                // display_element.innerHTML = "";
                 // move on to the next trial
-                this.jsPsych.finishTrial(trial_data);
-              };
-          }
+                jsp.finishTrial(trial_data);
+            }, false)
+        }
     }
-
     videoAutoPlay.info = info;
     return videoAutoPlay;
 })(jsPsychModule);

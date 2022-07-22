@@ -1,5 +1,3 @@
-var DEBUG_MODE = false; //print debug and piloting information to the console
-
 var queryString = window.location.search;
 var urlParams = new URLSearchParams(queryString);
 var prolificID = urlParams.get("PROLIFIC_PID"); // ID unique to the participant
@@ -8,6 +6,7 @@ var sessionID = urlParams.get("SESSION_ID"); // ID unique to the particular subm
 var projName = urlParams.get("projName");
 var expName = urlParams.get("expName");
 var iterName = urlParams.get("iterName");
+var DEBUG_MODE = urlParams.get("debug")
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
@@ -140,7 +139,7 @@ function buildAndRunExperiment(sessionTemplate) {
     allow_backward: false,
     show_clickable_nav: true
   }
-
+  console.log(DEBUG_MODE)
   trials.push(preload);
   if (!DEBUG_MODE) {
     trials.push(consent);
@@ -241,7 +240,7 @@ function buildAndRunExperiment(sessionTemplate) {
       type: videoAutoPlay,
       imageURL: trialData.video_url
     }
-    
+
     var trial = {
       type: objectLocalizationTask,
       stimulus: trialData.image_url,
@@ -257,7 +256,7 @@ function buildAndRunExperiment(sessionTemplate) {
     trials.push(intertrial_screen);
     trials.push(video_trial);
     trials.push(trial);
-    
+
   }
 
   var commentsBlock = {
