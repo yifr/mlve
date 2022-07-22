@@ -161,8 +161,16 @@ function buildAndRunExperiment(sessionTemplate) {
       debug: DEBUG_MODE,
     };
 
-    trials.push(trial);
+    var video_trial = {
+      type: videoAutoPlay,
+      imageURL: trialData.video_url
+    }
+    if (DEBUG_MODE) {
+      console.log(video_trial);
+    }
     trials.push(intertrial_screen);
+    trials.push(video_trial);
+    trials.push(trial);
   }
 
   /****************** Pre-Experiment Warning ***************************/
