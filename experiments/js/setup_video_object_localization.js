@@ -47,6 +47,7 @@ function launchExperiment() {
     proj_name: projName,
     exp_name: expName,
     iter_name: iterName,
+    user_id: prolificID
   };
 
   if (DEBUG_MODE) {
@@ -101,15 +102,15 @@ function buildAndRunExperiment(sessionTemplate) {
     var shape_type = "simple";
   }
   var instruction_pages = [
-    "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
-    "<p>Welcome to this experiment. This experiment should take a total of <strong>20 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $5.00, which you will receive as long as you complete the study.</p>",
+    "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p><p><strong>Note: </strong>Once the experiment has started please do not reload the page, or you will not be able to complete it.</p>",
+    "<p>Welcome to this experiment. This experiment should take around <strong>25 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $6.50, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for detection experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
     "<p>In this experiment, you will be asked to determine whether or not a red dot is touching an object.\nDuring the experiment, objects will be camouflaged against the background. The objects in question are " + shape_type + ", 3D shapes, \n and when they're not camouflaged, look like these shapes: <br><br> \n<img height=450, width=800, src='" + example_shapes + "'></img></p><p><strong>Note: </strong>These are just some of the shapes -- the actual experiment will contain even more " + shape_type + " shapes.</p>",
-    "<p>Objects can appear anywhere in a scene. If the red center of the dot is touching an object, click 'Yes', and draw a box <strong>around the object it is touching </strong>. For example, in the demo video below, the dot is touching an object so the answer is 'Yes'. <br> <br>After pressing 'Yes', use your mouse to click and drag to draw a box around that object, and hit 'Submit' to continue. <br> <br> If you're not happy with the box you've drawn, you can redraw it as many times as you want before continuing. But be careful - once you click 'Yes' or 'No' there's no changing your answer!<br><img src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/static_detection/example_trial.gif' width=420, height=420></p><p>Importantly - don't just draw a box around the probe! Make sure to draw the box around the full object, if the dot is touching one.</p>",
+    "<p>During the experiment, you will watch a video of objects floating around. Then the video will pause and a dot will appear on the image. If the red center of the dot is touching an object, click 'Yes', and draw a box <strong>around the object it is touching </strong>. For example, in the demo video below, the dot is touching an object so the answer is 'Yes'. <br> <br>After pressing 'Yes', use your mouse to click and drag to draw a box around that object, and hit 'Submit' to continue. <br> <br> If you're not happy with the box you've drawn, you can redraw it as many times as you want before continuing. But be careful - once you click 'Yes' or 'No' there's no changing your answer!<br><img src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/static_detection/example_trial.gif' width=420, height=420></p><p>Importantly - don't just draw a box around the probe! Make sure to draw the box around the full object, if the dot is touching one.</p>",
     "<p>Sometimes the dot may be touching an object that's partially blocked by another object in front of it. In those cases, just draw a box around the visible portion of the object.</p>",
     "<p>Bonuses will be awarded based on two factors. The number of correct responses, and whether the bounding boxes you draw accurately outline the object.</p>",
     "<p>In the example below, the dot is not touching an object, so we can simply click 'No' and move on.<br><br> <img src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/static_detection/gestalt-example-no-trial.gif' type ='video/mov' width = 500, height = 500 > </img> </p>",
-    "<p>Ready? Once you continue there will be five practice trials, and then the experiment will begin.</p><p>Once you click to continue, you won't be able to review any of the instructions.</p><p>To review any of the instructions now, just hit the back arrow to return to a previous page.</p>",
+    "<p>Ready? Once you continue there will be several practice trials, and then the experiment will begin.</p><p>Once you click to continue, you won't be able to review any of the instructions.</p><p>To review any of the instructions now, just hit the back arrow to return to a previous page.</p>",
   ];
 
   var trials = [];
@@ -135,8 +136,9 @@ function buildAndRunExperiment(sessionTemplate) {
 
   var intertrial_screen = {
     type: jsPsychInstructions,
-    pages: ["<p>Click the right arrow to start the next trial.</p>"],
+    pages: ["<p style='font-size:64px'>+</p><p>Click the space bar to start the next trial.</p>"],
     allow_backward: false,
+    key_forward: " ",
     show_clickable_nav: true
   }
   console.log(DEBUG_MODE)
@@ -162,7 +164,8 @@ function buildAndRunExperiment(sessionTemplate) {
 
     var video_trial = {
       type: videoAutoPlay,
-      imageURL: trialData.video_url
+      imageURL: trialData.video_url,
+      practiceTrial: true
     }
     if (DEBUG_MODE) {
       console.log(video_trial);
@@ -238,7 +241,8 @@ function buildAndRunExperiment(sessionTemplate) {
 
     var video_trial = {
       type: videoAutoPlay,
-      imageURL: trialData.video_url
+      imageURL: trialData.video_url,
+      practiceTrial: false,
     }
 
     var trial = {

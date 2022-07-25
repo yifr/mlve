@@ -17,7 +17,7 @@ var use_https = true,
 var gameport;
 var store_port;
 var store_process;
-var allowed_users = ["yoni"];
+var allowed_users = ["yoni_test"];
 
 var cur_path = process.cwd();
 // make sure that we're launching store.js from the right path
@@ -99,12 +99,17 @@ try {
 
 // serve stuff that the client requests
 app.get("/*", (req, res) => {
-    serveFile(req, res);
-    // If the database shows they've already participated, block them.
-    //checkPreviousParticipant(id, (exists) => {
-    //  return exists ? handleDuplicate(req, res) : serveFile(req, res);
-    //});
-
+    const id = req.query.PROLIFIC_PID;
+    const isResearcher = _.includes(allowed_users, id);
+    if (!id || id == "undefined" || isResearcher) {
+        serveFile(req, res);
+    } else {
+        console.log("Checking user ID: " + id);
+        // If the database shows they've already participated, block them.
+        checkPreviousParticipant(id, (exists) => {
+          return exists ? handleDuplicate(req, res) : serveFile(req, res);
+        });
+    }
 });
 
 io.on("connection", function (socket) {
@@ -117,22 +122,6 @@ io.on("connection", function (socket) {
     var exp_name = data.exp_name;
     var iter_name = data.iter_name;
     initializeWithTrials(socket, proj_name, exp_name, iter_name);
-  });
-
-  // Checks for duplicate users
-  socket.on("checkDuplicateUser", function (data) {
-    var user_id = data.userID;
-    var scan_across_project = data.scanAcrossProject;
-    var proj_name = data.projName;
-    var exp_name = data.expName;
-    for (var i = 0; i < allowed_users.length; i++) {
-      if (allowed_users[i] == user_id) {
-        console.log("userID matches allowed user id: ", allowed_users[i]);
-        socket.emit("duplicateUser", { duplicateUser: false });
-      }
-    }
-    console.log("Checking if user is a duplicate.");
-    checkDuplicates(userID, proj_name, exp_name, scan_across_project);
   });
 
   // write data to db upon getting current data
@@ -176,10 +165,10 @@ function omit(obj, props) {
   }
 }
 
-function checkPreviousParticipant(workerID, callback) {
-  const p = { workerID: workerID };
+function checkPreviousParticipant(userID, callback) {
+  const p = { userID : userID};
   const postData = {
-    dbname: "lax", // TODO: don't hardcode this?
+    dbname: "mlve_outputs", // TODO: don't hardcode this?
     query: p,
     projection: { _id: 1 },
   };

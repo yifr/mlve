@@ -145,7 +145,7 @@ function buildAndRunExperiment(sessionTemplate) {
       choices: choices,
       correct_choice: gt_first ? 0 : 1,
       probe_location: trialData.probe_location,
-      button_html: "<img height='128px' src=%choice%></img>",
+      button_html: "<img style='border: 1px black solid' height='400px' width='400px' src=%choice%></img>",
       practice_trial: true,
       debug: DEBUG_MODE,
     };
@@ -200,7 +200,6 @@ function buildAndRunExperiment(sessionTemplate) {
     }
 
     var trialData = experimentTrials[index];
-
     var onFinish = function (responseData) {
       trial_index = responseData["index"];
       if (DEBUG_MODE) {
@@ -225,22 +224,24 @@ function buildAndRunExperiment(sessionTemplate) {
 
     var gt_first = Math.random() > 0.5;
     choices = gt_first
-      ? [trialData.gt_shape_url, trialData.alt_shape_url]
-      : [trialData.alt_shape_url, trialData.gt_shape_url];
+      ? [trialData.img_target, trialData.img_lure]
+      : [trialData.img_lure, trialData.img_target];
 
     var trial = {
       type: m2sTrial,
       index: index,
-      stimulus: trialData.image_url,
+      stimulus: trialData.img_sample,
       choices: choices,
       correct_choice: gt_first ? 0 : 1,
       probe_location: trialData.probe_location,
-      button_html: "<img height='128px' src=%choice%></img>",
+      button_html: "<img style='border: 1px black solid' height='400px' width='400px' src=%choice%></img>",
       practice_trial: false,
       debug: DEBUG_MODE,
       on_finish: onFinish,
     };
-
+      if (DEBUG_MODE) {
+          console.log(trial)
+      }
     trials.push(trial);
   }
 
