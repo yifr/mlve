@@ -137,11 +137,11 @@ function buildAndRunExperiment(sessionTemplate) {
     var trialData = familiarizationTrials[i];
     var gt_first = Math.random() > 0.5;
     var choices = gt_first
-      ? [trialData.gt_shape_url, trialData.alt_shape_url]
-      : [trialData.alt_shape_url, trialData.gt_shape_url];
+      ? [trialData.img_target, trialData.img_lure]
+      : [trialData.img_lure, trialData.img_target];
     var trial = {
       type: m2sTrial,
-      stimulus: trialData.image_url,
+      stimulus: trialData.img_sample,
       choices: choices,
       correct_choice: gt_first ? 0 : 1,
       probe_location: trialData.probe_location,

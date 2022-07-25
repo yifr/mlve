@@ -208,8 +208,9 @@ var m2sTrial = (function (jspsych) {
             }, 800);
             //setTimeout(drawProbe(ctx), 400);
           }
-
-          flashProbe(ctx);
+          if(trial.probe_location) {
+            flashProbe(ctx);
+          }
         };
 
         // get/set image height and width - this can only be done after image loads because uses image's naturalWidth/naturalHeight properties
