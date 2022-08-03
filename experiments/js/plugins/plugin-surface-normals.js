@@ -86,7 +86,8 @@ var surfaceNormalsTask = (function (jspsych) {
       this.jsPsych = jsPsych;
       this.scene = new THREE.Scene();
       this.camera;
-      
+      this.renderer;
+
     }
     trial(display_element, trial) {
 
@@ -99,7 +100,7 @@ var surfaceNormalsTask = (function (jspsych) {
       var IN_TRIAL = false;
       var _current_trial = null;
 
-      var radius = 5;
+      var radius = 10;
       var radiusSquared = radius * radius;
       var rotationQuaternion = new THREE.Quaternion();
       var rotate_indicator = false;
@@ -294,7 +295,7 @@ var surfaceNormalsTask = (function (jspsych) {
           var submit_button = $("#submit_button")[0];
           submit_button.style.visibility = "visible";
           setMouseCurrentOrthographicPosition(event);
-          
+
           let x0 = _current_trial.arrowPosition[0];
           let y0 = _current_trial.arrowPosition[1];
 
@@ -404,7 +405,7 @@ var surfaceNormalsTask = (function (jspsych) {
             imageWidth +
             "></canvas>";
           html += "</div></div>";
-          
+
           // // display button to submit drawing when finished
           // html +=
           //   '<div><img src="/img/colormap_white.png" style="float:left; margin: 0px 15px 15px 0px;" width="3%">';
@@ -443,12 +444,6 @@ var surfaceNormalsTask = (function (jspsych) {
       // sends trial data to database
       const start_threejs = () => {
         var canvas = $("#threejs_covering_canvas")[0];
-        var renderer = new THREE.WebGLRenderer({
-                canvas,
-                alpha: true, // Necessary to make background transparent.
-              });
-        // Set background to clear color
-        renderer.setClearColor(0x000000, 0);
         this.scene.background = null;
         // The canvas will have canvas.width, canvas.height in pixels of order 100
         // Convert to integers e.g. 1000-by-500 image will become -10, 10, 5, -5,
@@ -468,11 +463,17 @@ var surfaceNormalsTask = (function (jspsych) {
         this.camera.position.set(0, 0, 5);
         // this.camera.position.set(0,100,0);
         // this.camera.lookAt(this.scene.position);
-        
+        this.renderer = new THREE.WebGLRenderer({
+                canvas,
+                alpha: true, // Necessary to make background transparent.
+              });
+        // Set background to clear color
+        this.renderer.setClearColor(0x000000, 0);
+
         var posX = trial.arrowPosition[0];
         var posY = trial.arrowPosition[1];
         var indicatorPosition = new THREE.Vector3(posX, -posY, 0);
-                                                 
+
         if (trial.randomizeArrowInitialDirection) {
           let randomDirection = new THREE.Vector3().random();
           // Ensure random direction is facing forward
@@ -508,7 +509,7 @@ var surfaceNormalsTask = (function (jspsych) {
           indicatorTrueDirection = new THREE.Vector3(
             ...trial.trueArrowDirection
           ).normalize();
-          
+
           var indicatorTruePosition = indicatorPosition;
           trueIndicator = new KoenderinkCircle(
             indicatorTrueDirection,
@@ -528,7 +529,7 @@ var surfaceNormalsTask = (function (jspsych) {
       const update_threejs = () => {
         // TODO: should these be switched?
         requestAnimationFrame(update_threejs);
-        renderer.render(this.scene, this.camera);
+        this.renderer.render(this.scene, this.camera);
       }
       // animate();
 
@@ -567,7 +568,7 @@ var surfaceNormalsTask = (function (jspsych) {
         // mousePressTimesAndArrowDirections = mapArraytoObjArray(mousePressTimesAndArrowDirections);
         var indicatorFinal = indicator.getDirection();
         indicatorFinal = [indicatorFinal.x, indicatorFinal.y, indicatorFinal.z];
-        
+
         // data saving
         var trial_data = {
           // startTrialTime: startTrialTime,
@@ -633,7 +634,7 @@ class KoenderinkCircle extends THREE.Object3D {
     //this.add( this.line )
 
     //CYLINDER
-    var llength = 0.8;
+    var llength = 1;
     this._cylinderGeometry = new THREE.CylinderGeometry(
       0.02,
       0.02,
@@ -655,7 +656,7 @@ class KoenderinkCircle extends THREE.Object3D {
     //RING
     // this._ringGeometry = new THREE.RingBufferGeometry( 0.5, 1, 100 );
 
-    this._ringGeometry = new THREE.TorusGeometry(0.4, 0.06, 100, 100);
+    this._ringGeometry = new THREE.TorusGeometry(0.6, 0.04, 100, 100);
     //this.ring = new THREE.Mesh( this._ringGeometry, new THREE.MeshNormalMaterial({side: THREE.DoubleSide}) );
     this.ring = new THREE.Mesh(
       this._ringGeometry,
