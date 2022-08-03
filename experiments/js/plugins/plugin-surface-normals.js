@@ -443,7 +443,12 @@ var surfaceNormalsTask = (function (jspsych) {
       // sends trial data to database
       const start_threejs = () => {
         var canvas = $("#threejs_covering_canvas")[0];
-
+        var renderer = new THREE.WebGLRenderer({
+                canvas,
+                alpha: true, // Necessary to make background transparent.
+              });
+        // Set background to clear color
+        renderer.setClearColor(0x000000, 0);
         this.scene.background = null;
         // The canvas will have canvas.width, canvas.height in pixels of order 100
         // Convert to integers e.g. 1000-by-500 image will become -10, 10, 5, -5,
