@@ -24,13 +24,13 @@ var m2sTrial = (function (jspsych) {
       stimulus_height: {
         type: jspsych.ParameterType.INT,
         pretty_name: "Image height",
-        default: 512,
+        default: 400,
       },
       /** Set the image width in pixels */
       stimulus_width: {
         type: jspsych.ParameterType.INT,
         pretty_name: "Image width",
-        default: 512,
+        default: 400,
       },
       /** Maintain the aspect ratio after setting width or height */
       maintain_aspect_ratio: {
@@ -66,7 +66,7 @@ var m2sTrial = (function (jspsych) {
       prompt: {
         type: jspsych.ParameterType.HTML_STRING,
         pretty_name: "Prompt",
-        default: "<p id='prompt'>Which shape is the dot touching?</p>",
+        default: "<p id='prompt'>Which object is the same as the one on top?</p>",
       },
       /** How long to show the stimulus. */
       stimulus_duration: {
@@ -126,7 +126,7 @@ var m2sTrial = (function (jspsych) {
     constructor(jsPsych) {
       this.jsPsych = jsPsych;
     }
-    
+
     trial(display_element, trial) {
       var height, width;
       var html;
@@ -208,8 +208,10 @@ var m2sTrial = (function (jspsych) {
             }, 800);
             //setTimeout(drawProbe(ctx), 400);
           }
-
-          flashProbe(ctx);
+          if(trial.probe_location) {
+            console.log("flashing probe");
+            flashProbe(ctx);
+          }
         };
 
         // get/set image height and width - this can only be done after image loads because uses image's naturalWidth/naturalHeight properties
@@ -454,7 +456,7 @@ var m2sTrial = (function (jspsych) {
         );
       }
     }
-    
+
   }
   ImageButtonResponsePlugin.info = info;
 

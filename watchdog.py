@@ -106,9 +106,9 @@ def update_batch_hits(batch_hits):
     conn = cabutils.get_db_connection()
     db = conn[args.db + "_inputs"]
     col = db[args.col]
-    for i, batch in enumerate(batch_hits):
-        logging.info(f"Updating batch: {i} to numGames={batch}...")
-        res = col.update_one({"batch": i}, {"$set": {"numGames": batch}})
+    for i, num_hits in enumerate(batch_hits):
+        logging.info(f"Updating batch: {i} to numGames={num_hits}...")
+        res = col.update_one({"batch": i}, {"$set": {"numGames": num_hits}})
 
     return
 
@@ -117,7 +117,9 @@ def prolific_get(url, params=None):
     if resp:
         return resp.json()
     else:
-        return None
+        logging.info("Error: No data received for url: ", url)
+        print(resp)
+        return resp
 
 
 def launch_experiment():

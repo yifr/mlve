@@ -6,10 +6,27 @@ var sessionID = urlParams.get("SESSION_ID"); // ID unique to the particular subm
 var projName = urlParams.get("projName");
 var expName = urlParams.get("expName");
 var iterName = urlParams.get("iterName");
+var imagesAsNormals = urlParams.get("imagesAsNormals");
+var allSupervised = urlParams.get("allSupervised");
+var indicatorType = urlParams.get("indicatorType");
+var ignoreInstructions = urlParams.get("ignoreInstructions");
 var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
+
+var canvas = $("#threejs_covering_canvas")[0];
+var renderer = new THREE.WebGLRenderer({
+        canvas,
+        alpha: true, // Necessary to make background transparent.
+      });
+// Set background to clear color
+renderer.setClearColor(0x000000, 0);
+  
+
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
+if (!(indicatorType)) {
+ indicatorType = "absolute"; 
+}
 /****************************************************
   If you have any other URL Parameters that you need
   for your experiment, read them in them here.
@@ -87,15 +104,16 @@ function buildAndRunExperiment(sessionTemplate) {
 
   var instructionPages = [
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
-    "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>.</p>" +
-    "<p> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
+    "<p>Welcome to this experiment. This experiment should take a total of <strong>30 minutes</strong>.</p>" +
+    "<p> You will be compensated at a base rate of $15/hour for a total of $7.00, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>." + 
     "<p> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for perception experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
     "<p>In this study, on every trial, you will be shown a picture of several objects.</p>" +
     "<p>In each picture, there will be an indicator next to or on an object.</p>" +
     "<p><b>Your goal is to point the indicator away from the surface of that object.</b></p>",  
-    "<p>To aim the indicator, click and drag your mouse. As you drag your mouse, the indicator will rotate.</p>" +
-    "<p>When you are satisfied the indicator points away from the surface of the object, click SUBMIT.", // +
+    "<p>To aim the indicator, click once to unfreeze the indicator and move your mouse around the screen. As you move your mouse, the indicator will rotate.</p>" +
+    "<p>When you are satisfied the indicator points away from the surface of the object, click again to freeze the indicator in place and hit SUBMIT.", // +
+    "<p> <strong>Note: </strong>This experiment works best in full screen, especially on smaller screens.</p>"
     ]
       
   var trials = [];
@@ -123,8 +141,9 @@ function buildAndRunExperiment(sessionTemplate) {
   if (!DEBUG_MODE) {
     trials.push(consent);
   }
-  trials.push(instructions);
-  
+  if (!(ignoreInstructions)) {
+    trials.push(instructions);
+  }
   
   // Create comprehension check survey
   var comprehensionSurvey = {
@@ -159,7 +178,7 @@ function buildAndRunExperiment(sessionTemplate) {
   var checkComprehensionSurvey = {
     timeline: [comprehensionSurvey],
     loop_function: function (data) {
-      resp = JSON.parse(data.values()[0]["responses"]);
+      resp = data.values()[0]["response"];
       if (
         resp["goalOfSurfaceNormal"] ===
           "To point the indicator away from the surface of the object" &&
@@ -175,8 +194,10 @@ function buildAndRunExperiment(sessionTemplate) {
     }, // close loop_function
   }; // close loopNode
   
-  trials.push(comprehensionSurvey);
-  
+  if (!(ignoreInstructions)) {
+    // trials.push(comprehensionSurvey);
+    trials.push(checkComprehensionSurvey);
+  } 
   
   // Create consent + instructions trial
   var supervisedTrialInstructions = {
@@ -192,11 +213,15 @@ function buildAndRunExperiment(sessionTemplate) {
     allow_backward: true,
   }
   
+  
   trials.push(supervisedTrialInstructions)
   /***************** Familiarization Trials *********************/
   
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
+    if (DEBUG_MODE) {
+      console.log(trialData);
+    }
     if (i == 3) {
       var reinforcementTrialInstructions = {
         type: jsPsychInstructions,
@@ -211,14 +236,18 @@ function buildAndRunExperiment(sessionTemplate) {
       trials.push(reinforcementTrialInstructions);
     }
     
+    var imageURL = imagesAsNormals ? trialData["normalImageURL"] : trialData["imageURL"];
+    
     var trial = {
       type: surfaceNormalsTask,
-      imageURL: trialData["imageURL"],
+      imageURL: imageURL,
       trialType: trialData["trialType"],
       arrowPosition: trialData["arrowPosition"],
       randomizeArrowInitialDirection: trialData["randomizeArrowInitialDirection"],
       trueArrowDirection: trialData["trueArrowDirection"],
-      index: i
+      index: i,
+      indicatorType: indicatorType,
+      arrowPixelPosition: trialData["arrowPixelPosition"]
     }
     trials.push(trial)
   }
@@ -236,6 +265,7 @@ function buildAndRunExperiment(sessionTemplate) {
   
   /******************* Construct Experiment Trials ************************/
   experimentTrials = shuffle(experimentTrials);
+  
   for (var index = 0; index < experimentTrials.length; index++) {
     if (index == Math.floor(experimentTrials.length / 2)) {
       var progressTrial = {
@@ -249,11 +279,12 @@ function buildAndRunExperiment(sessionTemplate) {
     }
     
     var trialData = experimentTrials[index]; 
+    if (DEBUG_MODE) {
+      console.log(trialData);
+    }
     var onFinish = function (responseData) {
       trial_index = responseData["index"];
-      if (DEBUG_MODE) {
-        console.log(trial_index);
-      }
+
       var trial_data = [experimentTrials[trial_index], responseData].reduce(
         function (r, o) {
           Object.keys(o).forEach(function (k) {
@@ -271,14 +302,17 @@ function buildAndRunExperiment(sessionTemplate) {
       logTrialtoDB(trial_data);
     };
     
+    var imageURL = imagesAsNormals ? trialData["normalImageURL"] : trialData["imageURL"];
+    var trialType = allSupervised ? "supervised" : trialData["trialType"];
     var trial = {
       type: surfaceNormalsTask,
-      imageURL: trialData["imageURL"],
-      trialType: trialData["trialType"],
+      imageURL: imageURL,
+      trialType: trialType,
       arrowPosition: trialData["arrowPosition"],
       randomizeArrowInitialDirection: trialData["randomizeArrowInitialDirection"],
       trueArrowDirection: trialData["trueArrowDirection"],
       index: index,
+      indicatorType: indicatorType,
       on_finish: onFinish,
     }
 
@@ -290,7 +324,7 @@ function buildAndRunExperiment(sessionTemplate) {
     var goodbye = {
       type: jsPsychInstructions,
       pages: [
-        "Thanks for participating in our experiment! You are all done. Please click the 'Next' button to submit this study. The following page will be blank but means that your participation has been submitted.<br> \
+        "Thanks for participating in our experiment! You are all done. Please click the 'Next' button to submit this study. Your completion code for this study is: LMOBKZYB. <br> \
       If you have any questions, feel free to email us at <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>.",
       ],
       show_clickable_nav: true,
@@ -307,6 +341,16 @@ function buildAndRunExperiment(sessionTemplate) {
     var exitSurveyText = {
       type: jsPsychSurveyText,
       preamble: "<strong><u>Exit Survey</u></strong>",
+      on_finish: function (comments) {
+      logTrialtoDB(comments);
+        document.body.innerHTML = `<p> Please wait. You will be redirected back to Prolific in a few moments.
+          </p> If not, please use the following completion code to ensure \
+          compensation for this study: WRT7R373`;
+        setTimeout(function () {
+        location.href =
+          "https://app.prolific.co/submissions/complete?cc=LMOBKZYB";
+        }, 500);
+      },
       questions: [
         {
           name: "TechnicalDifficultiesFreeResp",
@@ -316,19 +360,6 @@ function buildAndRunExperiment(sessionTemplate) {
           rows: 5,
           columns: 50,
           required: false,
-        },
-        {
-          name: "participantAge",
-          prompt: "What is your year of birth?",
-          placeholder: "e.g. 1766",
-          required: true,
-        },
-        {
-          prompt: "What is your gender?",
-          name: "participantSex",
-          horizontal: false,
-          options: ["Male", "Female", "Other", "Do Not Wish To Say"],
-          required: true,
         },
         {
           name: "participantComments",

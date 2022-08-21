@@ -618,7 +618,7 @@ var objectLocalizationTask = (function (jspsych) {
           // Swap out buttons
           display_element.querySelector(
             "#jspsych-image-button-response-btngroup"
-          ).innerHTML = `<div class="jspsych-image-button-response-button" 
+          ).innerHTML = `<div class="jspsych-image-button-response-button"
                           style="display: inline-block; margin:0px 8px" id="jspsych-image-button-response-button-0" data-choice="0">
                             <button unselectable='on' class="jspsych-btn unselectable">Submit</button>
                         </div>`;
@@ -657,9 +657,9 @@ var objectLocalizationTask = (function (jspsych) {
 
                 var intersection = (x_right - x_left) * (y_bottom - y_top);
 
-                var iou = intersection / (gt_area + user_area - intersection);
+                var iou = Math.abs(intersection / (gt_area + user_area - intersection));
                 console.log(iou);
-                if (iou < 0.75) {
+                if (iou < 0.6) {
                   display_element.querySelector("#prompt").innerHTML =
                     "To continue, please make sure your bounding box is as close as possible to the ground truth blue one.";
                   return;

@@ -8,8 +8,8 @@
 
 var surfaceNormalsTask = (function (jspsych) {
   "use strict";
-  var canvasWidthPercent = 0.8;
-  var canvasHeightPercent = 0.8;
+  var canvasWidthPercent = 1.0;
+  var canvasHeightPercent = 1.0;
 
   const info = {
     name: "jspsych-surface-normals",
@@ -40,6 +40,12 @@ var surfaceNormalsTask = (function (jspsych) {
         default: null,
         description: "Where  to place the arrow",
       },
+      arrowPixelPosition: {
+        type: jspsych.ParameterType.Array,
+        pretty_name: "Arrow Pixel Position",
+        default: null,
+        description: "Pixel coordinates of arrow"
+      },
       randomizeArrowInitialDirection: {
         type: jspsych.ParameterType.BOOL,
         pretty_name: "Randomize Arrow Initial Direction",
@@ -64,7 +70,7 @@ var surfaceNormalsTask = (function (jspsych) {
         default: 0,
         description: "What number trial this is",
       },
-      indicator_type: {
+      indicatorType: {
         type: jspsych.ParameterType.STRING,
         pretty_name: "Indicator Type",
         default: "relative",
@@ -72,27 +78,29 @@ var surfaceNormalsTask = (function (jspsych) {
       },
     },
   };
-  
 
-  
+
+
   class surfaceNormalsTaskPlugin {
     constructor(jsPsych) {
       this.jsPsych = jsPsych;
       this.scene = new THREE.Scene();
       this.camera;
       this.renderer;
+
     }
     trial(display_element, trial) {
-      const INDICATOR_ON_COLOR = 0xff00ff;
+
+      const INDICATOR_ON_COLOR = 0xff0000;
       const INDICATOR_OFF_COLOR = 0x000000;
 
-      const TRUE_INDICATOR_ON_COLOR = 0xff00ff;
+      const TRUE_INDICATOR_ON_COLOR = 0xff0000;
       const TRUE_INDICATOR_OFF_COLOR = 0x000000;
 
       var IN_TRIAL = false;
       var _current_trial = null;
 
-      var radius = 5;
+      var radius = 10;
       var radiusSquared = radius * radius;
       var rotationQuaternion = new THREE.Quaternion();
       var rotate_indicator = false;
@@ -101,13 +109,12 @@ var surfaceNormalsTask = (function (jspsych) {
       var mouseCurrentOrthographicPosition = new THREE.Vector3();
       var distanceCurrentMinusPenultimate = new THREE.Vector3();
       const negativeZVector = new THREE.Vector3(0, 0, -1);
-      const errorThreshold = 0.2;
+      const errorThreshold = 0.3;
 
       // init global timestamps
       var indicatorDirection = new THREE.Vector3();
       var indicatorPosition = new THREE.Vector3();
       var indicatorTrueDirection = new THREE.Vector3();
-      var indicatorTruePosition = new THREE.Vector3();
       var indicatorDirectionTrajectory = new Array();
       var indicatorDirectionTimes = new Array();
       var mousePositionTrajectory = new Array();
@@ -129,16 +136,12 @@ var surfaceNormalsTask = (function (jspsych) {
 
         // Compute mouse location relative to canvasBoundingBox, then normalize to [-1, 1]
         // I think this is correct
-
         pointer.x =
           ((event.clientX - canvasBoundingBox.left) / sketchpadCurrentWidth) *
-            2 -
-          1;
+            2 - 1;
         pointer.y =
           -((event.clientY - canvasBoundingBox.top) / sketchpadCurrentHeight) *
-            2 +
-          1;
-
+            2 + 1;
         // First computes location of mouse on z=0 plane
         // See: https://stackoverflow.com/a/13091694/4570472
         // Third argument is irrelevant.
@@ -149,7 +152,7 @@ var surfaceNormalsTask = (function (jspsych) {
         mouseCurrentOrthographicPosition.unproject(this.camera);
         return mouseCurrentOrthographicPosition;
       }
-      
+
       document.addEventListener("click", function (event) {
         if (IN_TRIAL) {
           if (!rotate_indicator) {
@@ -187,9 +190,9 @@ var surfaceNormalsTask = (function (jspsych) {
           }
         }
       });
-      
+
       function rotateIndicator(event) {
-        if (trial.indicator_type == "absolute") {
+        if (trial.indicatorType == "absolute") {
           absoluteRotateIndicator(event);
         } else {
           relativeRotateIndicator(event);
@@ -198,8 +201,9 @@ var surfaceNormalsTask = (function (jspsych) {
 
       const relativeRotateIndicator = (event) => {
         var submit_button = $("#submit_button")[0];
-        if (IN_TRIAL & rotate_indicator) {
+        if (IN_TRIAL && rotate_indicator) {
           submit_button.style.visibility = "visible";
+          submit_button.disabled = true;
 
           mousePenultimateOrthographicPosition.copy(
             mouseCurrentOrthographicPosition
@@ -295,11 +299,11 @@ var surfaceNormalsTask = (function (jspsych) {
           let x0 = _current_trial.arrowPosition[0];
           let y0 = _current_trial.arrowPosition[1];
 
-          let x1 = mouseCurrentOrthographicPosition.x;
-          let y1 = mouseCurrentOrthographicPosition.y;
+          let x1 = mouseCurrentOrthographicPosition.x * 1.5
+          let y1 = mouseCurrentOrthographicPosition.y * 1.5
 
           let R = Math.sqrt(Math.pow(x1 - x0, 2) + Math.pow(y1 - y0, 2));
-          let R1 = Math.min(R, radius - 0.0001);
+          let R1 = Math.min(R, radius - 0.00001);
 
           let theta = Math.sign(y1 - y0) * Math.acos((x1 - x0) / R);
 
@@ -375,11 +379,11 @@ var surfaceNormalsTask = (function (jspsych) {
         // create threejs_covering_canvas
         html += '<div class="threejs_outer_container">';
         html += '<div class="threejs_inner_container">';
-        
-        
+
+
         // Get image height and width
-        var imageHeight = 426;
-        var imageWidth = 640;
+        var imageHeight = 512;
+        var imageWidth = 512;
         html +=
           '<img class="threejs_background_image" src="' +
           trial.imageURL +
@@ -402,7 +406,7 @@ var surfaceNormalsTask = (function (jspsych) {
             "></canvas>";
           html += "</div></div>";
 
-          // display button to submit drawing when finished
+          // // display button to submit drawing when finished
           // html +=
           //   '<div><img src="/img/colormap_white.png" style="float:left; margin: 0px 15px 15px 0px;" width="3%">';
           html +=
@@ -420,7 +424,7 @@ var surfaceNormalsTask = (function (jspsych) {
           // add event listener to submit button once response window opens
           var submit_button = $("#submit_button")[0];
           submit_button.addEventListener("click", end_trial);
-          
+
           // button is disabled until at least one rotation
           submit_button.style.visibility = "hidden";
           submit_button.disabled = true;
@@ -440,7 +444,6 @@ var surfaceNormalsTask = (function (jspsych) {
       // sends trial data to database
       const start_threejs = () => {
         var canvas = $("#threejs_covering_canvas")[0];
-
         this.scene.background = null;
         // The canvas will have canvas.width, canvas.height in pixels of order 100
         // Convert to integers e.g. 1000-by-500 image will become -10, 10, 5, -5,
@@ -457,19 +460,19 @@ var surfaceNormalsTask = (function (jspsych) {
         );
 
         // camera.position.z = 5;
-        // this.camera.position.set(0, 0, 5);
-        this.camera.position.set(0,100,0); 
-        this.camera.lookAt(this.scene.position);
-        // Init the renderer.
-
+        this.camera.position.set(0, 0, 5);
+        // this.camera.position.set(0,100,0);
+        // this.camera.lookAt(this.scene.position);
         this.renderer = new THREE.WebGLRenderer({
-          canvas,
-          alpha: true, // Necessary to make background transparent.
-        });
+                canvas,
+                alpha: true, // Necessary to make background transparent.
+              });
         // Set background to clear color
         this.renderer.setClearColor(0x000000, 0);
 
-        var indicatorPosition = new THREE.Vector3(...trial.arrowPosition);
+        var posX = trial.arrowPosition[0];
+        var posY = trial.arrowPosition[1];
+        var indicatorPosition = new THREE.Vector3(posX, -posY, 0);
 
         if (trial.randomizeArrowInitialDirection) {
           let randomDirection = new THREE.Vector3().random();
@@ -494,7 +497,7 @@ var surfaceNormalsTask = (function (jspsych) {
           1.0
         );
         this.scene.add(indicator);
-        console.log(this.scene);
+
         // add initial ArrowDirection to trajectory
         indicatorDirectionTrajectory.push(indicator.getDirection());
         indicatorDirectionTimes.push(Date.now());
@@ -506,13 +509,14 @@ var surfaceNormalsTask = (function (jspsych) {
           indicatorTrueDirection = new THREE.Vector3(
             ...trial.trueArrowDirection
           ).normalize();
-          indicatorTruePosition.copy(indicatorPosition);
+
+          var indicatorTruePosition = indicatorPosition;
           trueIndicator = new KoenderinkCircle(
             indicatorTrueDirection,
             indicatorTruePosition,
             TRUE_INDICATOR_ON_COLOR,
             false,
-            0.4
+            0.7
           );
           this.scene.add(trueIndicator);
 
@@ -562,6 +566,8 @@ var surfaceNormalsTask = (function (jspsych) {
         //   return objArray
         // };
         // mousePressTimesAndArrowDirections = mapArraytoObjArray(mousePressTimesAndArrowDirections);
+        var indicatorFinal = indicator.getDirection();
+        indicatorFinal = [indicatorFinal.x, indicatorFinal.y, indicatorFinal.z];
 
         // data saving
         var trial_data = {
@@ -571,14 +577,14 @@ var surfaceNormalsTask = (function (jspsych) {
           randomizeArrowInitialDirection: trial.randomizeArrowInitialDirection,
           trialType: trial.trialType,
           imageURL: trial.imageURL,
+          indicatorFinalDirection: indicatorFinal,
           indicatorDirectionTrajectory: indicatorDirectionTrajectory,
           indicatorDirectionTimes: indicatorDirectionTimes,
-          indicator_type: trial.indicator_type,
+          indicatorType: trial.indicatorType,
           mousePositionTrajectory: mousePositionTrajectory,
           is_duplicate: trial.is_duplicate,
           index: trial.index,
         };
-
         // clear the HTML in the display element
         display_element.innerHTML = "";
 
@@ -628,7 +634,7 @@ class KoenderinkCircle extends THREE.Object3D {
     //this.add( this.line )
 
     //CYLINDER
-    var llength = 0.8;
+    var llength = 1;
     this._cylinderGeometry = new THREE.CylinderGeometry(
       0.02,
       0.02,
@@ -650,7 +656,7 @@ class KoenderinkCircle extends THREE.Object3D {
     //RING
     // this._ringGeometry = new THREE.RingBufferGeometry( 0.5, 1, 100 );
 
-    this._ringGeometry = new THREE.TorusGeometry(0.4, 0.06, 100, 100);
+    this._ringGeometry = new THREE.TorusGeometry(0.6, 0.04, 100, 100);
     //this.ring = new THREE.Mesh( this._ringGeometry, new THREE.MeshNormalMaterial({side: THREE.DoubleSide}) );
     this.ring = new THREE.Mesh(
       this._ringGeometry,
@@ -675,7 +681,7 @@ class KoenderinkCircle extends THREE.Object3D {
           color: on_color,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.5,
+          opacity: 0.25,
         })
       );
       //Rotate the ring such that line is normal to plane the ring lies on.
@@ -690,7 +696,7 @@ class KoenderinkCircle extends THREE.Object3D {
           color: on_color,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.5,
+          opacity: 0.25,
         })
       );
       //Rotate the ring such that line is normal to plane the ring lies on.
