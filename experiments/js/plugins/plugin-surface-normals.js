@@ -87,14 +87,16 @@ var surfaceNormalsTask = (function (jspsych) {
       this.scene = new THREE.Scene();
       this.camera;
       this.renderer;
-
+      this.resTracker = new ResourceTracker();
+      this.track = this.resTracker.track.bind(this.resTracker);
     }
+
     trial(display_element, trial) {
 
       const INDICATOR_ON_COLOR = 0xff0000;
       const INDICATOR_OFF_COLOR = 0x000000;
 
-      const TRUE_INDICATOR_ON_COLOR = 0xff0000;
+      const TRUE_INDICATOR_ON_COLOR = 0x0000ff;
       const TRUE_INDICATOR_OFF_COLOR = 0x000000;
 
       var IN_TRIAL = false;
@@ -494,7 +496,8 @@ var surfaceNormalsTask = (function (jspsych) {
           indicatorPosition,
           INDICATOR_ON_COLOR,
           true,
-          1.0
+          1.0,
+          this.track
         );
         this.scene.add(indicator);
 
@@ -516,7 +519,8 @@ var surfaceNormalsTask = (function (jspsych) {
             indicatorTruePosition,
             TRUE_INDICATOR_ON_COLOR,
             false,
-            0.7
+            0.7,
+            this.track
           );
           this.scene.add(trueIndicator);
 
@@ -587,6 +591,7 @@ var surfaceNormalsTask = (function (jspsych) {
         };
         // clear the HTML in the display element
         display_element.innerHTML = "";
+        this.resTracker.dispose();
 
         // end trial
         // console.log("BORK", trial, trial_data);
@@ -618,7 +623,7 @@ function vecToSurfaceNormalRGB(vec) {
 }
 
 class KoenderinkCircle extends THREE.Object3D {
-  constructor(dir, origin, on_color, createInnerRing, alphaval) {
+  constructor(dir, origin, on_color, createInnerRing, alphaval, track) {
     super();
     this.type = "KoenderinkCircle";
 
@@ -635,13 +640,13 @@ class KoenderinkCircle extends THREE.Object3D {
 
     //CYLINDER
     var llength = 1;
-    this._cylinderGeometry = new THREE.CylinderGeometry(
-      0.02,
-      0.02,
-      llength,
-      100
-    );
-    this.cylinder = new THREE.Line(
+    this._cylinderGeometry = track(new THREE.CylinderGeometry(
+        0.02,
+        0.02,
+        llength,
+        100
+      ));
+    this.cylinder = track(new THREE.Mesh(
       this._cylinderGeometry,
       new THREE.MeshBasicMaterial({
         color: on_color,
@@ -649,16 +654,16 @@ class KoenderinkCircle extends THREE.Object3D {
         transparent: true,
         opacity: alphaval,
       })
-    );
+    ));
     this.cylinder.position.set(0, llength / 2, 0);
     this.add(this.cylinder);
 
     //RING
     // this._ringGeometry = new THREE.RingBufferGeometry( 0.5, 1, 100 );
 
-    this._ringGeometry = new THREE.TorusGeometry(0.6, 0.04, 100, 100);
+    this._ringGeometry = track(new THREE.TorusGeometry(0.6, 0.04, 100, 100));
     //this.ring = new THREE.Mesh( this._ringGeometry, new THREE.MeshNormalMaterial({side: THREE.DoubleSide}) );
-    this.ring = new THREE.Mesh(
+    this.ring = track(new THREE.Mesh(
       this._ringGeometry,
       new THREE.MeshBasicMaterial({
         color: on_color,
@@ -667,15 +672,15 @@ class KoenderinkCircle extends THREE.Object3D {
         //shadowSide: THREE.FrontSide,
         opacity: alphaval,
       })
-    );
+    ));
     // Rotate the ring such that line is normal to plane the ring lies on.
     this.ring.rotateX(Math.PI / 2);
     this.add(this.ring);
 
     if (createInnerRing) {
-      this._ringGeometry2 = new THREE.RingBufferGeometry(0.2, 0.3, 100);
+      this._ringGeometry2 = track(new THREE.RingBufferGeometry(0.2, 0.3, 100));
       //this.ring = new THREE.Mesh( this._ringGeometry, new THREE.MeshNormalMaterial({side: THREE.DoubleSide}) );
-      this.ring2 = new THREE.Mesh(
+      this.ring2 = track(new THREE.Mesh(
         this._ringGeometry2,
         new THREE.MeshBasicMaterial({
           color: on_color,
@@ -683,14 +688,14 @@ class KoenderinkCircle extends THREE.Object3D {
           transparent: true,
           opacity: 0.25,
         })
-      );
+      ));
       //Rotate the ring such that line is normal to plane the ring lies on.
       this.ring2.rotateX(Math.PI / 2);
       this.add(this.ring2);
 
-      this._ringGeometry3 = new THREE.RingBufferGeometry(0.05, 0.15, 100);
+      this._ringGeometry3 = track(new THREE.RingBufferGeometry(0.05, 0.15, 100));
       //this.ring = new THREE.Mesh( this._ringGeometry, new THREE.MeshNormalMaterial({side: THREE.DoubleSide}) );
-      this.ring3 = new THREE.Mesh(
+      this.ring3 = track(new THREE.Mesh(
         this._ringGeometry3,
         new THREE.MeshBasicMaterial({
           color: on_color,
@@ -698,7 +703,7 @@ class KoenderinkCircle extends THREE.Object3D {
           transparent: true,
           opacity: 0.25,
         })
-      );
+      ));
       //Rotate the ring such that line is normal to plane the ring lies on.
       this.ring3.rotateX(Math.PI / 2);
       this.add(this.ring3);
@@ -739,3 +744,32 @@ class KoenderinkCircle extends THREE.Object3D {
     this.line.material.color.set(vecToSurfaceNormalRGB(this.getDirection()));
   }
 }
+
+class ResourceTracker {
+  constructor() {
+    this.resources = new Set();
+  }
+  track(resource) {
+    if (resource.dispose || resource instanceof THREE.Object3D) {
+      this.resources.add(resource);
+    }
+    return resource;
+  }
+  untrack(resource) {
+    this.resources.delete(resource);
+  }
+  dispose() {
+    for (const resource of this.resources) {
+      if (resource instanceof THREE.Object3D) {
+        if (resource.parent) {
+          resource.parent.remove(resource);
+        }
+      }
+      if (resource.dispose) {
+        resource.dispose();
+      }
+    }
+    this.resources.clear();
+  }
+}
+

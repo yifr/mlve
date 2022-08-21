@@ -160,3 +160,4 @@ venv.bak/
 # mypy
 .mypy_cache/
 experiments/static/media/
+experiments/manager

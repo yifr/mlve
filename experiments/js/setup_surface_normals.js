@@ -19,13 +19,13 @@ var renderer = new THREE.WebGLRenderer({
       });
 // Set background to clear color
 renderer.setClearColor(0x000000, 0);
-  
+
 
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
 if (!(indicatorType)) {
- indicatorType = "absolute"; 
+ indicatorType = "absolute";
 }
 /****************************************************
   If you have any other URL Parameters that you need
@@ -80,7 +80,7 @@ function launchExperiment() {
   }
 
   socket.emit("getStims", stimInfo);
-  
+
   socket.on("stims", (sessionTemplate) => {
     buildAndRunExperiment(sessionTemplate);
   });
@@ -105,17 +105,17 @@ function buildAndRunExperiment(sessionTemplate) {
   var instructionPages = [
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
     "<p>Welcome to this experiment. This experiment should take a total of <strong>30 minutes</strong>.</p>" +
-    "<p> You will be compensated at a base rate of $15/hour for a total of $7.00, which you will receive as long as you complete the study.</p>",
-    "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>." + 
+    "<p> You will be compensated at a base rate of $15/hour for a total of $7.50, which you will receive as long as you complete the study.</p>",
+    "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>." +
     "<p> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for perception experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
     "<p>In this study, on every trial, you will be shown a picture of several objects.</p>" +
     "<p>In each picture, there will be an indicator next to or on an object.</p>" +
-    "<p><b>Your goal is to point the indicator away from the surface of that object.</b></p>",  
+    "<p><b>Your goal is to point the indicator directly away from the surface of that object.</b></p>",
     "<p>To aim the indicator, click once to unfreeze the indicator and move your mouse around the screen. As you move your mouse, the indicator will rotate.</p>" +
-    "<p>When you are satisfied the indicator points away from the surface of the object, click again to freeze the indicator in place and hit SUBMIT.", // +
+    "<p>When you are satisfied the indicator points away from the surface of the object, click again to freeze the indicator in place and hit SUBMIT.</p><p><strong>You can re-aim the indicator multiple times before submitting</strong></p>", // +
     "<p> <strong>Note: </strong>This experiment works best in full screen, especially on smaller screens.</p>"
     ]
-      
+
   var trials = [];
   var preload = {
     type: jsPsychPreload,
@@ -144,7 +144,7 @@ function buildAndRunExperiment(sessionTemplate) {
   if (!(ignoreInstructions)) {
     trials.push(instructions);
   }
-  
+
   // Create comprehension check survey
   var comprehensionSurvey = {
     type: jsPsychSurveyMultiChoice,
@@ -193,30 +193,31 @@ function buildAndRunExperiment(sessionTemplate) {
       }
     }, // close loop_function
   }; // close loopNode
-  
+
   if (!(ignoreInstructions)) {
     // trials.push(comprehensionSurvey);
     trials.push(checkComprehensionSurvey);
-  } 
-  
+  }
+
   // Create consent + instructions trial
   var supervisedTrialInstructions = {
     type: jsPsychInstructions,
     pages: [
       "Well done! We'll start with " +
         3 +
-        " guided trials.<br><br>In these trials, we've added the correct indicator. Move your indicator so that the two indicators overlap.<br><br>",
+        " guided trials.<br><br>In these trials, we've added a <strong style='color:blue'>BLUE INDICATOR</strong> that points in the correct direction. Move your mouse so that the <strong style='color: red'> RED INDICATOR</strong>  points in the same direction.<br><br>Once your red indicator points in the correct direction, click the mouse to lock your answer in and hit the submit button. For these first trials, you won't be able to hit the submit button until your red indicator points in the correct direction.",
+        "Move your mouse so that the <strong style='color:red'>RED INDICATOR</strong> points in the same direction as the correct <strong style='color:blue'>BLUE INDICATOR</strong>.",
     ],
     //force_wait: 1500,
     show_clickable_nav: true,
     allow_keys: true,
     allow_backward: true,
   }
-  
-  
+
+
   trials.push(supervisedTrialInstructions)
   /***************** Familiarization Trials *********************/
-  
+
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
     if (DEBUG_MODE) {
@@ -232,16 +233,16 @@ function buildAndRunExperiment(sessionTemplate) {
         allow_keys: true,
         allow_backward: true,
       };
-      
+
       trials.push(reinforcementTrialInstructions);
     }
-    
+
     var imageURL = imagesAsNormals ? trialData["normalImageURL"] : trialData["imageURL"];
-    
+    trialType = (i < 3) ? "supervised" : "reinforcement";
     var trial = {
       type: surfaceNormalsTask,
       imageURL: imageURL,
-      trialType: trialData["trialType"],
+      trialType: trialType,
       arrowPosition: trialData["arrowPosition"],
       randomizeArrowInitialDirection: trialData["randomizeArrowInitialDirection"],
       trueArrowDirection: trialData["trueArrowDirection"],
@@ -251,21 +252,21 @@ function buildAndRunExperiment(sessionTemplate) {
     }
     trials.push(trial)
   }
-  
+
   trials.push({
     type: jsPsychInstructions,
     pages: [
-      "Okay! We are now ready to begin the real trials.<br><br>Sometimes the indicator can be hard to see. You may need to try moving the indicator to see it.<br><br>" + 
+      "Okay! We are now ready to begin the real trials.<br><br>Sometimes the indicator can be hard to see. You may need to try moving the indicator to see it.<br><br>" +
       "Click 'Start' to begin the experiment.",
     ],
     allow_backward: false,
     show_clickable_nav: true,
     button_label_next: "Start",
   });
-  
+
   /******************* Construct Experiment Trials ************************/
   experimentTrials = shuffle(experimentTrials);
-  
+
   for (var index = 0; index < experimentTrials.length; index++) {
     if (index == Math.floor(experimentTrials.length / 2)) {
       var progressTrial = {
@@ -277,8 +278,8 @@ function buildAndRunExperiment(sessionTemplate) {
       };
       trials.push(progressTrial);
     }
-    
-    var trialData = experimentTrials[index]; 
+
+    var trialData = experimentTrials[index];
     if (DEBUG_MODE) {
       console.log(trialData);
     }
@@ -301,7 +302,7 @@ function buildAndRunExperiment(sessionTemplate) {
       }
       logTrialtoDB(trial_data);
     };
-    
+
     var imageURL = imagesAsNormals ? trialData["normalImageURL"] : trialData["imageURL"];
     var trialType = allSupervised ? "supervised" : trialData["trialType"];
     var trial = {
@@ -318,13 +319,13 @@ function buildAndRunExperiment(sessionTemplate) {
 
     trials.push(trial);
   }
-    
+
     // Create goodbye trial (this doesn't close the browser yet)
     // TODO: Add prolific return link e.g. https://github.com/cogtoolslab/physics-benchmarking-neurips2021/blob/master/experiments/rollingsliding_pilot/js/setup.js#L402
     var goodbye = {
       type: jsPsychInstructions,
       pages: [
-        "Thanks for participating in our experiment! You are all done. Please click the 'Next' button to submit this study. Your completion code for this study is: LMOBKZYB. <br> \
+        "Thanks for participating in our experiment! You are all done. Please click the 'Next' button to submit this study. Your completion code for this study is: C1041ND4. <br> \
       If you have any questions, feel free to email us at <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>.",
       ],
       show_clickable_nav: true,
@@ -345,10 +346,10 @@ function buildAndRunExperiment(sessionTemplate) {
       logTrialtoDB(comments);
         document.body.innerHTML = `<p> Please wait. You will be redirected back to Prolific in a few moments.
           </p> If not, please use the following completion code to ensure \
-          compensation for this study: WRT7R373`;
+          compensation for this study: C1041ND4`;
         setTimeout(function () {
         location.href =
-          "https://app.prolific.co/submissions/complete?cc=LMOBKZYB";
+          "https://app.prolific.co/submissions/complete?cc=C1041ND4";
         }, 500);
       },
       questions: [
@@ -372,7 +373,7 @@ function buildAndRunExperiment(sessionTemplate) {
         },
       ],
     }; // close exitSurveyText
-    
+
     trials.push(exitSurveyText);
     trials.push(goodbye);
 
@@ -425,7 +426,7 @@ function buildAndRunExperiment(sessionTemplate) {
 
     return arr;
   }
-  
+
   console.log("Experiment trials: ");
   console.log(trials);
 
