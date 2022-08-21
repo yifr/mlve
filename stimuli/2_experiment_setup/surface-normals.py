@@ -21,7 +21,10 @@ def convert_np_arrays(dictionary):
             dictionary[k] = v.tolist()
         elif type(v) == dict:
             dictionary[k] = convert_np_arrays(dictionary[k])
-
+        elif type(v) == np.bool_:
+            dictionary[k] = bool(v)
+        elif type(v) == list and type(v[0]) == np.bool_:
+            dictionary[k] = [bool(x) for x in v]
     return dictionary
 
 def map_range(X, A, B, C, D):
@@ -37,17 +40,22 @@ def generate_points(width, height, n_points=10, constraint=None, strategy="masks
 
     lotta bugs and edge cases here (doesn't check for duplicates)
     """
+    buffer_size = 25 # how far away from the edge to sample points
     if strategy == "masks":
-        points_y, points_x = np.where(constraint > 0)
-        if len(points_y) == 0:
-            points = [(np.random.randint(0, constraint.shape[0]),
-                       np.random.randint(0, constraint.shape[1]))
+        mask_ids = np.unique(constraint)
+        mask_id = np.random.choice(mask_ids)
+        points_y, points_x = np.where(constraint == mask_id)
+        if len(points_y) == 0:  # If there are no masks, for some reason
+            points = [(np.random.randint(20, constraint.shape[0] - 20),
+                       np.random.randint(20, constraint.shape[1] - 20))
                       for i in range(n_points)]
             return points
 
         locs = np.random.choice(len(points_y), n_points)
         y_samples = points_y[locs]
         x_samples = points_x[locs]
+        y_samples = np.clip(y_samples, buffer_size, constraint.shape[0] - buffer_size)
+        x_samples = np.clip(x_samples, buffer_size, constraint.shape[0] - buffer_size)
         points = [(y_samples[i], x_samples[i]) for i in range(n_points)]
 
     elif strategy == "normals":
@@ -73,7 +81,7 @@ def format(dataset):
     conn = cabutils.get_db_connection()
     proj_name = "mlve"
     exp_name = f"{dataset}_surface-normals"
-    iter_name = "v2"
+    iter_name = "v1"
 
     db = conn["mlve_inputs"]
     col = db[exp_name]
@@ -85,7 +93,7 @@ def format(dataset):
         2. 10 batches (ie; 10 points sampled per image)
         3. Repeat 10 images per batch for intra-participant reliability
             3a. Each reliability image is run 3 times
-            3b. Select different 10 in each batch (ie; batch 1: repat 0-9, batch 2: 10-19, ...)A
+            3b. Select different 10 in each batch (ie; batch 1: repeat 0-9, batch 2: 10-19, ...)A
         4. Sample points randomly to start
     """
 
@@ -107,7 +115,7 @@ def format(dataset):
         image_height = image.shape[0]
         image_width = image.shape[1]
 
-        if dataset in ["gestalt", "tdw", "hypersim"]:
+        if dataset in ["gestalt_shapegen", "gestalt", "tdw", "hypersim"]:
 
             normal_file = os.path.join(root_path, "normals", f"normal_{i:03d}.hdf5")
             with  h5py.File(normal_file, "r") as f:
@@ -132,7 +140,7 @@ def format(dataset):
         for j, batch in enumerate(batches):
             trial_data = {}
             point = points[j]
-            if dataset in ["gestalt", "tdw", "hypersim"]:
+            if dataset in ["gestalt_shapegen", "gestalt", "tdw", "hypersim"]:
                 normal_vec = normal_data[point]
                 trial_data["trueArrowDirection"] = [float(x) for x in normal_vec]
 
@@ -201,10 +209,12 @@ def format(dataset):
         image_height = image.shape[0]
         image_width = image.shape[1]
 
-        if dataset in ["gestalt", "tdw", "hypersim"]:
+        if dataset in ["gestalt_shapegen", "gestalt", "tdw", "hypersim"]:
             normal_file = os.path.join(root_path, "train", "normals", f"normal_{i:03d}.hdf5")
             with  h5py.File(normal_file, "r") as f:
                 normal_data = f["dataset"][:]
+                if dataset == "gestalt" or dataset == "gestalt_shapegen":
+                    normal_data = normal_data * -1
 
             if point_sample_strategy == "masks":
                 mask_path = os.path.join(root_path, "train", "masks", f"mask_{i:03d}.png")

@@ -10,5 +10,5 @@
 
     "4": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/surface_normals/Image0002.png", [108, 240], [0.020315807134660982, 0.944555875035678, 0.32772163022304823], [512, 512]],
 
-    "6": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/surface_normals/Image0003.png", [318, 175], [-0.7507127574984022, -0.4659581267265271, 0.46830906447201187], [512, 512]]
+    "5": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/surface_normals/Image0003.png", [318, 175], [-0.7507127574984022, -0.4659581267265271, 0.46830906447201187], [512, 512]]
 }

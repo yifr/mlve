@@ -27,113 +27,168 @@ def world2cam_normals(np_array):
     rotated = np.einsum('ij,abj->abi', rotation, np_array)
     return rotated
 
-def exr2numpy(exr, maxvalue=15., normalize=True):
+def exr2numpy(exr, image_pass="depths"):
     """ converts 1-channel exr-data to 2D numpy arrays
         Params:
             exr: exr file path
             maxvalue: max clipping value
-            RGB: whether to return images in RGB mode (default is BGR)
             normalize: whehter or not to normalize images
     """
     # normalize
-    data = cv2.imread(exr, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
-    # data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
-    data = np.array(data)
-    data[data > maxvalue] = maxvalue
-    data[data == maxvalue] = 0.
+    if image_pass == "depths":
+        flag = cv2.IMREAD_ANYDEPTH
+        data = cv2.imread(exr, flag)
+        data = data / data.max()
+    else:
+        flag = cv2.IMREAD_ANYCOLOR
+        data = cv2.imread(exr, flag)
+        data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+        data = np.array(data)
 
-    if normalize:
-        data /= np.max(data)
     return data
 
 def format_gestalt():
     gestalt_dir = "/om/user/yyf/CommonFate/scenes/"
-    mlve_dir = "/om/user/yyf/mlve/stimuli/gestalt"
+    mlve_dir = "/om/user/yyf/mlve/stimuli/gestalt_shapegen"
+    os.makedirs(mlve_dir, exist_ok=True)
 
+    train_dirs = "train_*"
     texture_dirs = "test_*"
-    object_dirs = "superquadric_*"
-
-    scene_dirs = glob(os.path.join(gestalt_dir, texture_dirs, object_dirs, '*scene=0'))
+    object_dirs = "shapegen_*"
+    print(os.path.join(gestalt_dir, texture_dirs, object_dirs))
+    scene_dirs = glob(os.path.join(gestalt_dir, texture_dirs, object_dirs, 'scene_0*'))
+    train_dirs = glob(os.path.join(gestalt_dir, train_dirs, "shapegenerator_*", "scene_10*"))
+    np.random.shuffle(train_dirs)
     np.random.shuffle(scene_dirs)
+
+    create_videos = False
     noise = 0
     dot = 0
     wave = 0
     os.makedirs(os.path.join(mlve_dir, "train"), exist_ok=True)
+    n_scenes = 100
+    n_familiarization = 5
+    scene_idx = 0
+    scene_list_idx = 0
+    pbar = tqdm(total=105)
+    idx = -1
+    while scene_idx < (n_scenes + n_familiarization):
+        if scene_idx >= n_scenes:
+            scene_dir = train_dirs[idx]
+            idx += 1
+        else:
+            scene_dir = scene_dirs[scene_list_idx]
+        scene_list_idx += 1
 
-    for scene_idx in tqdm(range(105)):
-        if scene_idx < 100:
-            continue
-        scene_dir = scene_dirs[scene_idx]
+        pbar.write(f"processing scene: {scene_dir}")
         if "wave" in scene_dir:
+            if wave > 35:
+                pbar.write("Too many wave scenes, skipping...")
+                continue
             wave += 1
         elif "noise" in scene_dir:
+            if noise > 35:
+                pbar.write("Too many noise scenes, skipping...")
+                continue
             noise += 1
         else:
+            if dot > 35:
+                pbar.write("Too many dot scenes, skipping..")
+                continue
             dot += 1
 
+        scene_idx += 1
+        pbar.update(1)
         n_frames = 64
-        frame_idx = np.random.randint(1, 65)
+        frame_idx = 64
+
 
         #######################
         # copy images
         #######################
-        image_path = os.path.join(scene_dir, "images", f"Image{frame_idx:04d}.png")
-        if scene_idx >= 100:
+        if scene_idx >= n_scenes:
+            if create_videos:
+                os.makedirs(os.path.join(mlve_dir, "train", "videos"), exist_ok=True)
+                save_path = os.path.join(mlve_dir, "train", "videos", f"video_{idx:03d}.mp4")
+                image_dir = os.path.join(scene_dir, "images")
+                os.system(
+                    f"ffmpeg -y -framerate 16 -i {image_dir}/Image%04d.png -pix_fmt yuv420p -c:v libx264 {save_path}"
+                )
+
             os.makedirs(os.path.join(mlve_dir, "train", "images"), exist_ok=True)
-            idx = scene_idx % 100
             save_path = os.path.join(mlve_dir, "train", "images", f"image_{idx:03d}.png")
+
         else:
+            if create_videos:
+                os.makedirs(os.path.join(mlve_dir, "videos"), exist_ok=True)
+                save_path = os.path.join(mlve_dir, "videos", f"video_{scene_idx:03d}.mp4")
+                image_dir = os.path.join(scene_dir, "images")
+                os.system(
+                    f"ffmpeg -y -framerate 16 -i {image_dir}/Image%04d.png -pix_fmt yuv420p -c:v libx264 {save_path}"
+                )
+
+            os.makedirs(os.path.join(mlve_dir, "images"), exist_ok=True)
             save_path = os.path.join(mlve_dir, "images", f"image_{scene_idx:03d}.png")
+
+        image_path = os.path.join(scene_dir, "images", f"Image{frame_idx:04d}.png")
         shutil.copy(image_path, save_path)
 
         #######################
         # copy masks
         #######################
         mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
-        if scene_idx >= 100:
+        if scene_idx >= n_scenes:
             os.makedirs(os.path.join(mlve_dir, "train", "masks"), exist_ok=True)
-            idx = scene_idx % 100
+            idx = scene_idx % n_scenes
             save_path = os.path.join(mlve_dir, "train", "masks", f"mask_{idx:03d}.png")
         else:
+            os.makedirs(os.path.join(mlve_dir, "masks"), exist_ok=True)
             save_path = os.path.join(mlve_dir, "masks", f"mask_{scene_idx:03d}.png")
         shutil.copy(mask_path, save_path)
 
         #######################
         # copy depths
         #######################
-        depth_path = os.path.join(scene_dir, "depths", f"Image{frame_idx:04d}.png")
-        depth_data = np.array(Image.open(depth_path))
-        depth_data = 1 - depth_data # reverse depths
+        exr_path = os.path.join(scene_dir, "depth", f"Image{frame_idx:04d}.exr")
+        if os.path.exists(exr_path):
+            depth_data = exr2numpy(exr_path, image_pass="depths")
+        else:
+            depth_path = os.path.join(scene_dir, "depths", f"Image{frame_idx:04d}.png")
+            depth_data = np.array(Image.open(depth_path))
+            # Change this if you re-render
+            depth_data = 1 - depth_data # reverse depths
 
-        if scene_idx >= 100:
+        if scene_idx >= n_scenes:
             os.makedirs(os.path.join(mlve_dir, "train", "depths"), exist_ok=True)
-            idx = scene_idx % 100
+            idx = scene_idx % n_scenes
             save_path = os.path.join(mlve_dir, "train", "depths", f"depth_{idx:03d}")
         else:
+            os.makedirs(os.path.join(mlve_dir, "depths"), exist_ok=True)
             save_path = os.path.join(mlve_dir, "depths", f"depth_{scene_idx:03d}")
 
         with h5py.File(save_path + ".hdf5", "w") as f:
             f.create_dataset("dataset", data=depth_data)
 
-        depth_snapshot = Image.fromarray(depth_data.astype(np.uint8))
+        depth_snapshot = Image.fromarray((depth_data * 255).astype(np.uint8))
         depth_snapshot.save(save_path  + ".png")
 
         #######################
         # copy surface normals
         #######################
         exr_path = os.path.join(scene_dir, "normals", f"Image{frame_idx:04d}.exr")
-        normal_data = exr2numpy(exr_path)
+        normal_data = exr2numpy(exr_path, image_pass="normals")
         cam_normals = world2cam_normals(normal_data)
         coloring = ((cam_normals * 0.5 + 0.5) * 255)
         rgba = np.concatenate((coloring, np.ones_like(coloring[:, :, :1]) * 255), axis=-1)
         rgba[np.logical_and(rgba[:, :, 0] == 127.5, rgba[:, :, 1] == 127.5, rgba[:, :, 2] == 127.5), :] = 0.
 
         normals = Image.fromarray(np.uint8(rgba))
-        if scene_idx >= 100:
+        if scene_idx >= n_scenes:
             os.makedirs(os.path.join(mlve_dir, "train", "normals"), exist_ok=True)
-            idx = scene_idx % 100
+            idx = scene_idx % n_scenes
             save_path = os.path.join(mlve_dir, "train", "normals", f"normal_{idx:03d}")
         else:
+            os.makedirs(os.path.join(mlve_dir, "normals"), exist_ok=True)
             save_path = os.path.join(mlve_dir, "normals", f"normal_{scene_idx:03d}")
 
         with h5py.File(save_path + ".hdf5", "w") as f:
@@ -144,26 +199,29 @@ def format_gestalt():
         #######################
         #  Write out metadata
         #######################
-        scene_config = pickle.load(open(os.path.join(scene_dir, "scene_config.pkl"), "rb"))
-        objects = scene_config["objects"]
-        del objects["h1"]
-        for obj in objects:
-            objects[obj]["location"] = objects[obj]["location"][frame_idx - 1]
-            objects[obj]["rotation_quaternion"] = objects[obj]["rotation_quaternion"][frame_idx - 1]
-            del objects[obj]["axis"]
-            del objects[obj]["angle"]
-            del objects[obj]["rotation_matrix"]
+        config_path = os.path.join(scene_dir, "scene_config.pkl")
+        if os.path.exists(config_path):
+            scene_config = pickle.load(open(os.path.join(scene_dir, "scene_config.pkl"), "rb"))
+            scene_config["meta"] = {"scene_dir": scene_dir}
+            objects = scene_config["objects"]
+            del objects["h1"]
+            for obj in objects:
+                objects[obj]["location"] = objects[obj]["location"][frame_idx - 1]
+                objects[obj]["rotation_quaternion"] = objects[obj]["rotation_quaternion"][frame_idx - 1]
+                del objects[obj]["axis"]
+                del objects[obj]["angle"]
+                del objects[obj]["rotation_matrix"]
+        else:
+            scene_config = {"meta": {"scene_dir": scene_dir}}
 
-        if scene_idx >= 100:
+        if scene_idx >= n_scenes:
             os.makedirs(os.path.join(mlve_dir, "train", "meta"), exist_ok=True)
-            idx = scene_idx % 100
             save_path = os.path.join(mlve_dir, "train", "meta", f"meta_{idx:03d}.pkl")
         else:
+            os.makedirs(os.path.join(mlve_dir, "meta"), exist_ok=True)
             save_path = os.path.join(mlve_dir, "meta", f"meta_{scene_idx:03d}.pkl")
-
         with open(save_path, "wb") as f:
             pickle.dump(scene_config, f)
-
     print(dot, wave, noise)
 
 if __name__=="__main__":

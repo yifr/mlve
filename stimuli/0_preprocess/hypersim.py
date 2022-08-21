@@ -30,9 +30,10 @@ def hypersim_distance_to_depth(npyDistance):
 
 def format_hypersim():
     hypersim_path = "/om/user/yyf/hypersim"
-    mlve_path = "/om/user/yyf/mlve/stimuli/hypersim"
+    mlve_path = "/om/user/yyf/mlve/stimuli/hypersim_v2"
     volumes = glob(hypersim_path + "/*")
-    volumes.sort()
+    # volumes.sort()
+    os.makedirs(mlve_path, exist_ok=True)
     os.makedirs(mlve_path + "/train/", exist_ok=True)
     for i, volume in tqdm(enumerate(volumes)):
         if i > 104:
@@ -43,6 +44,8 @@ def format_hypersim():
 
         cam_data = glob(os.path.join(data_path, "scene_cam_0*_final_preview"))
         geom_data = glob(os.path.join(data_path, "scene_cam_0*_geometry_hdf5"))
+        geom_preview = glob(os.path.join(data_path, "scene_cam_0*_geometry_preview"))
+        geom_preview.sort()
         geom_data.sort()
         cam_data.sort()
 
@@ -79,16 +82,19 @@ def format_hypersim():
         ###############################
         # copy semantic instance masks
         ###############################
-        masks = glob(os.path.join(geom_data[0], "frame.*.semantic_instance.hdf5"))
+        masks = glob(os.path.join(geom_data[0], "frame.*.render_entity_id.hdf5"))
         masks.sort()
         mask_path = masks[-1]
-        mask = h5py.File(mask_path, "r")
-        data = mask["dataset"][:]
-        data += 1
+        mask_data = h5py.File(mask_path, "r")["dataset"][:]
+        mask_data += 1
+        mask_data = center_crop(mask_data)
 
-        mask_image = Image.fromarray(np.uint8(data))
+        mask_images = glob(os.path.join(geom_preview[0], "frame.*.render_entity_id.png"))
+        mask_images.sort()
+        mask_image_path = mask_images[-1]
+        mask_image = Image.open(mask_image_path)
+
         width, height = mask_image.size   # Get dimensions
-
         left = (width - 512)/2
         top = (height - 512)/2
         right = (width + 512)/2
@@ -99,11 +105,16 @@ def format_hypersim():
         if i > 99:
             idx = i % 100
             os.makedirs(os.path.join(mlve_path, "train", "masks"), exist_ok=True)
-            save_path = os.path.join(mlve_path, "train", "masks", f"mask_{idx:03d}.png")
+            save_path = os.path.join(mlve_path, "train", "masks", f"mask_{idx:03d}")
         else:
             os.makedirs(os.path.join(mlve_path, "masks"), exist_ok=True)
-            save_path = os.path.join(mlve_path, "masks", f"mask_{i:03d}.png")
-        mask_image.save(save_path)
+            save_path = os.path.join(mlve_path, "masks", f"mask_{i:03d}")
+
+        with h5py.File(save_path + ".hdf5", "w") as f:
+            f.create_dataset("dataset", data=mask_data, dtype=np.uint8)
+
+        mask_image.save(save_path + ".png")
+
 
         ###############################
         # copy depth

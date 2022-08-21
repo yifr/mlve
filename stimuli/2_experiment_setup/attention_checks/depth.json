@@ -1,0 +1,14 @@
+{
+    "0": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0001.png",
+    [[270, 110], [270, 405]], 0, [270, 110]],
+    "1": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0001.png",
+    [[210, 49], [210, 380]], 0, [210, 49]],
+    "2": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0002.png",
+    [[230, 144], [230, 274]], 1, [230, 274]],
+    "3": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0002.png",
+    [[300, 200], [300, 300]], 1, [300, 300]],
+    "4": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0003.png",
+    [[220, 116], [220, 230]], 1, [220, 400]],
+    "5": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0001.png",
+    [[310, 160], [310, 227]], 1, [310, 227]]
+}
