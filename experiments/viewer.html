@@ -37,13 +37,11 @@
     
 
     <script type="text/javascript">
-      socket = io.connect();
-      window.onload = function () {
-        function pad(num, size) {
-          num = num.toString();
-          while (num.length < size) num = "0" + num;
-          return num;
-        }
+      function pad(num, size) {
+        num = num.toString();
+        while (num.length < size) num = "0" + num;
+        return num;
+      }
         
       function loadDataset() {
         var dataset = document.getElementById("dataset-selection").value;
@@ -83,7 +81,6 @@
         }
       }
       loadDataset();
-    }
     </script>
   </body>
 </html>
