@@ -1,5 +1,6 @@
 import os
 import sys
+import cv2
 import h5py
 import json
 import random
@@ -14,6 +15,9 @@ sys.path.append("../")
 from utils import probes
 sys.path.append("../../")
 import cabutils
+
+EXPORT_POINTS = True
+EXPORT_PATH = "/om/user/yyf/mlve/stimuli/"
 
 def convert_np_arrays(dictionary):
     for k, v in dictionary.items():
@@ -99,7 +103,7 @@ def generate_points(width, height, depth_map=None, n_points=10, strategy="equidi
 
 def build_trials(root_path, image_path, image_s3_path, n_points, bias_points=None,
                 point_sample_strategy="equidistant",
-                dataset=None, idx=-1):
+                dataset=None, idx=-1, export_path=""):
     """
     build_trials: builds trials for a given image
 
@@ -115,10 +119,11 @@ def build_trials(root_path, image_path, image_s3_path, n_points, bias_points=Non
     idx: int: index of image
     """
     image = np.array(Image.open(image_path))
+    image_draw = cv2.imread(image_path)
     image_height = image.shape[0]
     image_width = image.shape[1]
 
-    if dataset in ["gestalt", "tdw", "hypersim"]:
+    if dataset in ["gestalt", "tdw", "hypersim_v2"]:
         depth_file = os.path.join(root_path, "depths", f"depth_{idx:03d}.hdf5")
         with  h5py.File(depth_file, "r") as f:
             depth_data = f["dataset"][:].astype(np.float16)
@@ -136,7 +141,12 @@ def build_trials(root_path, image_path, image_s3_path, n_points, bias_points=Non
     for i in range(n_points):
         trial_data = {}
         point_pair = points[i]
-        if dataset in ["gestalt", "tdw", "hypersim"]:
+        if export_path:
+            color = tuple(int(x) for x in np.random.randint(1, 250, 3))
+            for k, coords in enumerate(point_pair):
+                image_draw = cv2.circle(image_draw, (coords[1], coords[0]), 7, color, -1)
+
+        if dataset in ["gestalt", "tdw", "hypersim_v2"]:
             left = point_pair[0]
             right = point_pair[1]
             if depth_data[left] < depth_data[right]:
@@ -152,6 +162,7 @@ def build_trials(root_path, image_path, image_s3_path, n_points, bias_points=Non
             depths = [float(depth_data[left]), float(depth_data[right])]
             trial_data["gt_depths"] = depths
 
+
         trial_data["imageURL"] = image_s3_path
         trial_data["is_duplicate"] = False
         trial_data["probe_locations"] = point_pair
@@ -163,6 +174,10 @@ def build_trials(root_path, image_path, image_s3_path, n_points, bias_points=Non
 
         trial_data["meta"] = metadata
         trials.append(trial_data)
+
+    if export_path:
+        export_fpath = os.path.join(export_path, f"points_{idx:03d}.png")
+        cv2.imwrite(export_fpath, image_draw)
 
     return trials
 
@@ -187,10 +202,13 @@ def format(dataset):
     """
 
     root_path = "/om/user/yyf/mlve/stimuli/" + dataset
+    export_path = "/om/user/yyf/mlve/stimuli/" + dataset + "-sampled-points/" + exp_name
+    os.makedirs(export_path, exist_ok=True)
+
     s3_root = "https://mlve-v1.s3.us-east-2.amazonaws.com/" + dataset
 
     n_images = 100
-    points_per_image = 10
+    points_per_image = 100
     n_repeats = 10
     repeat_times = 3
     point_sample_strategy = "equidistant"
@@ -200,7 +218,8 @@ def format(dataset):
         image_path = os.path.join(root_path, "images", f"image_{i:03d}.png")
         image_s3_path = os.path.join(s3_root, "images", f"image_{i:03d}.png")
         trials = build_trials(root_path, image_path, image_s3_path, n_points=points_per_image, dataset=dataset,
-                              bias_points="left" if i % 2 == 0 else "right", idx=i)
+                              bias_points="left" if i % 2 == 0 else "right", idx=i, export_path=export_path)
+
         for j, batch in enumerate(batches):
             trial = trials[j]
             trial["batch_idx"] = j

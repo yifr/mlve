@@ -1,5 +1,6 @@
 import os
 import sys
+import cv2
 import h5py
 import json
 import random
@@ -71,7 +72,6 @@ def generate_points(width, height, n_points=10, constraint=None, strategy="masks
                     points.append((np.random.randint(0, height), np.random.randint(0, width)))
 
     elif strategy == "uniform":
-        height, width = constraint
         points = [(np.random.randint(0, height), np.random.randint(0, width))
                   for i in range(n_points)]
 
@@ -99,9 +99,10 @@ def format(dataset):
 
     root_path = "/om/user/yyf/mlve/stimuli/" + dataset
     s3_root = "https://mlve-v1.s3.us-east-2.amazonaws.com/" + dataset
-
+    export_path = "/om/user/yyf/mlve/stimuli/" + dataset + "-sampled-points/" + exp_name
+    os.makedirs(export_path, exist_ok=True)
     n_images = 100
-    points_per_image = 10
+    points_per_image = 100
     n_repeats = 10
     repeat_times = 3
     point_sample_strategy = "masks"
@@ -112,6 +113,7 @@ def format(dataset):
         image_s3_path = os.path.join(s3_root, "images", f"image_{i:03d}.png")
 
         image = np.array(Image.open(image_path))
+        image_draw = cv2.imread(image_path)
         image_height = image.shape[0]
         image_width = image.shape[1]
 
@@ -133,10 +135,16 @@ def format(dataset):
 
         points = generate_points(image_width,
                                  image_height,
-                                 n_points=10,
+                                 n_points=len(batches),
                                  constraint=constraint,
                                  strategy=point_sample_strategy
                                  )
+        for point in points:
+            image_draw = cv2.circle(image_draw, (point[1], point[0]), 7, (25, 25, 225), -1)
+
+        export_fpath = os.path.join(export_path, f"points_{i:03d}.png")
+        cv2.imwrite(export_fpath, image_draw)
+
         for j, batch in enumerate(batches):
             trial_data = {}
             point = points[j]
@@ -209,7 +217,7 @@ def format(dataset):
         image_height = image.shape[0]
         image_width = image.shape[1]
 
-        if dataset in ["gestalt_shapegen", "gestalt", "tdw", "hypersim"]:
+        if dataset in ["gestalt_shapegen", "gestalt", "tdw", "hypersim_v2"]:
             normal_file = os.path.join(root_path, "train", "normals", f"normal_{i:03d}.hdf5")
             with  h5py.File(normal_file, "r") as f:
                 normal_data = f["dataset"][:]
