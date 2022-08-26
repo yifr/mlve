@@ -156,7 +156,7 @@ function buildAndRunExperiment(sessionTemplate) {
   trials.push({
     type: jsPsychInstructions,
     pages: [
-      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct shape. The scenes will also be camoflauged with a synthetic camoflauge texture, so get ready! \
+      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct shape. The trials will also be more difficult, so get ready! \
       Click 'Start' to begin the experiment.",
     ],
     allow_backward: false,

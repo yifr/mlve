@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" 
+      integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.min.js" integrity="sha384-ODmDIVzN+pFdexxHEHFBQH3/9/vQ9uori45z4JjnFsRydbmQbmL5t1tQ0culUzyK" 
+      crossorigin="anonymous">
+    </script>
+     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script> 
+    <title>MLVE Image Viewer</title>
+  </head>
+
+  <body>
+    <h1> Select a dataset to view </h1>
+    <select class="form-select" id="dataset-selection" onchange="loadDataset()">
+      <option value="hypersim_v2" >hypersim_v2</option>
+      <option value="gestalt_shapegen">gestalt_shapegen</option>
+      <option value="nsd">nsd</option>
+      <option value="tdw">TDW</option>
+    </select>
+    <hr>
+    <h3> Select an image set - either images, sampled points, or a rendering pass</h3>
+    <select class="form-select" id="img-pass-selection" onchange="loadDataset()">
+      <option value="image" selected>Images</option>
+      <option value="surface-normals"> Surface Normal Point Samples</option>
+      <option value="depth-estimation"> Depth Point Samples</option>
+      <option value="object-loc"> Object Localization Point Samples</option>
+      <option value="mask">Masks</option>
+      <option value="depth">Depth Images</option>
+      <option value="normal">Normals</option>
+    </select>
+    <hr>
+
+    <div class="container" id="image-container"></div>
+    
+
+    <script type="text/javascript">
+      function pad(num, size) {
+        num = num.toString();
+        while (num.length < size) num = "0" + num;
+        return num;
+      }
+        
+      function loadDataset() {
+        var dataset = document.getElementById("dataset-selection").value;
+        var imgPass = document.getElementById("img-pass-selection").value;
+        console.log("Loading Dataset: " + dataset);
+        var imgContainer = document.getElementById("image-container")
+  
+        // Reset page
+        imgContainer.innerHTML = "";
+        var count = 0;
+        for (var i = 0; i < 50; i ++) {
+          // Create elements
+          var row = document.createElement("div")
+          row.className = "row"
+          imgContainer.append(row);
+          for (var j = 0; j < 2; j ++) {
+            var col = document.createElement("div")
+            col.className = "col"
+            row.append(col);
+            
+            img = document.createElement("img");
+            var imgNum = pad(count, 3)
+            if (imgPass == "mask" || imgPass == "depth" || imgPass == "normal") {
+              img.src = "https://mlve-v1.s3.us-east-2.amazonaws.com/" + dataset + "/" + imgPass + "s/" + imgPass + "_" + imgNum  + ".png";
+            } else {
+              img.src = "https://mlve-v1.s3.us-east-2.amazonaws.com/" + dataset + "-sampled-points/" + dataset + "_" + imgPass + "/points_" + imgNum + ".png"; 
+            }
+            
+            img.className = "img-responsive"
+            img.style = "border: 1px black solid; margin: 2px;"
+            var description = document.createElement("p")
+            description.innerText = "Image number: " + count;
+            col.append(description);
+            col.append(img)
+            count += 1;
+          }
+        }
+      }
+      loadDataset();
+    </script>
+  </body>
+</html>
+

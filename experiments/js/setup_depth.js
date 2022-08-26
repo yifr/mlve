@@ -98,6 +98,9 @@ function buildAndRunExperiment(sessionTemplate) {
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
     "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for match-to-sample experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
+      "<p>This experiment will work as follows: an image will show up on your screen, and two points will flash on that image. You need to determine <strong>which point in the image is closer to the camera?</strong></p>",
+      "<p>The answer isn't always obvious, and might be difficult to determine from just one image. If you're not positive which is the correct answer, just go with your best bet.",
+        "<p>There will be some practice trials on the next page to get you familiar with the experiment setup, and then the real experiment will begin. Good luck!</p>"
   ];
 
   var trials = [];
@@ -149,7 +152,7 @@ function buildAndRunExperiment(sessionTemplate) {
   trials.push({
     type: jsPsychInstructions,
     pages: [
-      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct \
+      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct. \
       Click 'Start' to begin the experiment.",
     ],
     allow_backward: false,
