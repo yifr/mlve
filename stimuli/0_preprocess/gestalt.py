@@ -7,6 +7,7 @@ import numpy as np
 from glob import glob
 from tqdm import tqdm
 from PIL import Image
+import matplotlib.pyplot as plt
 
 def load_pose(filename):
     lines = open(filename).read().splitlines()
@@ -39,10 +40,10 @@ def exr2numpy(exr, image_pass="depths"):
         flag = cv2.IMREAD_ANYDEPTH
         data = cv2.imread(exr, flag)
         data = data / data.max()
+        print(data.shape)
     else:
-        flag = cv2.IMREAD_ANYCOLOR
-        data = cv2.imread(exr, flag)
-        data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+        data = cv2.imread(exr, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
+        # data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
         data = np.array(data)
 
     return data
@@ -54,10 +55,10 @@ def format_gestalt():
 
     train_dirs = "train_*"
     texture_dirs = "test_*"
-    object_dirs = "shapegen_*"
+    object_dirs = "shapegenerator_[1-3]"
     print(os.path.join(gestalt_dir, texture_dirs, object_dirs))
-    scene_dirs = glob(os.path.join(gestalt_dir, texture_dirs, object_dirs, 'scene_0*'))
-    train_dirs = glob(os.path.join(gestalt_dir, train_dirs, "shapegenerator_*", "scene_10*"))
+    scene_dirs = glob(os.path.join(gestalt_dir, texture_dirs, object_dirs, '*scene=0'))
+    train_dirs = glob(os.path.join(gestalt_dir, train_dirs, object_dirs, "scene_10*"))
     np.random.shuffle(train_dirs)
     np.random.shuffle(scene_dirs)
 
@@ -97,7 +98,6 @@ def format_gestalt():
                 continue
             dot += 1
 
-        scene_idx += 1
         pbar.update(1)
         n_frames = 64
         frame_idx = 64
@@ -137,6 +137,8 @@ def format_gestalt():
         # copy masks
         #######################
         mask_path = os.path.join(scene_dir, "masks", f"Image{frame_idx:04d}.png")
+        masks = Image.open(mask_path).convert("L")
+
         if scene_idx >= n_scenes:
             os.makedirs(os.path.join(mlve_dir, "train", "masks"), exist_ok=True)
             idx = scene_idx % n_scenes
@@ -144,7 +146,13 @@ def format_gestalt():
         else:
             os.makedirs(os.path.join(mlve_dir, "masks"), exist_ok=True)
             save_path = os.path.join(mlve_dir, "masks", f"mask_{scene_idx:03d}.png")
-        shutil.copy(mask_path, save_path)
+
+        plt.imshow(masks)
+        plt.axis("off")
+        plt.tight_layout
+        plt.imsave(save_path, masks)
+
+        # shutil.copy(mask_path, save_path)
 
         #######################
         # copy depths
@@ -152,6 +160,7 @@ def format_gestalt():
         exr_path = os.path.join(scene_dir, "depth", f"Image{frame_idx:04d}.exr")
         if os.path.exists(exr_path):
             depth_data = exr2numpy(exr_path, image_pass="depths")
+            print(depth_data.shape, " depth data shape")
         else:
             depth_path = os.path.join(scene_dir, "depths", f"Image{frame_idx:04d}.png")
             depth_data = np.array(Image.open(depth_path))
@@ -165,7 +174,6 @@ def format_gestalt():
         else:
             os.makedirs(os.path.join(mlve_dir, "depths"), exist_ok=True)
             save_path = os.path.join(mlve_dir, "depths", f"depth_{scene_idx:03d}")
-
         with h5py.File(save_path + ".hdf5", "w") as f:
             f.create_dataset("dataset", data=depth_data)
 
@@ -179,6 +187,10 @@ def format_gestalt():
         normal_data = exr2numpy(exr_path, image_pass="normals")
         cam_normals = world2cam_normals(normal_data)
         coloring = ((cam_normals * 0.5 + 0.5) * 255)
+        r, g, b = coloring[:, :, 0], coloring[:, :, 1], coloring[:, :, 2]
+        coloring = np.dstack([g, r, b])
+        print(coloring.shape)
+
         rgba = np.concatenate((coloring, np.ones_like(coloring[:, :, :1]) * 255), axis=-1)
         rgba[np.logical_and(rgba[:, :, 0] == 127.5, rgba[:, :, 1] == 127.5, rgba[:, :, 2] == 127.5), :] = 0.
 
@@ -222,6 +234,9 @@ def format_gestalt():
             save_path = os.path.join(mlve_dir, "meta", f"meta_{scene_idx:03d}.pkl")
         with open(save_path, "wb") as f:
             pickle.dump(scene_config, f)
+
+        scene_idx += 1
+
     print(dot, wave, noise)
 
 if __name__=="__main__":
