@@ -10,5 +10,5 @@
     "4": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0003.png",
     [[220, 116], [220, 230]], 1, [220, 400]],
     "5": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0001.png",
-    [[310, 160], [310, 227]], 1, [310, 227]]
+    [[310, 160], [310, 227]], 0, [310, 160]]
 }

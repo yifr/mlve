@@ -122,7 +122,7 @@ def generate_trial(root_path, image_s3_url, probe_touching, trial_idx, export_pa
     else:
         with open(meta_path, "rb") as f:
             meta = convert_np_arrays(pickle.load(f))
-
+    print(bbox)
     trial_data = {
         "image_url": image_s3_url,
         "probe_touching": probe_touching,

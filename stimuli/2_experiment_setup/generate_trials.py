@@ -41,12 +41,16 @@ def denumpy_dictionary(dictionary):
     for k, v in dictionary.items():
         if type(v) == np.ndarray:
             dictionary[k] = v.tolist()
-        elif type(v) == dict:
-            dictionary[k] = denumpy_dictionary(dictionary[k])
+        elif type(v) == np.float32:
+            dictionary[k] = float(v)
+        elif type(v) == list and type(v[0]) == np.float32:
+            dictionary[k] = [float(x) for x in v]
         elif type(v) == np.bool_:
             dictionary[k] = bool(v)
         elif type(v) == list and type(v[0]) == np.bool_:
             dictionary[k] = [bool(x) for x in v]
+        elif type(v) == dict:
+            dictionary[k] = denumpy_dictionary(dictionary[k])
     return dictionary
 
 
@@ -54,15 +58,41 @@ def map_range(X, A, B, C, D):
     interp = interpolater.interp1d((A, B), (C, D))
     return float(interp(X))
 
-"""
-To generate a trial, you need:
-    1. the parameters for said trial
-    2. A point in an image
-    3. Associated ground truth (if relevant)
-    4. associated metadata
-"""
 
-def sample_point_from_masks(masks, ignore_pts=[], border_px=15):
+def points_in_circle(radius, x0=0, y0=0):
+    x_ = np.arange(x0 - radius - 1, x0 + radius + 1, dtype=int)
+    y_ = np.arange(y0 - radius - 1, y0 + radius + 1, dtype=int)
+    x, y = np.where((x_[:,np.newaxis] - x0)**2 + (y_ - y0)**2 <= radius**2)
+    for x, y in zip(x_[x], y_[y]):
+        yield x, y
+
+def check_overlap(point, border_dist, min_dist, image):
+    min_point = lambda p: max(0, p - min_dist)
+    max_point = lambda p: min(width, p + min_dist)
+    width = image.shape[0]
+    x, y = point
+    r = 20
+
+    for x_t, y_t in points_in_circle(radius=r, x0=point[0], y0=point[1]):
+        if x_t > (width - border_dist) or y_t > (width - border_dist) \
+                or x_t < border_dist or y_t < border_dist:
+            return True
+
+        if image[y_t, x_t] != image[point[1], point[0]]:
+            return True
+
+    return False
+
+def get_bounding_box_from_mask(masks, mask_val):
+    mask_y, mask_x = np.where(masks == mask_val)
+    x_min = int(np.min(mask_x))
+    x_max = int(np.max(mask_x))
+    y_min = int(np.min(mask_y))
+    y_max = int(np.max(mask_y))
+    bbox = ((x_min, y_min), (x_max, y_max))
+    return bbox
+
+def sample_point_from_masks(masks, ignore_pts=[], sample_from="", border_px=15):
     """
     Samples point in an image by randomly choosing a point from a mask
     Will avoid sampling points provided in `ignore_points` list
@@ -74,7 +104,12 @@ def sample_point_from_masks(masks, ignore_pts=[], border_px=15):
     mask_vals = np.unique(masks)
     mask_shape = masks.shape[0]
     while True:
-        mask_val = np.random.choice(mask_vals)
+        if sample_from == "background":
+            mask_val = 0
+        elif sample_from == "objects":
+            mask_val = np.random.choice(mask_vals[1:])
+        else:
+            mask_val = np.random.choice(mask_vals)
         y_coords, x_coords = np.where(masks == mask_val)
         n_options = len(y_coords)
         point_idx = np.random.randint(0, n_options, 1)
@@ -98,6 +133,93 @@ def sample_point_uniform(image_size, border_px=15, ignore_pts=[]):
             or (x, y) in ignore_pts:
             continue
         return (int(x), int(y))
+
+
+def object_localization_trial(image_idx,
+                              familiarization_trial=False,
+                              attention_check=False,
+                              ignore_pts=[]):
+    """
+    Format trial for object localization task
+    Points are sampled such that they're either on an object or
+    background. Ideally points shouldn't be too ambiguous (ie; half
+    on an object and half off)
+
+    params:
+    --------
+    image_idx: int: image index for dataset
+    familiarization_trial: bool: whether the trial is a familiarization trial
+    attention_check: bool: whether to fetch attention checks
+    ignore_pts: list[(int, int)]: list of pixel positions to ignore
+
+    returns:
+    ---------
+    Dictionary with following fields:
+        {imageURL: url,
+        probe_touching: True, False
+        probe_location: [(x1, y1)],
+        mask_val: int (mask value of sampled point),
+        gt_bounding_box: [(x1,y1), (x2, y2)],
+        }
+    """
+    if attention_check:
+        with open("attention_checks/object-loc.json", "r") as f:
+            attention_check_trials = []
+            attention_checks = json.load(f)
+            for key in attention_checks.keys():
+                img_s3_url, probe_location, probe_touching, bbox = attention_checks[key]
+                trial_data = {}
+                trial_data["imageURL"] = img_s3_url
+                trial_data["probeLocation"] = points
+                trial_data["probeTouching"] = probe_touching
+                trial_data["gtBoundingBox"] = bbox
+                trial_data["attentionCheck"] = True
+                trial_data["isDuplicate"] = False
+                trial_data = denumpy_dictionary(trial_data)
+                attention_check_trials.append(trial_data)
+    if familiarization_trial:
+        s3_dir = S3_TRAIN_ROOT
+        image_dir = IMAGE_TRAIN_ROOT
+    else:
+        s3_dir = S3_ROOT
+        image_dir = IMAGE_ROOT
+
+    trial_data = {}
+    image_url = os.path.join(s3_dir, "images", f"image_{image_idx:03d}.png")
+
+    meta_path = os.path.join(image_dir, "meta", f"meta_{image_idx:03d}.pkl")
+    with open(meta_path, "rb") as f:
+        image_metadata = pickle.load(f)
+
+    trial_data["imageMetadata"] = image_metadata
+    trial_data["imageURL"] = image_url
+    trial_data["attentionCheck"] = False
+
+    if args.dataset in SYNTHETIC_DATASETS:
+        mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
+        masks = np.array(Image.open(mask_path).convert("L"))
+        image_size = masks.shape[0]
+        sample_from = "background" if image_idx % 2 == 0 else "objects"
+        probe_location, mask_val = sample_point_from_masks(masks, ignore_pts=ignore_pts, sample_from=sample_from)
+        bbox = get_bounding_box_from_mask(masks, mask_val)
+        trial_data["gtBoundingBox"] = bbox
+        trial_data["probeTouching"] = False if image_idx % 2 == 0 else True
+    elif familiarization_trial:
+        # Familiarization trials for natural datasets requires hand annotated ground truth
+        fam_trials = json.load(open(f"additional/{args.dataset}_object-loc.json", "r"))
+        probe_location, probe_touching, bbox = fam_trials[str(image_idx)]
+        trial_data["gtBoundingBox"] = bbox
+        trial_data["probeTouching"] = probe_touching
+    else:
+        # Sample points uniformly for naturalistic test trials
+        image_size = 512
+        probe_location = sample_point_uniform(image_size, ignore_pts=ignore_pts)
+
+    trial_data["probeLocation"] = probe_location
+    trial_data["isDuplicate"] = False
+    trial_data["attentionCheck"] = False
+    trial_data = denumpy_dictionary(trial_data)
+    return trial_data, probe_location
 
 
 def two_point_segmentation_trial(image_idx,
@@ -139,6 +261,21 @@ def two_point_segmentation_trial(image_idx,
         s3_dir = S3_ROOT
         image_dir = IMAGE_ROOT
 
+    if attention_check:
+        with open("attention_checks/depth.json", "r") as f:
+            attention_check_trials = []
+            attention_checks = json.load(f)
+            for key in attention_checks.keys():
+                img_s3_url, points, correct_idx, correct_point = attention_checks[key]
+                trial_data = {}
+                trial_data["imageURL"] = img_s3_url
+                trial_data["probeLocations"] = points
+                trial_data["correctChoice"] = correct_idx
+                trial_data["attentionCheck"] = True
+                trial_data["isDuplicate"] = False
+                trial_data = denumpy_dictionary(trial_data)
+                attention_check_trials.append(trial_data)
+
     trial_data = {}
     image_url = os.path.join(s3_dir, "images", f"image_{image_idx:03d}.png")
 
@@ -173,35 +310,6 @@ def two_point_segmentation_trial(image_idx,
         mask_ids = np.unique(masks)
         probe_id = np.random.choice(mask_ids)
         y_opts, x_opts = np.where(masks == probe_id)
-
-        # Choose first point
-        x1 = np.random.choice(x_opts)
-        y1 = np.random.choice(y_opts)
-        while (x1, y1) in ignore_pts:
-            x1 = np.random.randint(0, image_size)
-            y1 = np.random.randint(0, image_size)
-
-    def points_in_radius(radius, x0=0, y0=0):
-        x_ = np.arange(x0 - radius - 1, x0 + radius + 1, dtype=int)
-        y_ = np.arange(y0 - radius - 1, y0 + radius + 1, dtype=int)
-        x, y = np.where((x_[:,np.newaxis] - x0)**2 + (y_ - y0)**2 <= radius**2)
-        for x, y in zip(x_[x], y_[y]):
-            yield x, y
-
-        # Choose second point in some vicinity to first point
-        if same_object:
-            x2 = np.random.choice(x_opts)
-            y2 = np.random.choice(y_opts)
-            while (x1 == x2 and y1 == y2):
-                x2 = np.random.choice(x_opts)
-                y2 = np.random.choice(y_opts)
-        else:
-            y_opts = [y2 for y2 in y_opts if in_radius(x, y, y2)]
-            x2 = np.random.randint(x-max_radius, x+max_radius)
-            y2 = np.random.randint(y-max_radius, y+max_radius)
-
-        return [(x1, y1), (x2, y2)]
-
 
 
 def depth_estimation_trial(image_idx,
@@ -448,7 +556,8 @@ def setup_experiment(n_images, n_batches, n_repeats=10, repeat_times=3, render_p
         setup_experiment_trial = surface_normal_trial
     elif args.experiment_type == "depth-estimation":
         setup_experiment_trial = depth_estimation_trial
-
+    elif args.experiment_type == "object-loc":
+        setup_experiment_trial = object_localization_trial
     # main experiment batches
     batches = [[] for batch in range(n_batches)]
     render_point_path = os.path.join(IMAGE_ROOT + "-sampled-points", args.dataset + "_" + args.experiment_type)
