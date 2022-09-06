@@ -1,0 +1,8 @@
+{
+    "0": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/object-loc/Image0001.png", [123, 210], true, [[65, 138], [209, 282]]],
+    "1": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/object-loc/Image0001.png", [450, 312], false, []],
+    "2": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/object-loc/Image0002.png", [370, 81], true, [[272, 30], [452, 172]]],
+    "3": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/object-loc/Image0002.png", [100, 100], false, []],
+    "4": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/object-loc/Image0003.png", [235, 80], true, [[73, 15], [403, 360]]],
+    "5": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/object-loc/Image0003.png", [230, 200], false, []]
+}

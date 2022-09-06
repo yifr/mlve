@@ -20,6 +20,7 @@ import cabutils
 parser = ArgumentParser()
 parser.add_argument("--dataset", type=str, required=True)
 parser.add_argument("--experiment_type", type=str, required=True, help="choice: [surface-normals, depth-estimation, object-loc]")
+parser.add_argument("--experiment_name_addons", type=str, default="", help="additional tags for experiment name")
 parser.add_argument("--iter_name", type=str, required=True)
 parser.add_argument("--n_batches", type=int, default=100)
 parser.add_argument("--project", type=str, default="mlve")
@@ -43,11 +44,11 @@ def denumpy_dictionary(dictionary):
             dictionary[k] = v.tolist()
         elif type(v) == np.float32:
             dictionary[k] = float(v)
-        elif type(v) == list and type(v[0]) == np.float32:
+        elif type(v) == list and len(v) > 0 and type(v[0]) == np.float32:
             dictionary[k] = [float(x) for x in v]
         elif type(v) == np.bool_:
             dictionary[k] = bool(v)
-        elif type(v) == list and type(v[0]) == np.bool_:
+        elif type(v) == list and len(v) > 0 and type(v[0]) == np.bool_:
             dictionary[k] = [bool(x) for x in v]
         elif type(v) == dict:
             dictionary[k] = denumpy_dictionary(dictionary[k])
@@ -105,7 +106,7 @@ def sample_point_from_masks(masks, ignore_pts=[], sample_from="", border_px=15):
     mask_shape = masks.shape[0]
     while True:
         if sample_from == "background":
-            mask_val = 0
+            mask_val = min(mask_vals)
         elif sample_from == "objects":
             mask_val = np.random.choice(mask_vals[1:])
         else:
@@ -170,13 +171,14 @@ def object_localization_trial(image_idx,
                 img_s3_url, probe_location, probe_touching, bbox = attention_checks[key]
                 trial_data = {}
                 trial_data["imageURL"] = img_s3_url
-                trial_data["probeLocation"] = points
+                trial_data["probeLocation"] = probe_location
                 trial_data["probeTouching"] = probe_touching
                 trial_data["gtBoundingBox"] = bbox
                 trial_data["attentionCheck"] = True
                 trial_data["isDuplicate"] = False
-                trial_data = denumpy_dictionary(trial_data)
                 attention_check_trials.append(trial_data)
+            return attention_check_trials
+
     if familiarization_trial:
         s3_dir = S3_TRAIN_ROOT
         image_dir = IMAGE_TRAIN_ROOT
@@ -509,7 +511,11 @@ def surface_normal_trial(image_idx,
         mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
         masks = np.array(Image.open(mask_path).convert("L"))
         image_size = masks.shape[0]
-        point, mask_val = sample_point_from_masks(masks, ignore_pts=ignore_pts) # x, y point
+        if args.dataset == "gestalt_shapegen":
+            sample_from = "objects"
+        else:
+            sample_from = ""
+        point, mask_val = sample_point_from_masks(masks, ignore_pts=ignore_pts, sample_from=sample_from) # x, y point
 
         # Add ground truth normals
         normal_data_path = os.path.join(image_dir, "normals", f"normal_{image_idx:03d}.hdf5")
@@ -604,10 +610,9 @@ def setup_experiment(n_images, n_batches, n_repeats=10, repeat_times=3, render_p
     familiarization_trials = []
     print("Generating familiarization trials")
     for image_idx in range(5):
-        if args.dataset in SYNTHETIC_DATASETS:
-            trial_data, sampled_point = setup_experiment_trial(image_idx, familiarization_trial=True)
-            trial_data["attentionCheck"] = False
-            familiarization_trials.append(trial_data)
+        trial_data, sampled_point = setup_experiment_trial(image_idx, familiarization_trial=True)
+        trial_data["attentionCheck"] = False
+        familiarization_trials.append(trial_data)
 
     # Depth Attention Checks
     print("Generating attention check trials")
@@ -649,6 +654,8 @@ def generate_experiment_trials():
 
     proj_name = "mlve"
     exp_name = args.dataset + "-" + args.experiment_type
+    if args.experiment_name_addons:
+        exp_name = exp_name + "-" + args.experiment_name_addons
     iter_name = args.iter_name
     metadata = {"proj_name": "mlve", "exp_name": exp_name, "iter_name": args.iter_name}
 
@@ -662,7 +669,7 @@ def generate_experiment_trials():
     repeat_times = 3
 
     # Setup experiment
-    batches, familiarization_trials = setup_experiment(n_images=100, n_batches=100)
+    batches, familiarization_trials = setup_experiment(n_images=100, n_batches=args.n_batches)
     # Add repeat trials
     batches = repeat_trials(batches, n_repeats, repeat_times)
 
@@ -671,7 +678,8 @@ def generate_experiment_trials():
         data = {"metadata": metadata,
                 "trials": batch,
                 "familiarization_trials": familiarization_trials,
-                "iterName": iter_name}
+                "iterName": iter_name,
+                "batch_id": str(i)}
         res = col.insert_one({"data": data})
         print("Sent data to MongoDB store: ", res)
 
