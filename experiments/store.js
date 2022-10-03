@@ -147,6 +147,7 @@ function serve() {
       const databaseName = request.body.dbname;
       const collectionName = request.body.colname;
       const iterName = request.body.iterName;
+      var batch_id = request.body.batch_id;
       if (!collectionName) {
         return failure(response, '/db/getstims needs collection');
       }
@@ -156,27 +157,41 @@ function serve() {
 
       const database = connection.db(databaseName);
       const collection = database.collection(collectionName);
-
-      // sort by number of times previously served up and take the first
-      collection.aggregate([
-        { $match: { iterName: iterName } }, // only serve the iteration we want
-        { $sort: { numGames: 1 } },
-        { $limit: 1 }
-      ]).toArray((err, results) => {
-        if (err) {
-          console.log(err);
-        } else {
-          // Immediately mark as annotated so others won't get it too
-          try {
-            markAnnotation(collection, request.body.gameid, results[0]['_id']);
-          }
-          catch (err) {
-            console.log("Couldn't mark gameID as served", err);
-          }
-          console.log("Sending", results[0]);
-          response.send(results[0]);
+      if (batch_id != null) {
+          console.log("Serving batch: ", batch_id)
+          collection.aggregate([
+            { $match: { "data.metadata.batch_idx": parseInt(batch_id)} }, // only serve the iteration we want
+            { $limit: 1 }
+          ]).toArray((err, results) => {
+            if (err) {
+              console.log(err);
+            } else {
+              console.log("Sending", results[0]);
+              response.send(results[0]);
+            }
+          });
+      } else {
+          // sort by number of times previously served up and take the first
+          collection.aggregate([
+            { $match: { "data.iterName": iterName } }, // only serve the iteration we want
+            { $sort: { numGames: 1 } },
+            { $limit: 1 }
+          ]).toArray((err, results) => {
+            if (err) {
+              console.log(err);
+            } else {
+              // Immediately mark as annotated so others won't get it too
+              try {
+                markAnnotation(collection, request.body.gameid, results[0]['_id']);
+              }
+              catch (err) {
+                console.log("Couldn't mark gameID as served", err);
+              }
+              console.log("Sending", results[0]);
+              response.send(results[0]);
+            }
+          });
         }
-      });
     });
 
 	app.post("/db/exists", (request, response) => {

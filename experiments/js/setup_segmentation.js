@@ -1,5 +1,3 @@
-var DEBUG_MODE = false; //print debug and piloting information to the console
-
 var queryString = window.location.search;
 var urlParams = new URLSearchParams(queryString);
 var prolificID = urlParams.get("PROLIFIC_PID"); // ID unique to the participant
@@ -8,6 +6,8 @@ var sessionID = urlParams.get("SESSION_ID"); // ID unique to the particular subm
 var projName = urlParams.get("projName");
 var expName = urlParams.get("expName");
 var iterName = urlParams.get("iterName");
+var batchId = urlParams.get("batchId")
+var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
@@ -48,6 +48,7 @@ function launchExperiment() {
     proj_name: projName,
     exp_name: expName,
     iter_name: iterName,
+    batch_id: batchId,
   };
 
   if (DEBUG_MODE) {
@@ -98,9 +99,9 @@ function buildAndRunExperiment(sessionTemplate) {
   var instruction_pages = [
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
     "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
-    "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for object localization experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
-    "<p>In this experiment, you will be asked to determine if a dot is touching an object, and draw a box around the object it touches (if the answer is yes). If the red center of the dot is touching an object, click 'Yes', and draw a box <strong>around the object it is touching </strong>. For example, in the demo video below, the dot is touching an object so the answer is 'Yes'. <br> <br>After pressing 'Yes', use your mouse to click and drag to draw a box around that object, and hit 'Submit' to continue. <br> <br> If you're not happy with the box you've drawn, you can redraw it as many times as you want before continuing. But be careful - once you click 'Yes' or 'No' there's no changing your answer!<br><img src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/static_detection/example_trial.gif' width=420, height=420></p><p>Importantly - don't just draw a box around the dot! Make sure to draw the box around the full object, if the dot is touching one.</p>",
-      "<p>The answer isn't always obvious, and might sometimes require you to make your own judgement about what the object boundaries are. If you're not positive just go with your best bet.",
+    "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for depth estimation experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
+      "<p>This experiment will work as follows: an image will show up on your screen, and two points will flash on that image. You need to determine <strong>if the two points are on the same object?</strong></p>",
+      "<p>The answer isn't always obvious, and might be difficult to determine from just one image. If you're not positive which is the correct answer, just go with your best bet.",
   ]
     if (expName.includes("gestalt")) {
     var example_shapes = "https://mlve-v1.s3.us-east-2.amazonaws.com/gestalt_shapegen/examples/shapegen_stims.gif"
@@ -108,10 +109,6 @@ function buildAndRunExperiment(sessionTemplate) {
         instruction_pages.push(...additional_instruction_page)
     }
     instruction_pages.push(...[
-    "<p>Sometimes the dot may be touching an object that's partially blocked by another object in front of it. In those cases, just draw a box around the visible portion of the object.</p>",
-    "<p>Bonuses will be awarded based on two factors. The number of correct responses, and whether the bounding boxes you draw accurately outline the object.</p>",
-    "<p>In the example below, the dot is not touching an object, so we can simply click 'No' and move on.<br><br> <img src='https://gestalt-scenes.s3.us-east-2.amazonaws.com/experiment_media/static_detection/gestalt-example-no-trial.gif' type ='video/mov' width = 500, height = 500 > </img> </p>",
-    "<p>Ready? Once you continue there will be five practice trials, and then the experiment will begin.</p><p>Once you click to continue, you won't be able to review any of the instructions.</p><p>To review any of the instructions now, just hit the back arrow to return to a previous page.</p>",
         "<p>There will be some practice trials on the next page to get you familiar with the experiment setup (you will receive feedback if you select the incorrect answer), and then the real experiment will begin. Good luck!</p>"
   ]);
 
@@ -145,13 +142,13 @@ function buildAndRunExperiment(sessionTemplate) {
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
-
+    console.log("correct choice:" + trialData.correctChoice, trialData)
     var trial = {
-      type: objectLocalizationTask,
+      type: segmentationTrial,
       stimulus: trialData.imageURL,
-      probe_location: trialData.probeLocation,
-      probe_touching: trialData.probeTouching,
-      gt_bounding_box: trialData.gtBoundingBox,
+      choices: ["No", "Yes"],
+      correct_choice: trialData.correctChoice,
+      probe_locations: trialData.probeLocations,
       practice_trial: true,
       debug: DEBUG_MODE,
     };
@@ -163,7 +160,7 @@ function buildAndRunExperiment(sessionTemplate) {
   trials.push({
     type: jsPsychInstructions,
     pages: [
-      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on the ground truth bounding boxes. \
+      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct. \
       Click 'Start' to begin the experiment.",
     ],
     allow_backward: false,
@@ -193,9 +190,8 @@ function buildAndRunExperiment(sessionTemplate) {
 
   /******************* Construct Actual Experiments ************************/
   experimentTrials = shuffle(experimentTrials);
-
-  for (var i = 0; i < experimentTrials.length; i++) {
-    if (i == Math.floor(experimentTrials.length / 2)) {
+  for (var index = 0; index < experimentTrials.length; index++) {
+    if (index == Math.floor(experimentTrials.length / 2)) {
       var progressTrial = {
         type: jsPsychInstructions,
         pages: ["<p>You're halfway through the experiment! Great job so far! Give your eyes a moment to rest, and enjoy this picture of a Japanese Macaque resting in a hot spring while you do.</p> <img src='https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/misc/jm_3.jpg' height=683, width=1024></img>"],
@@ -206,15 +202,22 @@ function buildAndRunExperiment(sessionTemplate) {
       trials.push(progressTrial);
     }
 
-    var trialData = experimentTrials[i];
+    var trialData = experimentTrials[index];
 
     var onFinish = function (responseData) {
-      var trial_data = [trialData, responseData].reduce(function (r, o) {
-        Object.keys(o).forEach(function (k) {
-          r[k] = o[k];
-        });
-        return r;
-      }, {});
+      trial_index = responseData["index"];
+      if (DEBUG_MODE) {
+        console.log(trial_index);
+      }
+      var trial_data = [experimentTrials[trial_index], responseData].reduce(
+        function (r, o) {
+          Object.keys(o).forEach(function (k) {
+            r[k] = o[k];
+          });
+          return r;
+        },
+        {}
+      );
       trial_data["gameid"] = gameid;
 
       if (DEBUG_MODE) {
@@ -224,11 +227,12 @@ function buildAndRunExperiment(sessionTemplate) {
     };
 
     var trial = {
-      type: objectLocalizationTask,
+      type: segmentationTrial,
+      index: index,
       stimulus: trialData.imageURL,
-      probe_location: trialData.probeLocation,
-      probe_touching: trialData.probeTouching,
-      gt_bounding_box: trialData.gtBoundingBox,
+      choices: ["No", "Yes"],
+      correct_choice: trialData.correctChoice,
+      probe_locations: trialData.probeLocations,
       practice_trial: false,
       debug: DEBUG_MODE,
       on_finish: onFinish,
@@ -239,19 +243,18 @@ function buildAndRunExperiment(sessionTemplate) {
 
   var commentsBlock = {
     type: jsPsychSurveyText,
-    preamble: `<p>Thank you for participating in our study! We know it was difficult, and we promise to be liberal with our bonuses, to reflect our appreciation for making it to the end of this study.</p><p><strong>Click "Finish" to complete the experiment and
+    preamble: `<p>Thank you for participating in our study.</p><p><strong>Click "Finish" to complete the experiment and
       receive compensation.</strong> If you have any comments, please let us know in the form below.</p>`,
     questions: [{ prompt: "Do you have any comments to share with us?" }],
     button_label: "Finish",
     on_finish: function (comments) {
       logTrialtoDB(comments);
-      document.body.innerHTML =
-        `<p> Please wait. You will be redirected back to Prolific in a few moments.
+      document.body.innerHTML = `<p> Please wait. You will be redirected back to Prolific in a few moments.
         </p> If not, please use the following completion code to ensure \
         compensation for this study: B4A98EE7`;
       setTimeout(function () {
         location.href =
-          "https://app.prolific.co/submissions/complete?cc=B4A98EE7"
+          "https://app.prolific.co/submissions/complete?cc=B4A98EE7";
       }, 500);
     },
   };

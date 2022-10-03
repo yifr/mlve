@@ -1,8 +1,8 @@
-var depthTrial = (function (jspsych) {
+var segmentationTrial = (function (jspsych) {
   "use strict";
 
   const info = {
-    name: "plugin-depth-task",
+    name: "plugin-segmentation-task",
     parameters: {
       /** The image to be displayed */
       stimulus: {
@@ -19,11 +19,6 @@ var depthTrial = (function (jspsych) {
         type: jspsych.ParameterType.HTML_STRING,
         pretty_name: "Correct Choice",
         default: "",
-      },
-      true_depths: {
-       type: jspsych.ParameterType.Array,
-        pretty_name: "Ground Truth Depths",
-        default: [],
       },
       /** Array containing the label(s) for the button(s). */
       index: {
@@ -53,7 +48,7 @@ var depthTrial = (function (jspsych) {
       prompt: {
         type: jspsych.ParameterType.HTML_STRING,
         pretty_name: "Prompt",
-        default: "<p id='prompt'>Which dot is closer to the camera?</p>",
+        default: "<p id='prompt'>Are these dots on the same object?</p>",
       },
       /** The vertical margin of the button. */
       margin_vertical: {
@@ -154,14 +149,17 @@ var depthTrial = (function (jspsych) {
             ctx.globalCompositeOperation = "source-over";
 
             // Draw outer probe on canvas
-            ctx.beginPath();
+
             var x = parseInt(x);
             var y = parseInt(y);
-            var radius = 12;
+            ctx.moveTo(x, y)
+            ctx.beginPath();
+            var radius = 7;
 
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
             ctx.fillStyle = "rgba(70, 50, 100, 0.5)";
             ctx.fill();
+            ctx.closePath();
 
             // Draw inner probe on canvas
             ctx.beginPath();
@@ -180,10 +178,13 @@ var depthTrial = (function (jspsych) {
           // Create transparent circle at probe point
           var x = parseInt(x);
           var y = parseInt(y);
-          var radius = 12;
+          var radius = 7;
           ctx.globalCompositeOperation = "destination-out";
+          ctx.moveTo(x, y);
+          ctx.beginPath();
           ctx.arc(x, y, radius, 0, Math.PI * 2, true);
           ctx.fill();
+          ctx.closePath();
         }
 
         function flashProbe(ctx, x, y, color) {
@@ -194,12 +195,12 @@ var depthTrial = (function (jspsych) {
           setTimeout(function () {
             drawProbe(ctx, x, y, color);
           }, 400);
-          // setTimeout(function () {
-          //   clearProbe(ctx, x, y);
-          // }, 600);
-          // setTimeout(function () {
-          //   drawProbe(ctx, x, y, color);
-          // }, 800);
+           setTimeout(function () {
+             clearProbe(ctx, x, y);
+           }, 600);
+           setTimeout(function () {
+             drawProbe(ctx, x, y, color);
+           }, 800);
         }
 
         var point0 = trial.probe_locations[0];
@@ -369,11 +370,9 @@ var depthTrial = (function (jspsych) {
         if (trial.practice_trial) {
           if (!correct) {
             if (trial.correct_choice == 0) {
-              var true_choice = "left";
+              var true_choice = "No (they are NOT on the same object)";
             } else if (trial.correct_choice == 1) {
-              var true_choice = "right"
-            } else {
-              var true_choice = "same";
+              var true_choice = "Yes (they ARE on the same object)"
             }
             var prompt =
               "Good try! The correct answer is actually " + true_choice + "! Click the correct button to continue.";
@@ -392,7 +391,6 @@ var depthTrial = (function (jspsych) {
         }
         if (trial.debug) {
           console.log("Correct: " + correct);
-          console.log("Depths: ", trial.true_depths)
         }
 
         var trial_data = {

@@ -6,6 +6,7 @@ var sessionID = urlParams.get("SESSION_ID"); // ID unique to the particular subm
 var projName = urlParams.get("projName");
 var expName = urlParams.get("expName");
 var iterName = urlParams.get("iterName");
+var batchId = urlParams.get("batchId")
 var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
@@ -47,6 +48,7 @@ function launchExperiment() {
     proj_name: projName,
     exp_name: expName,
     iter_name: iterName,
+    batch_id: batchId,
   };
 
   if (DEBUG_MODE) {
@@ -97,11 +99,18 @@ function buildAndRunExperiment(sessionTemplate) {
   var instruction_pages = [
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
     "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
-    "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for match-to-sample experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
+    "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for depth estimation experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
       "<p>This experiment will work as follows: an image will show up on your screen, and two points will flash on that image. You need to determine <strong>which point in the image is closer to the camera?</strong></p>",
       "<p>The answer isn't always obvious, and might be difficult to determine from just one image. If you're not positive which is the correct answer, just go with your best bet.",
-        "<p>There will be some practice trials on the next page to get you familiar with the experiment setup, and then the real experiment will begin. Good luck!</p>"
-  ];
+  ]
+    if (expName.includes("gestalt")) {
+    var example_shapes = "https://mlve-v1.s3.us-east-2.amazonaws.com/gestalt_shapegen/examples/shapegen_stims.gif"
+        var additional_instruction_page = ["<p>During the experiment, the pictures you will look at will be images of objects camouflaged against the background. The objects in question are complex, un-familiar looking 3D shapes, \n and when they're not camouflaged, look like these shapes: <br><br> \n<img height=450, width=800, src='" + example_shapes + "'></img></p><p><strong>Note: </strong>These are just some of the shapes -- the actual experiment will contain even more of these un-familiar shapes.</p>"]
+        instruction_pages.push(...additional_instruction_page)
+    }
+    instruction_pages.push(...[
+        "<p>There will be some practice trials on the next page to get you familiar with the experiment setup (you will receive feedback if you select the incorrect answer), and then the real experiment will begin. Good luck!</p>"
+  ]);
 
   var trials = [];
   var preload = {
@@ -133,14 +142,14 @@ function buildAndRunExperiment(sessionTemplate) {
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
-    console.log("correct choice:" + trialData.correct_choice, trialData)
+    console.log("correct choice:" + trialData.correctChoice, trialData)
     var trial = {
       type: depthTrial,
       stimulus: trialData.imageURL,
-      true_depths: trialData.gt_depths ? trialData.gt_depths : null,
+      true_depths: trialData.gtDepths ? trialData.gtDepths : null,
       choices: ["Left", "Right", "Same"],
-      correct_choice: trialData.correct_choice,
-      probe_locations: trialData.probe_locations,
+      correct_choice: trialData.correctChoice,
+      probe_locations: trialData.probeLocations,
       practice_trial: true,
       debug: DEBUG_MODE,
     };
@@ -186,7 +195,7 @@ function buildAndRunExperiment(sessionTemplate) {
     if (index == Math.floor(experimentTrials.length / 2)) {
       var progressTrial = {
         type: jsPsychInstructions,
-        pages: ["You're halfway through the experiment! Great job so far!"],
+        pages: ["<p>You're halfway through the experiment! Great job so far! Give your eyes a moment to rest, and enjoy this picture of a Japanese Macaque resting in a hot spring while you do.</p> <img src='https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/misc/jm_3.jpg' height=683, width=1024></img>"],
         show_clickable_nav: true,
         button_label_next: "Continue",
         allow_backward: false,
@@ -223,9 +232,9 @@ function buildAndRunExperiment(sessionTemplate) {
       index: index,
       stimulus: trialData.imageURL,
       choices: ["Left", "Right", "Same"],
-      true_depths: trialData.gt_depths ? trialData.gt_depths : null,
-      correct_choice: trialData.correct_choice,
-      probe_locations: trialData.probe_locations,
+      true_depths: trialData.gtDepths ? trialData.gtDepths : null,
+      correct_choice: trialData.correctChoice,
+      probe_locations: trialData.probeLocations,
       practice_trial: false,
       debug: DEBUG_MODE,
       on_finish: onFinish,

@@ -121,7 +121,8 @@ io.on("connection", function (socket) {
     var proj_name = data.proj_name;
     var exp_name = data.exp_name;
     var iter_name = data.iter_name;
-    initializeWithTrials(socket, proj_name, exp_name, iter_name);
+    var batch_id = data.batch_id;
+    initializeWithTrials(socket, proj_name, exp_name, iter_name, batch_id);
   });
 
   // write data to db upon getting current data
@@ -192,7 +193,7 @@ function checkPreviousParticipant(userID, callback) {
   );
 }
 
-function initializeWithTrials(socket, proj_name, collection, it_name) {
+function initializeWithTrials(socket, proj_name, collection, it_name, batch_id) {
   var gameid = UUID();
   // var colname = 'human-physics-benchmarking-dominoes-pilot_production_1'; //insert STIMULI DATASETNAME here
   sendPostRequest(
@@ -201,7 +202,8 @@ function initializeWithTrials(socket, proj_name, collection, it_name) {
       json: {
         dbname: proj_name + "_inputs",
         colname: collection,
-        it_name: it_name,
+        iterName: it_name,
+        batch_id: batch_id,
         gameid: gameid,
       },
     },

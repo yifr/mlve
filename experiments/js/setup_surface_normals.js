@@ -115,6 +115,11 @@ function buildAndRunExperiment(sessionTemplate) {
     "<p>When you are satisfied the indicator points away from the surface of the object, click again to freeze the indicator in place and hit SUBMIT.</p><p><strong>You can re-aim the indicator multiple times before submitting</strong></p>", // +
     "<p> <strong>Note: </strong>This experiment works best in full screen, especially on smaller screens.</p>"
     ]
+    if (expName.includes("gestalt")) {
+        var example_shapes = "https://mlve-v1.s3.us-east-2.amazonaws.com/gestalt_shapegen/examples/shapegen_stims.gif"
+        var additional_instruction_page = ["<p>During the experiment, the pictures you will look at will be images of objects camouflaged against the background. The objects in question are complex, un-familiar looking 3D shapes, \n and when they're not camouflaged, look like these shapes: <br><br> \n<img height=450, width=800, src='" + example_shapes + "'></img></p><p><strong>Note: </strong>These are just some of the shapes -- the actual experiment will contain even more of these un-familiar shapes.</p>"]
+        instructionPages.push(...additional_instruction_page)
+    }
 
   var trials = [];
   var preload = {
@@ -271,7 +276,7 @@ function buildAndRunExperiment(sessionTemplate) {
     if (index == Math.floor(experimentTrials.length / 2)) {
       var progressTrial = {
         type: jsPsychInstructions,
-        pages: ["You're halfway through the experiment! Great job so far!"],
+        pages: ["<p>You're halfway through the experiment! Great job so far! Give your eyes a moment to rest, and enjoy this picture of a Japanese Macaque resting in a hot spring while you do.</p> <img src='https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/misc/jm_3.jpg' height=683, width=1024></img>"],
         show_clickable_nav: true,
         button_label_next: "Continue",
         allow_backward: false,
