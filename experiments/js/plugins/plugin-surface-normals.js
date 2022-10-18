@@ -411,8 +411,24 @@ var surfaceNormalsTask = (function (jspsych) {
           // // display button to submit drawing when finished
           // html +=
           //   '<div><img src="/img/colormap_white.png" style="float:left; margin: 0px 15px 15px 0px;" width="3%">';
-          html +=
-            '<button id="submit_button" class="green" style="vertical-align:middle">submit</button></div>';
+          if (trial.trialType == "unsupervised") {
+            html +=
+            `
+            <div class="slidecontainer">
+              <input type="range" min="1" max="10" value="5" class="slider" id="confidence-slider">
+              <p>How Confident are you in your answer:? <span id="confidence-viewer"></span></p>
+            </div>
+            `
+            var conf_slider = document.getElementById("confidence-slider");
+            var conf_viewer = document.getElementById("confidence-viewer");
+            conf_viewer.innerHTML = conf_slider.value;
+            conf_slider.oninput = function() {
+              conf_viewer.innerHTML = this.value;
+            }
+          }
+
+          html += '<button id="submit_button" class="green" style="vertical-align:middle">submit</button></div>';
+          
 
           // actually assign html to display_element.innerHTML
           display_element.innerHTML = html;
@@ -548,6 +564,10 @@ var surfaceNormalsTask = (function (jspsych) {
           if (error > errorThreshold) {
             return;
           }
+          var confidence = null;
+        } else {
+          var confidence_slider = document.getElementById("confidence-slider");
+          var confidence = confidence_slider.value;
         }
 
         let endTrialTime = Date.now();
@@ -581,6 +601,7 @@ var surfaceNormalsTask = (function (jspsych) {
           randomizeArrowInitialDirection: trial.randomizeArrowInitialDirection,
           trialType: trial.trialType,
           imageURL: trial.imageURL,
+          confidence: confidence,
           indicatorFinalDirection: indicatorFinal,
           indicatorDirectionTrajectory: indicatorDirectionTrajectory,
           indicatorDirectionTimes: indicatorDirectionTimes,
