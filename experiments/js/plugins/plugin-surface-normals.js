@@ -416,7 +416,7 @@ var surfaceNormalsTask = (function (jspsych) {
             `
             <div class="slidecontainer">
               <input type="range" min="1" max="10" value="5" class="slider" id="confidence-slider">
-              <p>How Confident are you in your answer:? <span id="confidence-viewer"></span></p>
+              <p>How confident are you in your answer? <span id="confidence-viewer"></span></p>
             </div>
             `
           }
