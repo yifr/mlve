@@ -422,7 +422,7 @@ var surfaceNormalsTask = (function (jspsych) {
           }
 
           html += '<button id="submit_button" class="green" style="vertical-align:middle">submit</button></div>';
-          
+
 
           // actually assign html to display_element.innerHTML
           display_element.innerHTML = html;
@@ -664,13 +664,13 @@ class KoenderinkCircle extends THREE.Object3D {
 
     //CYLINDER
     var llength = 1;
-    this._cylinderGeometry = track(new THREE.CylinderGeometry(
-        0.02,
-        0.02,
-        llength,
-        100
-      ));
-    this.cylinder = track(new THREE.Mesh(
+    this._cylinderGeometry = new THREE.ConeGeometry(
+      0.02,
+      0.02,
+      llength,
+      100
+    );
+    this.cylinder = new THREE.Line(
       this._cylinderGeometry,
       new THREE.MeshBasicMaterial({
         color: on_color,
