@@ -28,7 +28,7 @@ parser.add_argument("--n_batches", type=int, default=100)
 parser.add_argument("--project", type=str, default="mlve")
 args = parser.parse_args()
 
-SYNTHETIC_DATASETS = ["gestalt", "gestalt_shapegen", "hypersim_v2", "tdw"]
+SYNTHETIC_DATASETS = ["gestalt", "gestalt_shapegen", "hypersim_v2", "hypersim_v3", "tdw"]
 S3_ROOT = "https://mlve-v1.s3.us-east-2.amazonaws.com/" + args.dataset
 S3_TRAIN_ROOT = "https://mlve-v1.s3.us-east-2.amazonaws.com/" + args.dataset + "/train"
 IMAGE_ROOT = "/om/user/yyf/mlve/stimuli/" + args.dataset
@@ -41,12 +41,17 @@ def denumpy_dictionary(dictionary):
     a dictionary
     """
     for k, v in dictionary.items():
+        print(k, v, type(v))
         if type(v) == np.ndarray:
             dictionary[k] = v.tolist()
         elif type(v) == np.float32:
             dictionary[k] = float(v)
+        elif type(v) == np.int64:
+            dictionary[k] == int(v)
         elif type(v) == list and len(v) > 0 and type(v[0]) == np.float32:
             dictionary[k] = [float(x) for x in v]
+        elif type(v) == list and len(v) > 0 and type(v[0]) == np.int64:
+            dictionary[k] = [int(x) for x in v]
         elif type(v) == np.bool_:
             dictionary[k] = bool(v)
         elif type(v) == list and len(v) > 0 and type(v[0]) == np.bool_:
@@ -64,10 +69,9 @@ def map_range(X, A, B, C, D):
 def points_on_radius(radius, x0, y0, n_points=100):
     points = []
     for x in range(n_points):
-        points.append(
-            (x0 + np.cos(2 * np.pi / n * x) * radius,
-            y0 + np.sin(2 * np.pi / n * x) * radius)
-        )
+        x = int(x0 + np.cos(2 * np.pi / n_points * x) * radius)
+        y = int(y0 + np.sin(2 * np.pi / n_points * x) * radius)
+        points.append((x, y))
     return points
 
 def points_in_circle(radius, x0=0, y0=0):
@@ -121,7 +125,7 @@ def sample_point_from_masks(masks, ignore_pts=[], sample_from="", border_px=15):
     tries = 0
     while True:
         if sample_from == "background":
-            mask_val = min(mask_vals)
+            mask_val = mask_vals[0]
         elif sample_from == "objects":
             mask_val = np.random.choice(mask_vals[1:])
         else:
@@ -248,11 +252,11 @@ def get_border_pixel_coords(masked_image):
     """
     border_pixels = segmentation.find_boundaries(masked_image)
     y, x = np.where(border_pixels)
-    border_coords = [(y[i], x[i]) for i in range(len(y))]
+    border_coords = [(x[i], y[i]) for i in range(len(y))]
     return border_coords
 
 def l2_distance(p1, p2):
-    return np.sqrt(np.sum((p1[i] - p2[i]) ** 2))
+    return np.sqrt(np.sum([(p1[i] - p2[i]) ** 2 for i in range(2)]))
 
 def get_nearest_boundary_point(masked_image, origin):
     boundary_points = get_border_pixel_coords(masked_image)
@@ -293,7 +297,7 @@ def two_point_segmentation_trial(args, image_idx,
     Dictionary with following fields:
         {imageURL: url,
         probe_locations: [(x1, y1), (x2, y2)],
-        probe_ids: [d1, d2] segmentation ID id for each point (if relevant)
+        probe_ids: [d1, d2] segmentation ID for each point (if relevant)
         same_object: [True, False]
         }
     """
@@ -319,6 +323,8 @@ def two_point_segmentation_trial(args, image_idx,
                 trial_data = denumpy_dictionary(trial_data)
                 attention_check_trials.append(trial_data)
 
+            return attention_check_trials
+
     trial_data = {}
     image_url = os.path.join(s3_dir, "images", f"image_{image_idx:03d}.png")
 
@@ -329,12 +335,13 @@ def two_point_segmentation_trial(args, image_idx,
     trial_data["imageMetadata"] = image_metadata
     trial_data["imageURL"] = image_url
     trial_data["attentionCheck"] = False
-
-    def generate_point_pair(ignore_pts=[], min_radius=15, max_radius=100, masks=None, image_size=None):
+    print("Generating trial for stimulus URL: " + image_url)
+    def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, max_radius=100, masks=None, image_size=None):
         """
-        Returns triplet of points:
-            Primary point, and two secondary points that form an equilateral triangle
-            If there is ground truth data, one of those will be positive pairs and one will be negative
+        Returns two points:
+            Samples first point on an arbitrary mask. To sample the second one, draw a circle of randomly sampled radius
+            around the first point. If trial_same_object==True, the second point will be sampled such that it has the same
+            MASK ID.
         params:
             ignore_pts: list[tuple[int, int]]: list of points to ignore
             same_object:bool: whether to sample points on the same object
@@ -342,77 +349,88 @@ def two_point_segmentation_trial(args, image_idx,
             masks: np.ndarray: array of masks
             image_size: int: in case masks not present
         """
-        if masks == None:   # No ground truth for dataset
-            x1 = np.random.randint(0, image_size)
-            y1 = np.random.randint(0, image_size)
+        if not args.dataset in SYNTHETIC_DATASETS:   # No ground truth for dataset
+            x1 = int(np.random.randint(0, image_size))
+            y1 = int(np.random.randint(0, image_size))
             while (x1, y1) in ignore_pts:
-                x1 = np.random.randint(0, image_size)
-                y1 = np.random.randint(0, image_size)
+                x1 = int(np.random.randint(0, image_size))
+                y1 = int(np.random.randint(0, image_size))
 
             radius = np.random.randint(min_radius, max_radius)
             radial_points = points_on_radius(radius, x1, y1)
-            (x2, y2), (x3, y3) = np.random.choice(radial_points, 2, replace=False)
-            return [(x1, y1), (x2, y2)], [(x1, y1), (x3, y3)]
+            (x2, y2) = np.random.choice(radial_points, 1, replace=False)
+            return (x1, y1), (x2, y2)
         else:
-            mask_ids = np.unique(masks)[1:] # Ignore background
-            resample = True
-            while resample is True:
+            mask_ids = [x for x in np.unique(masks) if x > 1] # Pick object from non-background mask ids
+            mask_ids = np.unique(masks)[1:]
+            print(mask_ids)
+            # repeat this process until we find a good pair of points
+            while True:
+                probe_ids = []
+                # Choose an initial mask ID
                 probe_id = np.random.choice(mask_ids)
-                masked_image = masks == probe_id
-                y_opts, x_opts = np.where(masked_image)
-                mask_points = [(x_opts[i], y_opts[i]) for i in range(len(y_opts))]
+                probe_ids.append(int(probe_id))
+
+                masked_image = (masks == probe_id)
+                y_opts, x_opts = np.where(masked_image) # get masked indices
+                mask_points = [(int(x_opts[i]), int(y_opts[i])) for i in range(len(y_opts))]  # arrange them in (x,y) format
 
                 # Sample first point
-                p0 = np.random.choice(mask_points)
+                p1 = mask_points[np.random.randint(len(mask_points))]
+                closest_boundary_point = get_nearest_boundary_point(masked_image, p1)
 
-                # Bias point towards border
-                closest_boundary_point = get_nearest_boundary_point(masked_image)
-                def get_midpoint(p1, p2):
-                    return ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
-
-                p1 = get_midpoint(p1, closest_boundary_point)
-
-                # Sample positive and negative pair
+                # Sample second point
                 radius = np.random.randint(min_radius, max_radius)
-                radial_points = points_on_radius(radius, p1[0], p1[1])
-                diff_obj_opts = [rp for rp in radial_points if rp not in masked_image]
+                circle_points = points_on_radius(radius, p1[0], p1[1])
+                probe_opts = []
+                for point in circle_points:
+                    # Ignore points that fall outside image boundaries
+                    px, py = point
+                    if px >= 500 or px < 10 or py >= 500 or py < 10:
+                        continue
 
-                # Filter points not on the object to make sure they're
-                diff_obj_opts = [off_probe for off_probe in diff_obj_opts if l2_distance(p1, off_probe) < min_radius]
-                if len(diff_obj_opts) == 0:
+                    # Make sure the potential probe location is minimum distance away from mask boundary
+                    # to avoid conditions where the probe is half on/half off an object
+                    if l2_distance(closest_boundary_point, point) > min_radius:
+                        if not trial_same_object and masks[py, px] != probe_id:
+                            probe_opts.append(point)
+                        elif trial_same_object and masks[py, px] == probe_id:
+                            probe_opts.append(point)
+
+                if len(probe_opts) == 0:
+                    print("No good points found. Trying again...")
                     continue
-                off_probe = np.random.choice(diff_obj_opts)
 
-                same_obj_opts = [rp for rp in radial_points if rp in masked_image]
-                same_obj_opts = [on_probe for on_probe in same_obj_opts if l2_distance(p1, on_probe) < min_radius]
-                if len(same_obj_opts) == 0:
-                    continue
+                p2 = probe_opts[np.random.choice(len(probe_opts))]
+                p2_id = int(masks[p2[1], p2[0]])
+                probe_ids.append(p2_id)
+                return (p1, p2), probe_ids
 
-                on_probe = np.random.choice(same_obj_opts)
-
-                return (p1, on_probe), (p1, off_probe)
 
     if args.dataset in SYNTHETIC_DATASETS:
         mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
         masks = np.array(Image.open(mask_path).convert("L"))
-        image_size = masks.shape[0]
-        on_pair, off_pair = generate_point_pair(ignore_pts=ignore_pts, min_radius=15, max_radius=100, masks=masks)
 
-        trial_data["sameObj"] = True
-        trial_data["correctChoice"] = 0
+        trial_same_object = True if image_idx % 2 == 0 else False
+        probe_locations, probe_ids = generate_point_pair(ignore_pts=ignore_pts, trial_same_object=trial_same_object,  min_radius=25, max_radius=150, masks=masks)
+
+        trial_data["sameObj"] = True if trial_same_object else False
+        trial_data["probeIDs"] = probe_ids
+        trial_data["correctChoice"] = 1 if trial_same_object else 0
+
     elif familiarization_trial:
         fam_trials = json.load(open(f"additional/{args.dataset}_depths.json", "r"))
         probe_locations, correct_choice = fam_trials[str(image_idx)]
         trial_data["correctChoice"] = correct_choice
     else:
         image_size = 512
-        point_1 = sample_point_uniform(image_size, ignore_pts=ignore_pts)
-        probe_locations = generate_point_pair(point_1, image_size)
+        probe_locations = generate_point_pair(ignore_pts=ignore_pts, image_size=image_size, min_radius=15, max_radius=100)
 
     trial_data["probeLocations"] = probe_locations
     trial_data["isDuplicate"] = False
     trial_data["attentionCheck"] = False
     trial_data = denumpy_dictionary(trial_data)
+    print(trial_data)
     return trial_data, probe_locations
 
 def depth_estimation_trial(args, image_idx,
@@ -504,7 +522,7 @@ def depth_estimation_trial(args, image_idx,
         mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
         masks = np.array(Image.open(mask_path).convert("L"))
         image_size = masks.shape[0]
-        point_1, mask_val = sample_point_from_masks(masks, ignore_pts=ignore_pts) # x, y point
+        point_1, mask_val = sample_point_from_masks(masks, ignore_pts=ignore_pts, sample_from="objects") # x, y point
         probe_locations = generate_point_pair(point_1, image_size)
 
         # Add ground truth normals
@@ -623,9 +641,21 @@ def surface_normal_trial(args, image_idx,
         with h5py.File(normal_data_path, "r") as f:
             normal_data = f["dataset"][:]
 
-        x, y = point
-        gt_normals = normal_data[y, x]
-        trial_data["trueArrowDirection"] = gt_normals
+        mask_y, mask_x = np.where(masks == mask_val)  # Sample pixel from object
+        mask_normals = normal_data[mask_y, mask_x, :]   # Get normals from object
+        unique_normals = np.unique(mask_normals, axis=0) # Get unique normals
+        unique_normals = unique_normals[~np.isnan(unique_normals).any(axis=1)]
+        rng = np.random.default_rng()
+        normal_val = rng.choice(unique_normals)   # Sample normal value randomly
+        mask_indexes = np.where((mask_normals == normal_val).all(axis=1))[0]  # Get mask indexes for the selected normals
+        if len(mask_indexes) == 0:
+            import pdb
+            pdb.set_trace()
+        point_idx = np.random.choice(mask_indexes) # Pick the index of the pixel to sample
+        point = (int(mask_x[point_idx]), int(mask_y[point_idx])) # points are stored as x, y
+        print(point, normal_val)
+        trial_data["trueArrowDirection"] = [float(x) for x in normal_val]
+
     elif familiarization_trial:
         fam_trials = json.load(open(f"additional/{args.dataset}_normals.json", "r"))
         point, gt_normals = fam_trials[str(image_idx)]
@@ -654,9 +684,9 @@ def surface_normal_trial(args, image_idx,
 
 def setup_experiment(args, n_images, n_batches, n_repeats=10, repeat_times=3, render_points=True):
     if args.dataset not in SYNTHETIC_DATASETS and \
-    not os.path.exists(f"additional/{args.dataset}_depths.json"):
+    not os.path.exists(f"additional/{args.dataset}_{args.experiment}.json"):
         print(f"Expected familiarization trial data for {args.dataset} at path: " + \
-              "`additional/{args.dataset}_depths.json`")
+              "`additional/{args.dataset}_{args.dataset}.json`")
         sys.exit(1)
 
     if args.experiment_type == "surface-normals":
@@ -665,6 +695,9 @@ def setup_experiment(args, n_images, n_batches, n_repeats=10, repeat_times=3, re
         setup_experiment_trial = depth_estimation_trial
     elif args.experiment_type == "object-loc":
         setup_experiment_trial = object_localization_trial
+    elif args.experiment_type == "segmentation":
+        setup_experiment_trial = two_point_segmentation_trial
+
     # main experiment batches
     batches = [[] for batch in range(n_batches)]
     render_point_path = os.path.join(IMAGE_ROOT + "-sampled-points", args.dataset + "_" + args.experiment_type)
@@ -689,7 +722,7 @@ def setup_experiment(args, n_images, n_batches, n_repeats=10, repeat_times=3, re
             batches[batch_idx].append(trial_data)
 
             if render_points:
-                if args.experiment_type == "depth-estimation":
+                if args.experiment_type == "depth-estimation" or args.experiment_type == "segmentation":
                     color = [int(x) for x in np.random.randint(0, 255, 3)]
                     for point in sampled_point:
                         image_draw = cv2.circle(image_draw, (point[0], point[1]), 7, color, -1)
@@ -711,13 +744,13 @@ def setup_experiment(args, n_images, n_batches, n_repeats=10, repeat_times=3, re
     familiarization_trials = []
     print("Generating familiarization trials")
     for image_idx in range(5):
-        trial_data, sampled_point = setup_experiment_trial(image_idx, familiarization_trial=True)
+        trial_data, sampled_point = setup_experiment_trial(args, image_idx, familiarization_trial=True)
         trial_data["attentionCheck"] = False
         familiarization_trials.append(trial_data)
 
     # Depth Attention Checks
     print("Generating attention check trials")
-    attention_checks = setup_experiment_trial(0, attention_check=True)
+    attention_checks = setup_experiment_trial(args, 0, attention_check=True)
     for i, batch in enumerate(batches):
         for attention_check in attention_checks:
             attention_check["batchIdx"] = i
@@ -784,6 +817,7 @@ def generate_experiment_trials(args):
         res = col.insert_one({"data": data})
         print("Sent data to MongoDB store: ", res)
 
+    print(f"Experiment URL: http://34.228.26.201:8080/{args.experiment_type}.html?projName=mlve&expName={exp_name}&iterName={args.iter_name}&debug=true")
 
 if __name__=="__main__":
     generate_experiment_trials(args)
