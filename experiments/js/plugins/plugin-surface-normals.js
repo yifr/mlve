@@ -419,12 +419,6 @@ var surfaceNormalsTask = (function (jspsych) {
               <p>How Confident are you in your answer:? <span id="confidence-viewer"></span></p>
             </div>
             `
-            var conf_slider = document.getElementById("confidence-slider");
-            var conf_viewer = document.getElementById("confidence-viewer");
-            conf_viewer.innerHTML = conf_slider.value;
-            conf_slider.oninput = function() {
-              conf_viewer.innerHTML = this.value;
-            }
           }
 
           html += '<button id="submit_button" class="green" style="vertical-align:middle">submit</button></div>';
@@ -432,6 +426,15 @@ var surfaceNormalsTask = (function (jspsych) {
 
           // actually assign html to display_element.innerHTML
           display_element.innerHTML = html;
+
+          if (trial.trialType == "unsupervised") {
+            var conf_slider = document.getElementById("confidence-slider");
+            var conf_viewer = document.getElementById("confidence-viewer");
+            conf_viewer.innerHTML = conf_slider.value;
+            conf_slider.oninput = function() {
+              conf_viewer.innerHTML = this.value;
+            }
+          }
           document.addEventListener("mousemove", rotateIndicator);
 
           // warn against refreshing page
