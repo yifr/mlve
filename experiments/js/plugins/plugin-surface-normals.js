@@ -76,6 +76,12 @@ var surfaceNormalsTask = (function (jspsych) {
         default: "relative",
         description: "How the koenderink indicator moves",
       },
+      confidence_slider: {
+        type: jspsych.ParameterType.BOOL,
+        pretty_name: "Confidence Slider",
+        default: false,
+        description: "Whether to display a confidence slider"
+      },
     },
   };
 
@@ -412,13 +418,15 @@ var surfaceNormalsTask = (function (jspsych) {
           // html +=
           //   '<div><img src="/img/colormap_white.png" style="float:left; margin: 0px 15px 15px 0px;" width="3%">';
           if (trial.trialType == "unsupervised") {
-            html +=
-            `
-            <div class="slidecontainer">
-              <input type="range" min="1" max="10" value="5" class="slider" id="confidence-slider">
-              <p>How confident are you in your answer? <span id="confidence-viewer"></span></p>
-            </div>
-            `
+            if (trial.confidence_slider) {
+              html +=
+              `
+              <div class="slidecontainer">
+                <input type="range" min="1" max="10" value="5" class="slider" id="confidence-slider">
+                <p>How confident are you in your answer? <span id="confidence-viewer"></span></p>
+              </div>
+              `
+            }
           }
 
           html += '<button id="submit_button" class="green" style="vertical-align:middle">submit</button></div>';
@@ -428,11 +436,13 @@ var surfaceNormalsTask = (function (jspsych) {
           display_element.innerHTML = html;
 
           if (trial.trialType == "unsupervised") {
-            var conf_slider = document.getElementById("confidence-slider");
-            var conf_viewer = document.getElementById("confidence-viewer");
-            conf_viewer.innerHTML = conf_slider.value;
-            conf_slider.oninput = function() {
-              conf_viewer.innerHTML = this.value;
+            if (trial.confidence_slider) {
+              var conf_slider = document.getElementById("confidence-slider");
+              var conf_viewer = document.getElementById("confidence-viewer");
+              conf_viewer.innerHTML = conf_slider.value;
+              conf_slider.oninput = function() {
+                conf_viewer.innerHTML = this.value;
+              }
             }
           }
           document.addEventListener("mousemove", rotateIndicator);
@@ -557,6 +567,7 @@ var surfaceNormalsTask = (function (jspsych) {
       // animate();
 
       const end_trial = (e) => {
+        var confidence = null;
         IN_TRIAL = false;
         if (trial.trialType !== "unsupervised") {
           //console.log("HERE", indicator.getDirection());
@@ -567,10 +578,11 @@ var surfaceNormalsTask = (function (jspsych) {
           if (error > errorThreshold) {
             return;
           }
-          var confidence = null;
         } else {
-          var confidence_slider = document.getElementById("confidence-slider");
-          var confidence = confidence_slider.value;
+          if (trial.confidence_slider) {
+            var confidence_slider = document.getElementById("confidence-slider");
+            var confidence = confidence_slider.value;
+          }
         }
 
         let endTrialTime = Date.now();

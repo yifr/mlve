@@ -25,7 +25,7 @@ var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
 if (!(indicatorType)) {
- indicatorType = "absolute";
+ indicatorType = "relative";
 }
 /****************************************************
   If you have any other URL Parameters that you need
@@ -262,8 +262,8 @@ function buildAndRunExperiment(sessionTemplate) {
     type: jsPsychInstructions,
     pages: [
       "Okay! We are now ready to begin the real trials.<br><br>Sometimes the indicator can be hard to see. You may need to try moving the indicator to see it.<br><br>" +
-      "In the real experiment, you will also need to report <strong>how confident you are in your answers</strong>. There will be a slider before the continue button." +
-      " Before clicking submit please use that slider to report (on a scale of 1-10) how confident you are in your judgement.<br><br>" +
+      // "In the real experiment, you will also need to report <strong>how confident you are in your answers</strong>. There will be a slider before the continue button." +
+      // " Before clicking submit please use that slider to report (on a scale of 1-10) how confident you are in your judgement.<br><br>" +
       "Click 'Start' to begin the experiment.",
     ],
     allow_backward: false,
