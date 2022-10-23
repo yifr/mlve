@@ -5,6 +5,7 @@ import h5py
 import json
 import random
 import pickle
+import datetime
 import numpy as np
 from glob import glob
 from tqdm import tqdm
@@ -26,6 +27,7 @@ parser.add_argument("--experiment_name_addons", type=str, default="", help="addi
 parser.add_argument("--iter_name", type=str, required=True)
 parser.add_argument("--n_batches", type=int, default=100)
 parser.add_argument("--project", type=str, default="mlve")
+parser.add_argument("--notes", type=str, default="")
 args = parser.parse_args()
 
 SYNTHETIC_DATASETS = ["gestalt", "gestalt_shapegen", "hypersim_v2", "hypersim_v3", "tdw"]
@@ -139,8 +141,8 @@ def sample_point_from_masks(masks, ignore_pts=[], sample_from="", border_px=15):
             return point, mask_val
 
         if point[0] < border_px or point[0] > (mask_shape - border_px) \
-            or point[1] < border_px or point[1] > mask_shape - border_px \
-            or point in ignore_pts:
+                or point[1] < border_px or point[1] > mask_shape - border_px \
+                or point in ignore_pts:
             continue
 
         return point, mask_val
@@ -153,8 +155,8 @@ def sample_point_uniform(image_size, border_px=15, ignore_pts=[]):
     while True:
         x, y = np.random.randint(border_px, image_size - border_px, 2)
         if x < border_px or x > (image_size - border_px) \
-            or y < border_px or y > image_size - border_px \
-            or (x, y) in ignore_pts:
+                or y < border_px or y > image_size - border_px \
+                or (x, y) in ignore_pts:
             continue
         return (int(x), int(y))
 
@@ -625,7 +627,6 @@ def surface_normal_trial(args, image_idx,
     trial_data["imageMetadata"] = image_metadata
     trial_data["imageURL"] = image_url
     trial_data["trialType"] = "unsupervised"
-
     if args.dataset in SYNTHETIC_DATASETS:
         mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
         masks = np.array(Image.open(mask_path).convert("L"))
@@ -634,23 +635,54 @@ def surface_normal_trial(args, image_idx,
             sample_from = "objects"
         else:
             sample_from = ""
-        point, mask_val = sample_point_from_masks(masks, ignore_pts=ignore_pts, sample_from=sample_from) # x, y point
+
+        use_mask_val = False
+        if use_mask_val:
+            point, mask_val = sample_point_from_masks(masks, ignore_pts=ignore_pts, sample_from=sample_from) # x, y point
 
         # Add ground truth normals
         normal_data_path = os.path.join(image_dir, "normals", f"normal_{image_idx:03d}.hdf5")
         with h5py.File(normal_data_path, "r") as f:
             normal_data = f["dataset"][:]
 
-        mask_y, mask_x = np.where(masks == mask_val)  # Sample pixel from object
+        if use_mask_val:
+            mask_y, mask_x = np.where(masks == mask_val)  # Sample pixel from object
+        else:
+            mask_y, mask_x = np.where(masks > 0)  # Sample pixel from object
+
+
         mask_normals = normal_data[mask_y, mask_x, :]   # Get normals from object
-        unique_normals = np.unique(mask_normals, axis=0) # Get unique normals
-        unique_normals = unique_normals[~np.isnan(unique_normals).any(axis=1)]
-        rng = np.random.default_rng()
-        normal_val = rng.choice(unique_normals)   # Sample normal value randomly
-        mask_indexes = np.where((mask_normals == normal_val).all(axis=1))[0]  # Get mask indexes for the selected normals
-        if len(mask_indexes) == 0:
-            import pdb
-            pdb.set_trace()
+
+        if use_mask_val:
+            unique_normals = np.unique(mask_normals, axis=0) # Get unique normals
+            unique_normals = unique_normals[~np.isnan(unique_normals).any(axis=1)]
+            rng = np.random.default_rng()
+            normal_val = rng.choice(unique_normals)   # Sample normal value randomly
+            mask_indexes = np.where((mask_normals == normal_val).all(axis=1))[0]  # Get mask indexes for the selected normals
+            if len(mask_indexes) > 0:
+                # Something is broken in this case lol
+                import pdb
+                pdb.set_trace()
+        else:
+            def l2_dist(a, b):
+                dist = np.linalg.norm(a - b, axis=1)
+                return dist
+
+            while True:
+                normal_val = np.random.randn(1, 3)
+                normal_val /= np.linalg.norm(normal_val, axis=1)
+                # Make sure z is > 0
+                if normal_val[:, -1] > 0:
+                    # Get mask indexes for selected normal val
+                    dists = l2_dist(mask_normals, normal_val)
+                    mask_indexes = np.where((dists < 0.1))[0]
+                    # If there are no matching surface normals, resample
+                    if len(mask_indexes) > 0:
+                        # Otherwise we're done
+                        break
+
+            normal_val = normal_val[0]
+
         point_idx = np.random.choice(mask_indexes) # Pick the index of the pixel to sample
         point = (int(mask_x[point_idx]), int(mask_y[point_idx])) # points are stored as x, y
         print(point, normal_val)
@@ -684,7 +716,7 @@ def surface_normal_trial(args, image_idx,
 
 def setup_experiment(args, n_images, n_batches, n_repeats=10, repeat_times=3, render_points=True):
     if args.dataset not in SYNTHETIC_DATASETS and \
-    not os.path.exists(f"additional/{args.dataset}_{args.experiment}.json"):
+            not os.path.exists(f"additional/{args.dataset}_{args.experiment}.json"):
         print(f"Expected familiarization trial data for {args.dataset} at path: " + \
               "`additional/{args.dataset}_{args.dataset}.json`")
         sys.exit(1)
@@ -806,13 +838,15 @@ def generate_experiment_trials(args):
     batches, familiarization_trials = setup_experiment(args, n_images=100, n_batches=args.n_batches)
     # Add repeat trials
     batches = repeat_trials(batches, n_repeats, repeat_times)
-
+    creation_date = f"{datetime.datetime.now():%Y-%d-%m, %HH:%M:%S}"
     for i, batch in enumerate(batches):
         metadata["batch_idx"] = i
         data = {"metadata": metadata,
                 "trials": batch,
                 "familiarization_trials": familiarization_trials,
                 "iterName": iter_name,
+                "notes": args.notes,
+                "creation_date": creation_date,
                 "batch_id": str(i)}
         res = col.insert_one({"data": data})
         print("Sent data to MongoDB store: ", res)

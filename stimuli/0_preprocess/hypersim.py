@@ -1,4 +1,5 @@
 import os
+import sys
 import h5py
 import shutil
 import pickle
@@ -29,13 +30,21 @@ def hypersim_distance_to_depth(npyDistance):
     return npyDepth
 
 def format_hypersim():
+    dataset_name = sys.argv[1]
+    mask_type = sys.argv[2]
+    print(dataset_name, mask_type)
     hypersim_path = "/om/user/yyf/hypersim"
-    mlve_path = "/om/user/yyf/mlve/stimuli/hypersim_v2"
+    mlve_path = "/om/user/yyf/mlve/stimuli/" + dataset_name
+    print("Writing data to: " + mlve_path)
     volumes = glob(hypersim_path + "/*")
     # volumes.sort()
     os.makedirs(mlve_path, exist_ok=True)
     os.makedirs(mlve_path + "/train/", exist_ok=True)
-    for i, volume in tqdm(enumerate(volumes)):
+    i = 0
+    volume_idx = 0
+    while True:
+        volume = volumes[volume_idx]
+        volume_idx += 1
         if i > 104:
             break
         path = os.path.join(hypersim_path, volume)
@@ -48,6 +57,53 @@ def format_hypersim():
         geom_preview.sort()
         geom_data.sort()
         cam_data.sort()
+
+        ###############################
+        # copy semantic instance masks
+        ###############################
+        panoptic_masks = "render_entity_id"
+        semantic_masks = "semantic_instance"
+        if mask_type == "panoptic":
+            mask_type = panoptic_masks
+        else:
+            mask_type = semantic_masks
+        masks = glob(os.path.join(geom_data[0], f"frame.*.{mask_type}.hdf5"))
+        masks.sort()
+        mask_path = masks[-1]
+        mask_data = h5py.File(mask_path, "r")["dataset"][:]
+        mask_data += 1
+        mask_data = center_crop(mask_data)
+
+        if len(np.unique(mask_data)) < 4:
+            volume_idx += 1
+            print("NOT ENOUGH MASK IDs PRESENT")
+            continue
+
+        mask_images = glob(os.path.join(geom_preview[0], f"frame.*.{mask_type}.png"))
+        mask_images.sort()
+        mask_image_path = mask_images[-1]
+        mask_image = Image.open(mask_image_path)
+
+        width, height = mask_image.size   # Get dimensions
+        left = (width - 512)/2
+        top = (height - 512)/2
+        right = (width + 512)/2
+        bottom = (height + 512)/2
+
+        mask_image = mask_image.crop((left, top, right, bottom))
+
+        if i > 99:
+            idx = i % 100
+            os.makedirs(os.path.join(mlve_path, "train", "masks"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "train", "masks", f"mask_{idx:03d}")
+        else:
+            os.makedirs(os.path.join(mlve_path, "masks"), exist_ok=True)
+            save_path = os.path.join(mlve_path, "masks", f"mask_{i:03d}")
+
+        with h5py.File(save_path + ".hdf5", "w") as f:
+            f.create_dataset("dataset", data=mask_data, dtype=np.uint8)
+
+        mask_image.save(save_path + ".png")
 
         ###############################
         # copy images
@@ -78,42 +134,6 @@ def format_hypersim():
             save_path = os.path.join(mlve_path, "images", image_name)
 
         image.save(save_path)
-
-        ###############################
-        # copy semantic instance masks
-        ###############################
-        masks = glob(os.path.join(geom_data[0], "frame.*.render_entity_id.hdf5"))
-        masks.sort()
-        mask_path = masks[-1]
-        mask_data = h5py.File(mask_path, "r")["dataset"][:]
-        mask_data += 1
-        mask_data = center_crop(mask_data)
-
-        mask_images = glob(os.path.join(geom_preview[0], "frame.*.render_entity_id.png"))
-        mask_images.sort()
-        mask_image_path = mask_images[-1]
-        mask_image = Image.open(mask_image_path)
-
-        width, height = mask_image.size   # Get dimensions
-        left = (width - 512)/2
-        top = (height - 512)/2
-        right = (width + 512)/2
-        bottom = (height + 512)/2
-
-        mask_image = mask_image.crop((left, top, right, bottom))
-
-        if i > 99:
-            idx = i % 100
-            os.makedirs(os.path.join(mlve_path, "train", "masks"), exist_ok=True)
-            save_path = os.path.join(mlve_path, "train", "masks", f"mask_{idx:03d}")
-        else:
-            os.makedirs(os.path.join(mlve_path, "masks"), exist_ok=True)
-            save_path = os.path.join(mlve_path, "masks", f"mask_{i:03d}")
-
-        with h5py.File(save_path + ".hdf5", "w") as f:
-            f.create_dataset("dataset", data=mask_data, dtype=np.uint8)
-
-        mask_image.save(save_path + ".png")
 
 
         ###############################
@@ -199,6 +219,8 @@ def format_hypersim():
         with open(save_path, "wb") as f:
             pickle.dump(meta, f)
 
+
+        i += 1
 
 if __name__=="__main__":
     format_hypersim()
