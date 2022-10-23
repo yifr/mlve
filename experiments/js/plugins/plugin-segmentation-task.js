@@ -15,9 +15,14 @@ var segmentationTrial = (function (jspsych) {
         pretty_name: "Probe Location",
         default: undefined,
       },
-      correct_choice: {
+      correct_segmentation: {
         type: jspsych.ParameterType.HTML_STRING,
-        pretty_name: "Correct Choice",
+        pretty_name: "Correct Segmentation Option",
+        default: "",
+      },
+      correct_depth: {
+        type: jspsych.ParameterType.HTML_STRING,
+        pretty_name: "Correct Depth Ordering",
         default: "",
       },
       /** Array containing the label(s) for the button(s). */
@@ -120,7 +125,7 @@ var segmentationTrial = (function (jspsych) {
       var html;
       if (trial.debug) {
         console.log("Probe Locations: (" + trial.probe_locations[0] + "), (" + trial.probe_locations[1] + ")")
-        console.log("Correct Answer: " + trial.correct_choice);
+        console.log("Correct Answer: " + trial.correct_segmentation);
       }
       if (trial.render_on_canvas) {
         var image_drawn = false;
@@ -174,39 +179,39 @@ var segmentationTrial = (function (jspsych) {
             return ctx;
           }
 
-        function clearProbe(ctx, x, y) {
-          // Create transparent circle at probe point
-          var x = parseInt(x);
-          var y = parseInt(y);
-          var radius = 7;
-          ctx.globalCompositeOperation = "destination-out";
-          ctx.moveTo(x, y);
-          ctx.beginPath();
-          ctx.arc(x, y, radius, 0, Math.PI * 2, true);
-          ctx.fill();
-          ctx.closePath();
-        }
+          function clearProbe(ctx, x, y) {
+            // Create transparent circle at probe point
+            var x = parseInt(x);
+            var y = parseInt(y);
+            var radius = 7;
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.moveTo(x, y);
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2, true);
+            ctx.fill();
+            ctx.closePath();
+          }
 
-        function flashProbe(ctx, x, y, color) {
-          drawProbe(ctx, x, y, color);
-          setTimeout(function () {
-            clearProbe(ctx, x, y);
-          }, 200);
-          setTimeout(function () {
+          function flashProbe(ctx, x, y, color) {
             drawProbe(ctx, x, y, color);
-          }, 400);
-           setTimeout(function () {
-             clearProbe(ctx, x, y);
-           }, 600);
-           setTimeout(function () {
-             drawProbe(ctx, x, y, color);
-           }, 800);
-        }
+            setTimeout(function () {
+              clearProbe(ctx, x, y);
+            }, 200);
+            setTimeout(function () {
+              drawProbe(ctx, x, y, color);
+            }, 400);
+            setTimeout(function () {
+              clearProbe(ctx, x, y);
+            }, 600);
+            setTimeout(function () {
+              drawProbe(ctx, x, y, color);
+            }, 800);
+          }
 
-        var point0 = trial.probe_locations[0];
-        var point1 = trial.probe_locations[1];
-        flashProbe(ctx, point0[0], point0[1], "red");
-        flashProbe(ctx, point1[0], point1[1], "red");
+          var point0 = trial.probe_locations[0];
+          var point1 = trial.probe_locations[1];
+          flashProbe(ctx, point0[0], point0[1], "red");
+          flashProbe(ctx, point1[0], point1[1], "green");
 
         }
 
@@ -332,8 +337,25 @@ var segmentationTrial = (function (jspsych) {
         if (trial.prompt !== null) {
           html += trial.prompt;
         }
+
+        html +=
+          `
+            <div class="slidecontainer">
+              <p>How confident are you in your answer (from 1-10)? <span id="confidence-viewer"></span></p>
+              <input type="range" min="1" max="10" value="5" class="slider" id="confidence-slider">
+            </div>
+            `
+
         // update the page content
         display_element.innerHTML = html;
+
+        var conf_slider = document.getElementById("confidence-slider");
+        var conf_viewer = document.getElementById("confidence-viewer");
+        conf_viewer.innerHTML = conf_slider.value;
+        conf_slider.oninput = function () {
+          conf_viewer.innerHTML = this.value;
+        }
+
         // set image dimensions after image has loaded (so that we have access to naturalHeight/naturalWidth)
         var img = display_element.querySelector(
           "#jspsych-image-button-response-stimulus"
@@ -360,18 +382,25 @@ var segmentationTrial = (function (jspsych) {
         button: null,
       };
 
-      // function to end trial when it is time
-      const end_trial = () => {
-        // kill any remaining setTimeout handlers
-        this.jsPsych.pluginAPI.clearAllTimeouts();
-        // gather the data to store for the trial
+      var segmentation_confidence = null;
+      var segmentation_correct = false;
+      var segmentation_response = null;
+      var depth_response = null;
+      var depth_confidence = null;
+      var depth_correct = false;
+      var run_segmentation_check = true;
 
-        var correct = response.button == trial.correct_choice;
+      const check_segmentation_response = () => {
+        // Check if the segmentation question was answered correctly
+        segmentation_response = response.button;
+        segmentation_correct = response.button == trial.correct_segmentation;
+        segmentation_confidence = document.getElementById("confidence-slider").value;
+
         if (trial.practice_trial) {
-          if (!correct) {
-            if (trial.correct_choice == 0) {
+          if (!segmentation_correct) {
+            if (trial.correct_segmentation == 0) {
               var true_choice = "No (they are NOT on the same object)";
-            } else if (trial.correct_choice == 1) {
+            } else if (trial.correct_segmentation == 1) {
               var true_choice = "Yes (they ARE on the same object)"
             }
             var prompt =
@@ -389,18 +418,53 @@ var segmentationTrial = (function (jspsych) {
             return;
           }
         }
+
+        if (segmentation_response == 0) {
+          prompt = "Which probe is closer to the camera?"
+          if (trial.practice_trial) {
+            prompt = "Correct! " + prompt;
+          }
+
+          display_element.querySelector("#prompt").innerHTML = prompt;
+          conf_slider.value = 5;
+          btns[0].innerHTML = "Red";
+          btns[1].innerHTML = "Green";
+
+          for (var i = 0; i < btns.length; i++) {
+            //btns[i].removeEventListener('click');
+            btns[i].disabled = false;
+          }
+        }
+      }
+
+      // function to end trial when it is time
+      const end_trial = () => {
+        // kill any remaining setTimeout handlers
+        this.jsPsych.pluginAPI.clearAllTimeouts();
+        // gather the data to store for the trial
         if (trial.debug) {
           console.log("Correct: " + correct);
         }
 
+        if (segmentation_response == 0) {
+          depth_response = choice;
+          depth_correct = depth_response == trial.correct_depth;
+          depth_confidence = document.getElementById("#confidence-slider").value;
+        }
         var trial_data = {
           rt: response.rt,
           index: trial.index,
           stimulus: trial.stimulus,
           response: response.button,
-          correct: correct,
+          segmentation_response: segmentation_response,
+          depth_response: depth_response,
+          segmentation_correct: segmentation_correct,
+          depth_correct: depth_correct,
+          segmentation_confidence: segmentation_confidence,
+          depth_confidence: depth_confidence,
           probe_locations: trial.probe_locations,
-          correct_choice: trial.correct_choice,
+          true_segmentation: trial.correct_segmentation,
+          true_depth: trial.correct_depth,
           choices: trial.choices,
         };
 
@@ -413,10 +477,6 @@ var segmentationTrial = (function (jspsych) {
       // function to handle responses by the subject
       function after_response(choice) {
         // measure rt
-        var end_time = performance.now();
-        var rt = Math.round(end_time - start_time);
-        response.button = parseInt(choice);
-        response.rt = rt;
         // after a valid response, the stimulus will have the CSS class 'responded'
         // which can be used to provide visual feedback that a response was recorded
         display_element.querySelector(
@@ -431,7 +491,15 @@ var segmentationTrial = (function (jspsych) {
           btns[i].setAttribute("disabled", "disabled");
         }
         if (trial.response_ends_trial) {
-          end_trial();
+          if (run_segmentation_check) {
+            run_segmentation_check = false;
+            check_segmentation_response();
+          } else {
+            var end_time = performance.now();
+            var rt = Math.round(end_time - start_time);
+            response.rt = rt;
+            end_trial();
+          }
         }
       }
     }

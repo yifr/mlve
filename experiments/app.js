@@ -106,9 +106,11 @@ app.get("/*", (req, res) => {
     } else {
         console.log("Checking user ID: " + id);
         // If the database shows they've already participated, block them.
-        checkPreviousParticipant(id, (exists) => {
-          return exists ? handleDuplicate(req, res) : serveFile(req, res);
-        });
+         // Not allowed to screen previous participants according to prolific guidelines, apparently
+        return serveFile(req, res)
+        //checkPreviousParticipant(id, (exists) => {
+          // return exists ? handleDuplicate(req, res) : serveFile(req, res);
+        //});
     }
 });
 

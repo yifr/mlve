@@ -104,8 +104,8 @@ function buildAndRunExperiment(sessionTemplate) {
 
   var instructionPages = [
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
-    "<p>Welcome to this experiment. This experiment should take a total of <strong>30 minutes</strong>.</p>" +
-    "<p> You will be compensated at a base rate of $15/hour for a total of $7.50, which you will receive as long as you complete the study.</p>",
+    "<p>Welcome to this experiment. This experiment should take a total of <strong>35 minutes</strong>.</p>" +
+    "<p> You will be compensated at a base rate of $15/hour for a total of $8.75, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>." +
     "<p> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for perception experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
     "<p>In this study, on every trial, you will be shown a picture of several objects.</p>" +
@@ -262,6 +262,8 @@ function buildAndRunExperiment(sessionTemplate) {
     type: jsPsychInstructions,
     pages: [
       "Okay! We are now ready to begin the real trials.<br><br>Sometimes the indicator can be hard to see. You may need to try moving the indicator to see it.<br><br>" +
+      "In the real experiment, you will also need to report <strong>how confident you are in your answers</strong>. There will be a slider before the continue button." +
+      " Before clicking submit please use that slider to report (on a scale of 1-10) how confident you are in your judgement.<br><br>" +
       "Click 'Start' to begin the experiment.",
     ],
     allow_backward: false,
