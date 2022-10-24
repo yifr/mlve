@@ -42,6 +42,12 @@ var segmentationTrial = (function (jspsych) {
         pretty_name: "Instructions",
         default: false,
       },
+      confidence_slider: {
+        type: jspsych.ParameterType.BOOL,
+        pretty_name: "Confidence Slider",
+        default: false,
+        description: "Whether to display a confidence slider"
+      },
       /** The HTML for creating button. Can create own style. Use the "%choice%" string to indicate where the label from the choices parameter should be inserted. */
       button_html: {
         type: jspsych.ParameterType.HTML_STRING,
@@ -337,23 +343,24 @@ var segmentationTrial = (function (jspsych) {
         if (trial.prompt !== null) {
           html += trial.prompt;
         }
-
-        html +=
-          `
-            <div class="slidecontainer">
-              <p>How confident are you in your answer (from 1-10)? <span id="confidence-viewer"></span></p>
-              <input type="range" min="1" max="10" value="5" class="slider" id="confidence-slider">
-            </div>
+        if (trial.confidence_slider) {
+          html +=
             `
-
+              <div class="slidecontainer">
+                <p>How confident are you in your answer (from 1-10)? <span id="confidence-viewer"></span></p>
+                <input type="range" min="1" max="10" value="5" class="slider" id="confidence-slider">
+              </div>
+              `
+        }
         // update the page content
         display_element.innerHTML = html;
-
-        var conf_slider = document.getElementById("confidence-slider");
-        var conf_viewer = document.getElementById("confidence-viewer");
-        conf_viewer.innerHTML = conf_slider.value;
-        conf_slider.oninput = function () {
-          conf_viewer.innerHTML = this.value;
+        if (trial.confidence_slider) {
+          var conf_slider = document.getElementById("confidence-slider");
+          var conf_viewer = document.getElementById("confidence-viewer");
+          conf_viewer.innerHTML = conf_slider.value;
+          conf_slider.oninput = function () {
+            conf_viewer.innerHTML = this.value;
+          }
         }
 
         // set image dimensions after image has loaded (so that we have access to naturalHeight/naturalWidth)
@@ -394,7 +401,9 @@ var segmentationTrial = (function (jspsych) {
         // Check if the segmentation question was answered correctly
         segmentation_response = response.button;
         segmentation_correct = response.button == trial.correct_segmentation;
-        segmentation_confidence = document.getElementById("confidence-slider").value;
+        if (trial.confidence_slider) {
+          segmentation_confidence = document.getElementById("confidence-slider").value;
+        }
 
         if (trial.practice_trial) {
           if (!segmentation_correct) {
@@ -449,7 +458,9 @@ var segmentationTrial = (function (jspsych) {
         if (segmentation_response == 0) {
           depth_response = choice;
           depth_correct = depth_response == trial.correct_depth;
-          depth_confidence = document.getElementById("#confidence-slider").value;
+          if (trial.confidence_slider) {
+            depth_confidence = document.getElementById("#confidence-slider").value;
+          }
         }
         var trial_data = {
           rt: response.rt,
