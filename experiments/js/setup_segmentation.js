@@ -142,12 +142,13 @@ function buildAndRunExperiment(sessionTemplate) {
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
-    console.log("correct choice:" + trialData.correctChoice, trialData)
+    console.log("correct choice:" + trialData.correct_segmentation, trialData)
     var trial = {
       type: segmentationTrial,
       stimulus: trialData.imageURL,
       choices: ["No", "Yes"],
-      correct_choice: trialData.correctChoice,
+      correct_segmentation: trialData.correct_segmentation,
+      correct_depth: trialData.correct_depth,
       probe_locations: trialData.probeLocations,
       practice_trial: true,
       debug: DEBUG_MODE,
