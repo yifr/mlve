@@ -623,6 +623,7 @@ def surface_normal_trial(args, image_idx,
     meta_path = os.path.join(image_dir, "meta", f"meta_{image_idx:03d}.pkl")
     with open(meta_path, "rb") as f:
         image_metadata = pickle.load(f)
+        image_metadata = denumpy_dictionary(image_metadata)
 
     trial_data["imageMetadata"] = image_metadata
     trial_data["imageURL"] = image_url
@@ -689,7 +690,7 @@ def surface_normal_trial(args, image_idx,
         trial_data["trueArrowDirection"] = [float(x) for x in normal_val]
 
     elif familiarization_trial:
-        fam_trials = json.load(open(f"additional/{args.dataset}_normals.json", "r"))
+        fam_trials = json.load(open(f"additional/{args.dataset}_surface-normals.json", "r"))
         point, gt_normals = fam_trials[str(image_idx)]
         trial_data["trueArrowDirection"] = gt_normals
         if image_idx >= 2:
@@ -697,10 +698,19 @@ def surface_normal_trial(args, image_idx,
         else:
             trial_data["trialType"] = "supervised"
     else:
-        image_size = 512
-        point = sample_point_uniform(image_size, ignore_pts=ignore_pts)
+        if args.dataset == "nsd":
+            mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
+            masks = np.array(Image.open(mask_path).convert("L"))
+            image_size = masks.shape[0]
+            sample_from = "objects" if np.random.rand() > 0.25 else "background"
+            point, mask_val = sample_point_from_masks(masks, ignore_pts=ignore_pts, sample_from=sample_from) # x, y point
+        else:
+            image_size = 512
+            point = sample_point_uniform(image_size, ignore_pts=ignore_pts)
 
     x, y = point
+    if args.dataset == "nsd":
+        image_size = 425
     canvas_size = image_size / 100
     arrow_NDC = [map_range(x, 0, image_size - 1, -canvas_size, canvas_size),
                  map_range(y, 0, image_size - 1, -canvas_size, canvas_size),
@@ -716,7 +726,7 @@ def surface_normal_trial(args, image_idx,
 
 def setup_experiment(args, n_images, n_batches, n_repeats=10, repeat_times=3, render_points=True):
     if args.dataset not in SYNTHETIC_DATASETS and \
-            not os.path.exists(f"additional/{args.dataset}_{args.experiment}.json"):
+            not os.path.exists(f"additional/{args.dataset}_{args.experiment_type}.json"):
         print(f"Expected familiarization trial data for {args.dataset} at path: " + \
               "`additional/{args.dataset}_{args.dataset}.json`")
         sys.exit(1)
