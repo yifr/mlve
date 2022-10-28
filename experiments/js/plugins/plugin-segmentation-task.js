@@ -401,6 +401,11 @@ var segmentationTrial = (function (jspsych) {
         // Check if the segmentation question was answered correctly
         segmentation_response = response.button;
         segmentation_correct = response.button == trial.correct_segmentation;
+        if (trial.debug) {
+          console.log("Response: ", segmentation_response);
+          console.log("Correct Answer: ", trial.correct_segmentation)
+          console.log("Correct? ", segmentation_correct);
+        }
         if (trial.confidence_slider) {
           segmentation_confidence = document.getElementById("confidence-slider").value;
         }
@@ -408,12 +413,12 @@ var segmentationTrial = (function (jspsych) {
         if (trial.practice_trial) {
           if (!segmentation_correct) {
             if (trial.correct_segmentation == 0) {
-              var true_choice = "No (they are NOT on the same object)";
+              var true_choice = "are NOT on the same object";
             } else if (trial.correct_segmentation == 1) {
-              var true_choice = "Yes (they ARE on the same object)"
+              var true_choice = "ARE on the same object"
             }
             var prompt =
-              "Good try! The correct answer is actually " + true_choice + "! Click the correct button to continue.";
+              "Good try! They actually " + true_choice + "! Click the correct button to continue.";
             display_element.querySelector("#prompt").innerHTML = prompt;
 
             // enable all the buttons after a response
@@ -434,11 +439,6 @@ var segmentationTrial = (function (jspsych) {
             var btns = document.querySelectorAll(
               ".jspsych-image-button-response-button button"
             );
-            for (var i = 0; i < btns.length; i++) {
-              //btns[i].removeEventListener('click');
-              btns[i].disabled = false;
-            }
-
           display_element.querySelector("#prompt").innerHTML = prompt;
           conf_slider.value = 5;
           btns[0].innerHTML = "Red";
@@ -465,7 +465,7 @@ var segmentationTrial = (function (jspsych) {
               return
             }
           }
-          
+
           if (trial.confidence_slider) {
             depth_confidence = document.getElementById("#confidence-slider").value;
           }
