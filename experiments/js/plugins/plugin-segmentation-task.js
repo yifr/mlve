@@ -450,6 +450,7 @@ var segmentationTrial = (function (jspsych) {
           run_segmentation_check = false;
           return;
         }
+        end_trial(null);
       }
 
       // function to end trial when it is time
