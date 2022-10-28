@@ -402,9 +402,9 @@ var segmentationTrial = (function (jspsych) {
         segmentation_response = choice;
         segmentation_correct = choice == trial.correct_segmentation;
         if (trial.debug) {
-          console.log("Response: ", segmentation_response);
-          console.log("Correct Answer: ", trial.correct_segmentation)
-          console.log("Correct? ", segmentation_correct);
+          console.log("Correct Segmentation: ", trial.correct_segmentation)
+          console.log("Segmentation Response: ", segmentation_response);
+          console.log("Participant semgnetation correct? ", segmentation_correct);
         }
         if (trial.confidence_slider) {
           segmentation_confidence = document.getElementById("confidence-slider").value;
@@ -458,17 +458,13 @@ var segmentationTrial = (function (jspsych) {
         // kill any remaining setTimeout handlers
         this.jsPsych.pluginAPI.clearAllTimeouts();
         // gather the data to store for the trial
-        if (trial.debug) {
-          console.log("Correct: " + segmentation_correct, depth_correct);
-        }
-
         if (segmentation_response == 0) {
           depth_response = choice;
           depth_correct = depth_response == trial.correct_depth;
           if (trial.debug){
             console.log("Correct depth answer: ", trial.correct_depth);
-            console.log("Participant response: ", depth_response);
-            console.log("Participant correct:" , depth_correct);
+            console.log("Participant depth response: ", depth_response);
+            console.log("Participant depth correct:" , depth_correct);
           }
           if (trial.practice_trial) {
             if (!depth_correct) {
