@@ -470,7 +470,10 @@ var segmentationTrial = (function (jspsych) {
             depth_confidence = document.getElementById("#confidence-slider").value;
           }
         }
-
+        
+        var btns = document.querySelectorAll(
+          ".jspsych-image-button-response-button button"
+        );
         for (var i = 0; i < btns.length; i++) {
           //btns[i].removeEventListener('click');
           btns[i].setAttribute("disabled", "disabled");
