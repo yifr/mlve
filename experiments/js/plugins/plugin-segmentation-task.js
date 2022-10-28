@@ -428,6 +428,8 @@ var segmentationTrial = (function (jspsych) {
             run_segmentation_check = true;
             return;
           }
+
+          end_trial(false);
         }
 
         if (segmentation_response == 0) {
@@ -470,7 +472,7 @@ var segmentationTrial = (function (jspsych) {
             depth_confidence = document.getElementById("#confidence-slider").value;
           }
         }
-        
+
         var btns = document.querySelectorAll(
           ".jspsych-image-button-response-button button"
         );
@@ -482,7 +484,6 @@ var segmentationTrial = (function (jspsych) {
           rt: response.rt,
           index: trial.index,
           stimulus: trial.stimulus,
-          response: response.button,
           segmentation_response: segmentation_response,
           depth_response: depth_response,
           segmentation_correct: segmentation_correct,
