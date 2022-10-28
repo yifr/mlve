@@ -24,7 +24,7 @@ parser = ArgumentParser()
 parser.add_argument("--dataset", type=str, required=True)
 parser.add_argument("--experiment_type", type=str, required=True, help="choice: [surface-normals, depth-estimation, object-loc]")
 parser.add_argument("--experiment_name_addons", type=str, default="", help="additional tags for experiment name")
-parser.add_argument("--iter_name", type=str, required=True)
+parser.add_argument("--batch_dir", type=str, required=True)
 parser.add_argument("--n_batches", type=int, default=100)
 parser.add_argument("--project", type=str, default="mlve")
 parser.add_argument("--notes", type=str, default="")
@@ -43,7 +43,6 @@ def denumpy_dictionary(dictionary):
     a dictionary
     """
     for k, v in dictionary.items():
-        print(k, v, type(v))
         if type(v) == np.ndarray:
             dictionary[k] = v.tolist()
         elif type(v) == np.float32:
@@ -271,6 +270,75 @@ def get_nearest_boundary_point(masked_image, origin):
     point = boundary_points[min_dist_idx]
     return point
 
+def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, max_radius=100, masks=None, image_size=None):
+    """
+    Returns two points:
+        Samples first point on an arbitrary mask. To sample the second one, draw a circle of randomly sampled radius
+        around the first point. If trial_same_object==True, the second point will be sampled such that it has the same
+        MASK ID.
+    params:
+        ignore_pts: list[tuple[int, int]]: list of points to ignore
+        same_object:bool: whether to sample points on the same object
+        max_radius: how far away to sample alternate probe
+        masks: np.ndarray: array of masks
+        image_size: int: in case masks not present
+    """
+    if not args.dataset in SYNTHETIC_DATASETS:   # No ground truth for dataset
+        x1 = int(np.random.randint(0, image_size))
+        y1 = int(np.random.randint(0, image_size))
+        while (x1, y1) in ignore_pts:
+            x1 = int(np.random.randint(0, image_size))
+            y1 = int(np.random.randint(0, image_size))
+
+        radius = np.random.randint(min_radius, max_radius)
+        radial_points = points_on_radius(radius, x1, y1)
+        (x2, y2) = np.random.choice(radial_points, 1, replace=False)
+        return (x1, y1), (x2, y2)
+    else:
+        mask_ids = [x for x in np.unique(masks) if x > 1] # Pick object from non-background mask ids
+        mask_ids = np.unique(masks)[1:]
+        # repeat this process until we find a good pair of points
+        while True:
+            probe_ids = []
+            # Choose an initial mask ID
+            probe_id = np.random.choice(mask_ids)
+            probe_ids.append(int(probe_id))
+
+            masked_image = (masks == probe_id)
+            y_opts, x_opts = np.where(masked_image) # get masked indices
+            mask_points = [(int(x_opts[i]), int(y_opts[i])) for i in range(len(y_opts))]  # arrange them in (x,y) format
+
+            # Sample first point
+            p1 = mask_points[np.random.randint(len(mask_points))]
+            closest_boundary_point = get_nearest_boundary_point(masked_image, p1)
+
+            # Sample second point
+            radius = np.random.randint(min_radius, max_radius)
+            circle_points = points_on_radius(radius, p1[0], p1[1])
+            probe_opts = []
+            for point in circle_points:
+                # Ignore points that fall outside image boundaries
+                px, py = point
+                if px >= 500 or px < 10 or py >= 500 or py < 10:
+                    continue
+
+                # Make sure the potential probe location is minimum distance away from mask boundary
+                # to avoid conditions where the probe is half on/half off an object
+                if l2_distance(closest_boundary_point, point) > min_radius:
+                    if not trial_same_object and masks[py, px] != probe_id:
+                        probe_opts.append(point)
+                    elif trial_same_object and masks[py, px] == probe_id:
+                        probe_opts.append(point)
+
+            if len(probe_opts) == 0:
+                print("No good points found. Trying again...")
+                continue
+
+            p2 = probe_opts[np.random.choice(len(probe_opts))]
+            p2_id = int(masks[p2[1], p2[0]])
+            probe_ids.append(p2_id)
+            return (p1, p2), probe_ids
+
 def two_point_segmentation_trial(args, image_idx,
                                  familiarization_trial=False,
                                  attention_check=False,
@@ -338,87 +406,37 @@ def two_point_segmentation_trial(args, image_idx,
     trial_data["imageURL"] = image_url
     trial_data["attentionCheck"] = False
     print("Generating trial for stimulus URL: " + image_url)
-    def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, max_radius=100, masks=None, image_size=None):
-        """
-        Returns two points:
-            Samples first point on an arbitrary mask. To sample the second one, draw a circle of randomly sampled radius
-            around the first point. If trial_same_object==True, the second point will be sampled such that it has the same
-            MASK ID.
-        params:
-            ignore_pts: list[tuple[int, int]]: list of points to ignore
-            same_object:bool: whether to sample points on the same object
-            max_radius: how far away to sample alternate probe
-            masks: np.ndarray: array of masks
-            image_size: int: in case masks not present
-        """
-        if not args.dataset in SYNTHETIC_DATASETS:   # No ground truth for dataset
-            x1 = int(np.random.randint(0, image_size))
-            y1 = int(np.random.randint(0, image_size))
-            while (x1, y1) in ignore_pts:
-                x1 = int(np.random.randint(0, image_size))
-                y1 = int(np.random.randint(0, image_size))
 
-            radius = np.random.randint(min_radius, max_radius)
-            radial_points = points_on_radius(radius, x1, y1)
-            (x2, y2) = np.random.choice(radial_points, 1, replace=False)
-            return (x1, y1), (x2, y2)
-        else:
-            mask_ids = [x for x in np.unique(masks) if x > 1] # Pick object from non-background mask ids
-            mask_ids = np.unique(masks)[1:]
-            print(mask_ids)
-            # repeat this process until we find a good pair of points
-            while True:
-                probe_ids = []
-                # Choose an initial mask ID
-                probe_id = np.random.choice(mask_ids)
-                probe_ids.append(int(probe_id))
-
-                masked_image = (masks == probe_id)
-                y_opts, x_opts = np.where(masked_image) # get masked indices
-                mask_points = [(int(x_opts[i]), int(y_opts[i])) for i in range(len(y_opts))]  # arrange them in (x,y) format
-
-                # Sample first point
-                p1 = mask_points[np.random.randint(len(mask_points))]
-                closest_boundary_point = get_nearest_boundary_point(masked_image, p1)
-
-                # Sample second point
-                radius = np.random.randint(min_radius, max_radius)
-                circle_points = points_on_radius(radius, p1[0], p1[1])
-                probe_opts = []
-                for point in circle_points:
-                    # Ignore points that fall outside image boundaries
-                    px, py = point
-                    if px >= 500 or px < 10 or py >= 500 or py < 10:
-                        continue
-
-                    # Make sure the potential probe location is minimum distance away from mask boundary
-                    # to avoid conditions where the probe is half on/half off an object
-                    if l2_distance(closest_boundary_point, point) > min_radius:
-                        if not trial_same_object and masks[py, px] != probe_id:
-                            probe_opts.append(point)
-                        elif trial_same_object and masks[py, px] == probe_id:
-                            probe_opts.append(point)
-
-                if len(probe_opts) == 0:
-                    print("No good points found. Trying again...")
-                    continue
-
-                p2 = probe_opts[np.random.choice(len(probe_opts))]
-                p2_id = int(masks[p2[1], p2[0]])
-                probe_ids.append(p2_id)
-                return (p1, p2), probe_ids
-
-
-    if args.dataset in SYNTHETIC_DATASETS:
+    if args.dataset in SYNTHETIC_DATASETS or args.dataset == "nsd":
         mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
         masks = np.array(Image.open(mask_path).convert("L"))
 
         trial_same_object = True if image_idx % 2 == 0 else False
         probe_locations, probe_ids = generate_point_pair(ignore_pts=ignore_pts, trial_same_object=trial_same_object,  min_radius=25, max_radius=150, masks=masks)
 
+        # Get Depth
+        if args.dataset != "nsd":
+            depth_data_path = os.path.join(image_dir, "depths", f"depth_{image_idx:03d}.hdf5")
+            with h5py.File(depth_data_path, "r") as f:
+                depth_data = f["dataset"][:]
+
+            left, right = probe_locations
+            gt_depths = [depth_data[left[1], left[0]], depth_data[right[1], right[0]]]
+
+            # Determine closer point
+            if gt_depths[0] < gt_depths[1]:
+                correct_depth = 0
+            elif gt_depths[0] > gt_depths[1]:
+                correct_depth = 1
+            else:
+                correct_depth = 2
+
+            trial_data["correct_depth"] = correct_depth
+            trial_data["gt_depth"] = gt_depths
+
         trial_data["sameObj"] = True if trial_same_object else False
         trial_data["probeIDs"] = probe_ids
-        trial_data["correctChoice"] = 1 if trial_same_object else 0
+        trial_data["correct_segmentation"] = 1 if trial_same_object else 0
 
     elif familiarization_trial:
         fam_trials = json.load(open(f"additional/{args.dataset}_depths.json", "r"))
@@ -432,7 +450,6 @@ def two_point_segmentation_trial(args, image_idx,
     trial_data["isDuplicate"] = False
     trial_data["attentionCheck"] = False
     trial_data = denumpy_dictionary(trial_data)
-    print(trial_data)
     return trial_data, probe_locations
 
 def depth_estimation_trial(args, image_idx,
@@ -686,7 +703,6 @@ def surface_normal_trial(args, image_idx,
 
         point_idx = np.random.choice(mask_indexes) # Pick the index of the pixel to sample
         point = (int(mask_x[point_idx]), int(mask_y[point_idx])) # points are stored as x, y
-        print(point, normal_val)
         trial_data["trueArrowDirection"] = [float(x) for x in normal_val]
 
     elif familiarization_trial:
@@ -702,7 +718,7 @@ def surface_normal_trial(args, image_idx,
             mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
             masks = np.array(Image.open(mask_path).convert("L"))
             image_size = masks.shape[0]
-            sample_from = "objects" if np.random.rand() > 0.25 else "background"
+            sample_from = "objects" if np.random.rand() > 0.1 else "background"
             point, mask_val = sample_point_from_masks(masks, ignore_pts=ignore_pts, sample_from=sample_from) # x, y point
         else:
             image_size = 512
@@ -826,20 +842,10 @@ def repeat_trials(batches, n_repeats, repeat_times, n_attention_checks=5):
     return batches
 
 def generate_experiment_trials(args):
-    conn = cabutils.get_db_connection()
-
     proj_name = "mlve"
     exp_name = args.dataset + "-" + args.experiment_type
     if args.experiment_name_addons:
         exp_name = exp_name + "-" + args.experiment_name_addons
-    iter_name = args.iter_name
-    metadata = {"proj_name": "mlve", "exp_name": exp_name, "iter_name": args.iter_name}
-
-    print("Generating Experiment trials: ", metadata)
-    db = conn[proj_name + "_inputs"]
-    col = db[exp_name]
-    print("Dropping old results")
-    col.drop()
 
     n_repeats = 10
     repeat_times = 3
@@ -849,19 +855,21 @@ def generate_experiment_trials(args):
     # Add repeat trials
     batches = repeat_trials(batches, n_repeats, repeat_times)
     creation_date = f"{datetime.datetime.now():%Y-%d-%m, %HH:%M:%S}"
+    save_path = f"datasets/{exp_name}/{args.batch_dir}"
+    os.makedirs(save_path, exist_ok=True)
+
     for i, batch in enumerate(batches):
-        metadata["batch_idx"] = i
-        data = {"metadata": metadata,
-                "trials": batch,
+        data = {"trials": batch,
                 "familiarization_trials": familiarization_trials,
-                "iterName": iter_name,
                 "notes": args.notes,
                 "creation_date": creation_date,
                 "batch_id": str(i)}
-        res = col.insert_one({"data": data})
-        print("Sent data to MongoDB store: ", res)
+        # res = col.insert_one({"data": data})
+        save_file = os.path.join(save_path, f"batch_{i}.json")
+        with open(save_file, "w", encoding='utf-8') as f:
+            json.dump(data, f)
+        print("Wrote data to path: ", save_file)
 
-    print(f"Experiment URL: http://34.228.26.201:8080/{args.experiment_type}.html?projName=mlve&expName={exp_name}&iterName={args.iter_name}&debug=true")
 
 if __name__=="__main__":
     generate_experiment_trials(args)

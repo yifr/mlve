@@ -163,3 +163,4 @@ venv.bak/
 .mypy_cache/
 experiments/static/media/
 experiments/manager
+**/datasets/**

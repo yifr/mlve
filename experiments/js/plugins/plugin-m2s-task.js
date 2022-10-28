@@ -10,11 +10,6 @@ var m2sTrial = (function (jspsych) {
         pretty_name: "Stimulus",
         default: undefined,
       },
-      probe_location: {
-        type: jspsych.Array,
-        pretty_name: "Probe Location",
-        default: undefined,
-      },
       correct_choice: {
         type: jspsych.STRING,
         pretty_name: "Correct Choice",
@@ -403,7 +398,7 @@ var m2sTrial = (function (jspsych) {
           stimulus: trial.stimulus,
           response: response.button,
           correct: correct,
-          probe_location: trial.probe_location,
+          // probe_location: trial.probe_location,
           correct_choice: trial.correct_choice,
           choices: trial.choices,
         };

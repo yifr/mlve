@@ -27,7 +27,8 @@ def cocoID_to_mask(coco_anns, cocoID):
         if masks is None:
             masks = coco_anns.annToMask(ann) * (i + ann["category_id"])
         else:
-            masks += coco_anns.annToMask(ann) * (i + ann["category_id"])
+            new_mask = coco_anns.annToMask(ann) * (i + ann["category_id"])
+            masks = np.where(new_mask != 0, new_mask, masks)
 
     return masks
 
@@ -123,10 +124,10 @@ def process_NSD():
         coco_id = nsd_id_info["cocoId"].values[0]
         crop_box = str_to_float_array(nsd_id_info["cropBox"].values[0])
 
-        meta_data["nsd_idx"] = nsd_id
+        meta_data["nsd_idx"] = int(nsd_id)
         meta_data["coco_split"] = coco_split
-        meta_data["coco_id"] = coco_id
-        meta_data["cropBox"] = crop_box
+        meta_data["coco_id"] = int(coco_id)
+        meta_data["cropBox"] = [float(x) for x in crop_box]
         pickle.dump(meta_data, open(meta_path,"wb"))
 
         print("Creating mask")

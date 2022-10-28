@@ -430,6 +430,14 @@ var segmentationTrial = (function (jspsych) {
           if (trial.practice_trial) {
             prompt = "Correct! " + prompt;
           }
+            // enable all the buttons after a response
+            var btns = document.querySelectorAll(
+              ".jspsych-image-button-response-button button"
+            );
+            for (var i = 0; i < btns.length; i++) {
+              //btns[i].removeEventListener('click');
+              btns[i].disabled = false;
+            }
 
           display_element.querySelector("#prompt").innerHTML = prompt;
           conf_slider.value = 5;
@@ -444,7 +452,7 @@ var segmentationTrial = (function (jspsych) {
         this.jsPsych.pluginAPI.clearAllTimeouts();
         // gather the data to store for the trial
         if (trial.debug) {
-          console.log("Correct: " + correct);
+          console.log("Correct: " + segmentation_correct, depth_correct);
         }
 
         if (segmentation_response == 0) {

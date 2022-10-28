@@ -24,7 +24,7 @@ def process_nsd():
         print(image_path, "\n", save_path)
         shutil.copy(image_path, save_path)
         meta_data = image_path[:-4].split("/")[-1].split("_")
-        meta_data = {"shared_idx": meta_data[0], "nsd_idx": int(meta_data[1][3:])}
+        meta_data = {"shared_idx": meta_data[0], "nsd_idx": int(meta_data[1][3:]) - 1}
         with open(os.path.join(mlve_path, "meta", f"meta_{i:03d}.pkl"), "wb") as f:
             pickle.dump(meta_data, f)
         print(meta_data)
@@ -46,7 +46,7 @@ def process_nsd():
         right = (width + 512)/2
         bottom = (height + 512)/2
 
-        image = image.crop((left, top, right, bottom))
+        # image = image.crop((left, top, right, bottom))
         image.save(save_path)
         # shutil.copy(image_path, save_path)
         meta_data = image_path[:-4].split("/")[-1].split("_")

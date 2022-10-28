@@ -104,8 +104,8 @@ function buildAndRunExperiment(sessionTemplate) {
 
   var instructionPages = [
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
-    "<p>Welcome to this experiment. This experiment should take a total of <strong>35 minutes</strong>.</p>" +
-    "<p> You will be compensated at a base rate of $15/hour for a total of $8.75, which you will receive as long as you complete the study.</p>",
+    "<p>Welcome to this experiment. This experiment should take a total of <strong>30 minutes</strong>.</p>" +
+    "<p> You will be compensated at a base rate of $15/hour for a total of $7.50, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>." +
     "<p> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for perception experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
     "<p>In this study, on every trial, you will be shown a picture of several objects.</p>" +

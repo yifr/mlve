@@ -385,13 +385,18 @@ var surfaceNormalsTask = (function (jspsych) {
             '<progress id="percent_correct" value="32" max="100"> 0% </progress> ';
         }
         // create threejs_covering_canvas
-        html += '<div class="threejs_outer_container">';
+        html += '<div class="threejs_outer_container" id="threejs_outer_container">';
         html += '<div class="threejs_inner_container">';
 
 
         // Get image height and width
-        var imageHeight = 512;
-        var imageWidth = 512;
+        if (trial.imageURL.includes("nsd")) {
+          var imageHeight = 425;
+          var imageWidth = 425;
+        } else {
+          var imageHeight = 512;
+          var imageWidth = 512;
+        }
         html +=
           '<img class="threejs_background_image" src="' +
           trial.imageURL +
@@ -435,6 +440,11 @@ var surfaceNormalsTask = (function (jspsych) {
           // actually assign html to display_element.innerHTML
           display_element.innerHTML = html;
 
+          if (trial.imageURL.includes("nsd")) {
+            var threejs_outer_container = document.getElementById("threejs_outer_container");
+            threejs_outer_container.style.height = 425;
+            threejs_outer_container.style.width = 425;
+          }
           if (trial.trialType == "unsupervised") {
             if (trial.confidence_slider) {
               var conf_slider = document.getElementById("confidence-slider");
