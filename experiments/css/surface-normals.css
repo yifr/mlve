@@ -25,7 +25,7 @@
   left: 17.5%;
 }
 
-.threejs_outer_container {
+#threejs_outer_container {
   height: 512px;
   width: 512px;
   /*margin:20px 60px;*/
