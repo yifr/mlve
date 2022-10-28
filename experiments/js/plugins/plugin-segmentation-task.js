@@ -420,10 +420,7 @@ var segmentationTrial = (function (jspsych) {
             var btns = document.querySelectorAll(
               ".jspsych-image-button-response-button button"
             );
-            for (var i = 0; i < btns.length; i++) {
-              //btns[i].removeEventListener('click');
-              btns[i].disabled = false;
-            }
+            run_segmentation_check = true;
             return;
           }
         }
@@ -438,11 +435,6 @@ var segmentationTrial = (function (jspsych) {
           conf_slider.value = 5;
           btns[0].innerHTML = "Red";
           btns[1].innerHTML = "Green";
-
-          for (var i = 0; i < btns.length; i++) {
-            //btns[i].removeEventListener('click');
-            btns[i].disabled = false;
-          }
         }
       }
 
@@ -458,9 +450,22 @@ var segmentationTrial = (function (jspsych) {
         if (segmentation_response == 0) {
           depth_response = choice;
           depth_correct = depth_response == trial.correct_depth;
+          if (trial.practice_trial) {
+            if (!depth_correct) {
+              var prompt = "No! The other color probe is actually closer. Please click the correct response to continue."
+              display_element.querySelector("#prompt").innerHTML = prompt;
+              return
+            }
+          }
+          
           if (trial.confidence_slider) {
             depth_confidence = document.getElementById("#confidence-slider").value;
           }
+        }
+
+        for (var i = 0; i < btns.length; i++) {
+          //btns[i].removeEventListener('click');
+          btns[i].setAttribute("disabled", "disabled");
         }
         var trial_data = {
           rt: response.rt,
@@ -497,21 +502,17 @@ var segmentationTrial = (function (jspsych) {
         var btns = document.querySelectorAll(
           ".jspsych-image-button-response-button button"
         );
-        for (var i = 0; i < btns.length; i++) {
-          //btns[i].removeEventListener('click');
-          btns[i].setAttribute("disabled", "disabled");
+
+        if (run_segmentation_check) {
+          run_segmentation_check = false;
+          check_segmentation_response();
+        } else {
+          var end_time = performance.now();
+          var rt = Math.round(end_time - start_time);
+          response.rt = rt;
+          end_trial();
         }
-        if (trial.response_ends_trial) {
-          if (run_segmentation_check) {
-            run_segmentation_check = false;
-            check_segmentation_response();
-          } else {
-            var end_time = performance.now();
-            var rt = Math.round(end_time - start_time);
-            response.rt = rt;
-            end_trial();
-          }
-        }
+        
       }
     }
   }
