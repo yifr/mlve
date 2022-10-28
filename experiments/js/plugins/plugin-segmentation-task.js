@@ -397,10 +397,10 @@ var segmentationTrial = (function (jspsych) {
       var depth_correct = false;
       var run_segmentation_check = true;
 
-      const check_segmentation_response = () => {
+      const check_segmentation_response = (choice) => {
         // Check if the segmentation question was answered correctly
-        segmentation_response = response.button;
-        segmentation_correct = response.button == trial.correct_segmentation;
+        segmentation_response = choice;
+        segmentation_correct = choice == trial.correct_segmentation;
         if (trial.debug) {
           console.log("Response: ", segmentation_response);
           console.log("Correct Answer: ", trial.correct_segmentation)
@@ -447,7 +447,7 @@ var segmentationTrial = (function (jspsych) {
       }
 
       // function to end trial when it is time
-      const end_trial = () => {
+      const end_trial = (choice) => {
         // kill any remaining setTimeout handlers
         this.jsPsych.pluginAPI.clearAllTimeouts();
         // gather the data to store for the trial
@@ -510,15 +510,15 @@ var segmentationTrial = (function (jspsych) {
         var btns = document.querySelectorAll(
           ".jspsych-image-button-response-button button"
         );
-
+          
         if (run_segmentation_check) {
           run_segmentation_check = false;
-          check_segmentation_response();
+          check_segmentation_response(choice);
         } else {
           var end_time = performance.now();
           var rt = Math.round(end_time - start_time);
           response.rt = rt;
-          end_trial();
+          end_trial(choice);
         }
         
       }
