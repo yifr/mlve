@@ -442,7 +442,9 @@ var segmentationTrial = (function (jspsych) {
               ".jspsych-image-button-response-button button"
             );
           display_element.querySelector("#prompt").innerHTML = prompt;
-          conf_slider.value = 5;
+          if (trial.confidence_slider){
+            conf_slider.value = 5;
+          }
           btns[0].innerHTML = "Red";
           btns[1].innerHTML = "Green";
         }
