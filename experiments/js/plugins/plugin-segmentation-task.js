@@ -412,6 +412,7 @@ var segmentationTrial = (function (jspsych) {
 
         if (trial.practice_trial) {
           if (!segmentation_correct) {
+            run_segmentation_check = true;
             if (trial.correct_segmentation == 0) {
               var true_choice = "are NOT on the same object";
             } else if (trial.correct_segmentation == 1) {
@@ -425,11 +426,10 @@ var segmentationTrial = (function (jspsych) {
             var btns = document.querySelectorAll(
               ".jspsych-image-button-response-button button"
             );
-            run_segmentation_check = true;
             return;
           }
 
-          end_trial(false);
+          end_trial(null);
         }
 
         if (segmentation_response == 0) {
@@ -447,6 +447,8 @@ var segmentationTrial = (function (jspsych) {
           }
           btns[0].innerHTML = "Red";
           btns[1].innerHTML = "Green";
+          run_segmentation_check = false;
+          return;
         }
       }
 
@@ -462,6 +464,11 @@ var segmentationTrial = (function (jspsych) {
         if (segmentation_response == 0) {
           depth_response = choice;
           depth_correct = depth_response == trial.correct_depth;
+          if (trial.debug){
+            console.log("Correct depth answer: ", correct_depth);
+            console.log("Participant response: ", depth_response);
+            console.log("Participant correct:" , depth_correct);
+          }
           if (trial.practice_trial) {
             if (!depth_correct) {
               var prompt = "No! The other color probe is actually closer. Please click the correct response to continue."
@@ -518,7 +525,6 @@ var segmentationTrial = (function (jspsych) {
         );
           
         if (run_segmentation_check) {
-          run_segmentation_check = false;
           check_segmentation_response(choice);
         } else {
           var end_time = performance.now();
