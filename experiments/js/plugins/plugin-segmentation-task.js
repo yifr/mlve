@@ -390,11 +390,11 @@ var segmentationTrial = (function (jspsych) {
       };
 
       var segmentation_confidence = null;
-      var segmentation_correct = false;
+      var segmentation_correct = null;
       var segmentation_response = null;
       var depth_response = null;
       var depth_confidence = null;
-      var depth_correct = false;
+      var depth_correct = null;
       var run_segmentation_check = true;
 
       const check_segmentation_response = (choice) => {
@@ -465,7 +465,7 @@ var segmentationTrial = (function (jspsych) {
           depth_response = choice;
           depth_correct = depth_response == trial.correct_depth;
           if (trial.debug){
-            console.log("Correct depth answer: ", correct_depth);
+            console.log("Correct depth answer: ", trial.correct_depth);
             console.log("Participant response: ", depth_response);
             console.log("Participant correct:" , depth_correct);
           }
