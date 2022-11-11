@@ -85,20 +85,29 @@ def points_in_circle(radius, x0=0, y0=0):
     for x, y in zip(xs[x], ys[y]):
         yield x, y
 
-def check_overlap(point, border_dist, min_dist, image):
-    min_point = lambda p: max(0, p - min_dist)
-    max_point = lambda p: min(width, p + min_dist)
-    width = image.shape[0]
-    x, y = point
-    r = 20
+def check_overlap(point, border_dist, mask, overlap_threshold=25):
+    """
+    Check if a point is too close to the image border or if the probe overlaps too much 
+    with the wrong object
+    """
+    width = mask.shape[0]
+    radius = 10
+    if point[0] < border_dist or point[1] < border_dist \
+        or point[0] > width - border_dist or point[1] > width - border_dist:
+        return True
 
-    for x_t, y_t in points_in_circle(radius=r, x0=point[0], y0=point[1]):
+    mask_val = mask[point[1], point[0]]
+    overlaps = 0
+
+    for x_t, y_t in points_in_circle(radius=radius, x0=point[0], y0=point[1]):
         if x_t > (width - border_dist) or y_t > (width - border_dist) \
                 or x_t < border_dist or y_t < border_dist:
             return True
-
-        if image[y_t, x_t] != image[point[1], point[0]]:
-            return True
+        
+        if mask[y_t, x_t] != mask_val:
+            overlaps += 1
+            if overlaps > overlap_threshold:
+                return True 
 
     return False
 
@@ -283,7 +292,7 @@ def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, ma
         masks: np.ndarray: array of masks
         image_size: int: in case masks not present
     """
-    if not args.dataset in SYNTHETIC_DATASETS:   # No ground truth for dataset
+    if not args.dataset in SYNTHETIC_DATASETS and args.dataset != "nsd":   # No ground truth for dataset
         x1 = int(np.random.randint(0, image_size))
         y1 = int(np.random.randint(0, image_size))
         while (x1, y1) in ignore_pts:
@@ -295,10 +304,20 @@ def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, ma
         (x2, y2) = np.random.choice(radial_points, 1, replace=False)
         return (x1, y1), (x2, y2)
     else:
-        mask_ids = [x for x in np.unique(masks) if x > 1] # Pick object from non-background mask ids
-        mask_ids = np.unique(masks)[1:]
+        if args.dataset == "nsd":
+            background_id = 30
+        else:
+            background_id = 0
+
+        mask_ids = [x for x in np.unique(masks) if x != background_id] # Pick object from non-background mask ids
+        print("Generating points on mask: ", mask_ids)
         # repeat this process until we find a good pair of points
+
+        max_tries = 100
+        tries = 0
+        overlap_threshold = 25
         while True:
+            tries += 1
             probe_ids = []
             # Choose an initial mask ID
             probe_id = np.random.choice(mask_ids)
@@ -307,10 +326,25 @@ def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, ma
             masked_image = (masks == probe_id)
             y_opts, x_opts = np.where(masked_image) # get masked indices
             mask_points = [(int(x_opts[i]), int(y_opts[i])) for i in range(len(y_opts))]  # arrange them in (x,y) format
-
+            
             # Sample first point
-            p1 = mask_points[np.random.randint(len(mask_points))]
-            closest_boundary_point = get_nearest_boundary_point(masked_image, p1)
+            point_found = False
+            for _ in range(len(mask_points)):
+                p1 = mask_points[np.random.randint(len(mask_points))]
+                # Make sure first point isn't too close to the edge
+                # print("Checking overlap for point: ", p1)
+                probe_overlap = check_overlap(p1, 15, masks, overlap_threshold=overlap_threshold)
+
+                if not probe_overlap:
+                    point_found = True
+                    break
+            
+            if not point_found:
+                if tries == max_tries:
+                    print("UNABLE TO FIND A POINT PAIR")
+
+                overlap_threshold += 5
+                continue 
 
             # Sample second point
             radius = np.random.randint(min_radius, max_radius)
@@ -319,19 +353,18 @@ def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, ma
             for point in circle_points:
                 # Ignore points that fall outside image boundaries
                 px, py = point
-                if px >= 500 or px < 10 or py >= 500 or py < 10:
-                    continue
+                probe_overlap = check_overlap(point, 15, masks, overlap_threshold=overlap_threshold)
+                if probe_overlap:
+                    overlap_threshold += 5
+                    continue 
 
-                # Make sure the potential probe location is minimum distance away from mask boundary
-                # to avoid conditions where the probe is half on/half off an object
-                if l2_distance(closest_boundary_point, point) > min_radius:
-                    if not trial_same_object and masks[py, px] != probe_id:
-                        probe_opts.append(point)
-                    elif trial_same_object and masks[py, px] == probe_id:
-                        probe_opts.append(point)
+                if not trial_same_object and masks[py, px] != probe_id:
+                    probe_opts.append(point)
+                elif trial_same_object and masks[py, px] == probe_id:
+                    probe_opts.append(point)
 
             if len(probe_opts) == 0:
-                print("No good points found. Trying again...")
+                print(".", end="")
                 continue
 
             p2 = probe_opts[np.random.choice(len(probe_opts))]
@@ -383,11 +416,12 @@ def two_point_segmentation_trial(args, image_idx,
             attention_check_trials = []
             attention_checks = json.load(f)
             for key in attention_checks.keys():
-                img_s3_url, points, correct_idx, correct_point = attention_checks[key]
+                img_s3_url, points, correct_depth, correct_segmentation = attention_checks[key]
                 trial_data = {}
                 trial_data["imageURL"] = img_s3_url
                 trial_data["probeLocations"] = points
-                trial_data["correctChoice"] = correct_idx
+                trial_data["correct_segmentation"] = correct_segmentation
+                trial_data["correct_depth"] = correct_depth
                 trial_data["attentionCheck"] = True
                 trial_data["isDuplicate"] = False
                 trial_data = denumpy_dictionary(trial_data)
@@ -397,7 +431,8 @@ def two_point_segmentation_trial(args, image_idx,
 
     trial_data = {}
     image_url = os.path.join(s3_dir, "images", f"image_{image_idx:03d}.png")
-
+    print(image_url)
+    
     meta_path = os.path.join(image_dir, "meta", f"meta_{image_idx:03d}.pkl")
     with open(meta_path, "rb") as f:
         image_metadata = pickle.load(f)
@@ -405,12 +440,12 @@ def two_point_segmentation_trial(args, image_idx,
     trial_data["imageMetadata"] = image_metadata
     trial_data["imageURL"] = image_url
     trial_data["attentionCheck"] = False
-    print("Generating trial for stimulus URL: " + image_url)
 
-    if args.dataset in SYNTHETIC_DATASETS or args.dataset == "nsd":
+    if args.dataset in SYNTHETIC_DATASETS or (args.dataset == "nsd" and not familiarization_trial):
         mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
+        print(mask_path)
         masks = np.array(Image.open(mask_path).convert("L"))
-
+        print("Loaded mask with values: ", np.unique(masks))
         trial_same_object = True if image_idx % 2 == 0 else False
         probe_locations, probe_ids = generate_point_pair(ignore_pts=ignore_pts, trial_same_object=trial_same_object,  min_radius=25, max_radius=150, masks=masks)
 
@@ -424,12 +459,10 @@ def two_point_segmentation_trial(args, image_idx,
             gt_depths = [depth_data[left[1], left[0]], depth_data[right[1], right[0]]]
 
             # Determine closer point
-            if gt_depths[0] < gt_depths[1]:
+            if gt_depths[0] <= gt_depths[1]:
                 correct_depth = 0
-            elif gt_depths[0] > gt_depths[1]:
-                correct_depth = 1
             else:
-                correct_depth = 2
+                correct_depth = 1
 
             trial_data["correct_depth"] = correct_depth
             trial_data["gt_depth"] = gt_depths
@@ -438,11 +471,12 @@ def two_point_segmentation_trial(args, image_idx,
         trial_data["probeIDs"] = probe_ids
         trial_data["correct_segmentation"] = 1 if trial_same_object else 0
 
-    elif familiarization_trial:
-        fam_trials = json.load(open(f"additional/{args.dataset}_depths.json", "r"))
-        probe_locations, correct_choice = fam_trials[str(image_idx)]
-        trial_data["correctChoice"] = correct_choice
-    else:
+    if args.dataset not in SYNTHETIC_DATASETS and familiarization_trial:
+        fam_trials = json.load(open(f"additional/{args.dataset}_segmentation.json", "r"))
+        probe_locations, correct_segmentation, correct_depth = fam_trials[str(image_idx)]
+        trial_data["correct_segmentation"] = correct_segmentation
+        trial_data["correct_depth"] = correct_depth 
+    elif not args.dataset == "nsd":
         image_size = 512
         probe_locations = generate_point_pair(ignore_pts=ignore_pts, image_size=image_size, min_radius=15, max_radius=100)
 
@@ -761,7 +795,6 @@ def setup_experiment(args, n_images, n_batches, n_repeats=10, repeat_times=3, re
     render_point_path = os.path.join(IMAGE_ROOT + "-sampled-points", args.dataset + "_" + args.experiment_type)
     os.makedirs(render_point_path, exist_ok=True)
 
-    print("Generating " + args.experiment_type + " experimental trials...")
     for image_idx in tqdm(range(n_images)):
         ignore_points = []
         image_path = os.path.join(IMAGE_ROOT, "images", f"image_{image_idx:03d}.png")
@@ -812,9 +845,8 @@ def setup_experiment(args, n_images, n_batches, n_repeats=10, repeat_times=3, re
     for i, batch in enumerate(batches):
         for attention_check in attention_checks:
             attention_check["batchIdx"] = i
-            batch.append(attention_check)
 
-    return batches, familiarization_trials
+    return batches, familiarization_trials, attention_checks
 
 def repeat_trials(batches, n_repeats, repeat_times, n_attention_checks=5):
     """
@@ -833,8 +865,8 @@ def repeat_trials(batches, n_repeats, repeat_times, n_attention_checks=5):
     n_trials = len(batches[0])
     for batch in batches:
         repeat_trial_idxs = list(np.random.choice(range(n_trials - n_attention_checks), n_repeats, replace=False))
-        repeat_trials = [batch[idx] for idx in repeat_trial_idxs]
-        for og_trial in repeat_trials:
+        repeat_trials_list = [batch[idx] for idx in repeat_trial_idxs]
+        for og_trial in repeat_trials_list:
             repeat_trial = og_trial.copy()
             repeat_trial["isDuplicate"] = True
             for _ in range(repeat_times):
@@ -847,23 +879,41 @@ def generate_experiment_trials(args):
     if args.experiment_name_addons:
         exp_name = exp_name + "-" + args.experiment_name_addons
 
+    # Setup experiment    
+    batches, familiarization_trials, attention_checks = setup_experiment(args, n_images=100, n_batches=args.n_batches)
+    
+    if args.experiment_type == "surface-normals":
+        # Split up batches in surface normal experiments so people only do 50 trials
+        new_batches = []
+        for batch in batches:
+            new_batch = []
+            for i in range(2):
+                start_idx = i * 50
+                half_batch = batch[start_idx : start_idx + 50]
+                new_batches.append(half_batch)
+
+        batches = new_batches
+
+    # Add repeat trials
     n_repeats = 10
     repeat_times = 3
+    batches = repeat_trials(batches, n_repeats, repeat_times)    
 
-    # Setup experiment
-    batches, familiarization_trials = setup_experiment(args, n_images=100, n_batches=args.n_batches)
-    # Add repeat trials
-    batches = repeat_trials(batches, n_repeats, repeat_times)
     creation_date = f"{datetime.datetime.now():%Y-%d-%m, %HH:%M:%S}"
     save_path = f"datasets/{exp_name}/{args.batch_dir}"
     os.makedirs(save_path, exist_ok=True)
 
     for i, batch in enumerate(batches):
+        for check in attention_checks:
+            batch.append(check)
+
+        np.random.shuffle(batch)  
+        batch_id = batch[0]["batchIdx"]
         data = {"trials": batch,
                 "familiarization_trials": familiarization_trials,
                 "notes": args.notes,
                 "creation_date": creation_date,
-                "batch_id": str(i)}
+                "batch_id": batch_id}
         # res = col.insert_one({"data": data})
         save_file = os.path.join(save_path, f"batch_{i}.json")
         with open(save_file, "w", encoding='utf-8') as f:

@@ -1,14 +1,14 @@
 {
     "0": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0001.png",
-    [[110, 270], [405, 270]], 0, [110, 270]],
+    [[110, 270], [405, 270]], 0, 0],
     "1": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0001.png",
-    [[49, 210], [380, 210]], 0, [49, 210]],
+    [[49, 210], [380, 210]], 0, 0],
     "2": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0002.png",
-    [[144, 230], [227, 230]], 1, [227, 230]],
+    [[144, 230], [227, 230]], 1, 1],
     "3": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0002.png",
-    [[200, 300], [300, 300]], 1, [300, 300]],
+    [[200, 300], [300, 300]], 1, 0],
     "4": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0003.png",
-    [[116, 220], [230, 220]], 1, [230, 220]],
-    "5": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0001.png",
-    [[160, 310], [227, 310]], 0, [160, 310]]
+    [[116, 220], [230, 220]], 1, 0],
+    "5": ["https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/depths/Image0003.png",
+    [[160, 310], [227, 310]], 1, 0]
 }
