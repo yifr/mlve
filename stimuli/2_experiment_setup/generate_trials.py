@@ -310,7 +310,6 @@ def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, ma
             background_id = 0
 
         mask_ids = [x for x in np.unique(masks) if x != background_id] # Pick object from non-background mask ids
-        print("Generating points on mask: ", mask_ids)
         # repeat this process until we find a good pair of points
 
         max_tries = 100
@@ -431,7 +430,6 @@ def two_point_segmentation_trial(args, image_idx,
 
     trial_data = {}
     image_url = os.path.join(s3_dir, "images", f"image_{image_idx:03d}.png")
-    print(image_url)
     
     meta_path = os.path.join(image_dir, "meta", f"meta_{image_idx:03d}.pkl")
     with open(meta_path, "rb") as f:
@@ -443,9 +441,7 @@ def two_point_segmentation_trial(args, image_idx,
 
     if args.dataset in SYNTHETIC_DATASETS or (args.dataset == "nsd" and not familiarization_trial):
         mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
-        print(mask_path)
         masks = np.array(Image.open(mask_path).convert("L"))
-        print("Loaded mask with values: ", np.unique(masks))
         trial_same_object = True if image_idx % 2 == 0 else False
         probe_locations, probe_ids = generate_point_pair(ignore_pts=ignore_pts, trial_same_object=trial_same_object,  min_radius=25, max_radius=150, masks=masks)
 
