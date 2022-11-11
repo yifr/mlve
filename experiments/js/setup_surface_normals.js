@@ -108,9 +108,8 @@ function buildAndRunExperiment(sessionTemplate) {
     "<p> You will be compensated at a base rate of $15/hour for a total of $7.50, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>." +
     "<p> Of course, you can always message us via prolific. If you prefer email, please write this down now, and email us with the subject line <i>Human experiment compensation for perception experiment</i> if you experience any technical issues, or if it takes much more time than expected.</p>",
-    "<p align='left'>The purpose of this study is to understand how well people can estimate the orientation of surfaces for objects in various images." +
-    "<p align='left'>In this study, on every trial, you will be shown a picture of several objects.</p>" +
-    "<p align='left'>In each picture, there will be an indicator next to or on an object.</p>" +
+    "<p align='left'>The purpose of this study is to understand how well people can estimate the orientation of surfaces of objects in scenes." +
+    "<p align='left'>On every trial, you will be shown a picture of some scene. In each picture, there will be an indicator next to or on an object.</p>" +
     "<p align='left'><b>Your goal is to point the indicator directly away from the surface of that object.</b> One way to imagine this is - if you drew an arrow straight out of that point of the shape, which way would the arrow face?</p>" +
     "<p align='left'>For example, lets say the object was a cube. If the indicator was on the top of the cube, you would point it straight up. If the indicator was on the side of the cube, you would point it in the direction of that face of the cube.<p>" + 
     "<p align='left'>Here are two visual aids, to make it more clear: </p>" + 
