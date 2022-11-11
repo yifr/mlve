@@ -110,8 +110,8 @@ function buildAndRunExperiment(sessionTemplate) {
     "<p> Of course, you can always message us via prolific. If you prefer email, please write this down now, and email us with the subject line <i>Human experiment compensation for perception experiment</i> if you experience any technical issues, or if it takes much more time than expected.</p>",
     "<p align='left'>The purpose of this study is to understand how well people can estimate the orientation of surfaces of objects in scenes." +
     "<p align='left'>On every trial, you will be shown a picture of some scene. In each picture, there will be an indicator next to or on an object.</p>" +
-    "<p align='left'><b>Your goal is to point the indicator directly away from the surface of that object.</b> One way to imagine this is - if you drew an arrow straight out of that point of the shape, which way would the arrow face?</p>" +
-    "<p align='left'>For example, lets say the object was a cube. If the indicator was on the top of the cube, you would point it straight up. If the indicator was on the side of the cube, you would point it in the direction of that face of the cube.<p>" + 
+    "<p align='left'><b>Your goal is to point the indicator directly away from the surface of that object.</b> One way to imagine this is like you're shooting arrows straight out of a specific point of an object.</p>" +
+    "<p align='left'>For example, lets say the object was a cube. If the indicator was on the top of the cube, you would point it straight up. If the indicator was on the side of the cube, you would point it away from that face of the cube.<p>" + 
     "<p align='left'>Here are two visual aids, to make it more clear: </p>" + 
     "<p><img height=400, width=400, src='https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/misc/surface-normal-top-gif.gif'></img><img height=400, width=400, src='https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/misc/surface-normal-side-gif.gif'></img></p>",
     "<p>To aim the indicator, click once to unfreeze the indicator and move your mouse around the screen. As you move your mouse, the indicator will rotate.</p>" +
