@@ -391,7 +391,6 @@ var surfaceNormalsTask = (function (jspsych) {
 
         // Get image height and width
         if (trial.imageURL.includes("nsd")) {
-          console.log("Changing Canvas size for NSD image")
           var imageHeight = 425;
           var imageWidth = 425;
         } else {
