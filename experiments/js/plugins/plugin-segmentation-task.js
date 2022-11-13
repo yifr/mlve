@@ -133,6 +133,20 @@ var segmentationTrial = (function (jspsych) {
         console.log("Probe Locations: (" + trial.probe_locations[0] + "), (" + trial.probe_locations[1] + ")")
         console.log("Correct Answer: " + trial.correct_segmentation);
       }
+
+      function maybeSwapProbeColors() {
+        if (math.random() > 0.5) {
+          if (trial.correct_depth != null) {
+            var temp_depth = trial.correct_depth;
+            trial.correct_depth = trial.correct_depth == 0 ? 1 : 0;
+          }
+
+          var temp_probes = trial.probe_locations;
+          trial.probe_locations = [temp_probes[1], temp_probes[0]];
+        }
+      }
+      
+      maybeSwapProbeColors();
       if (trial.render_on_canvas) {
         var image_drawn = false;
         // first clear the display element (because the render_on_canvas method appends to display_element instead of overwriting it with .innerHTML)

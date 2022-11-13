@@ -1,4 +1,5 @@
 import os
+import cv2
 import tqdm
 import pickle
 import numpy as np
@@ -38,37 +39,7 @@ def str_to_float_array(str_arr):
     elements = [float(elem) for elem in elements]
     return elements
 
-
-def crop(mask, crop_dims):
-    """ Crop dims is [top, bottom, left, right]
-
-    The cropped dim is in percentage, not pixels
-    get height/width of mask, and crop by height * crop_dim
-    """
-    if crop_dims[0] == 0:
-        crop_dims = crop_dims[2:]
-        crop = "width"
-    else:
-        crop_dims = crop_dims[:2]
-        crop = "height"
-
-    height, width = mask.shape
-    if crop == "width":
-        crop_start = int(width * crop_dims[0])
-        crop_end = int(width - crop_start)
-        print("Cropping from width pixels: ", crop_start, crop_end)
-        print("Size after crop: ", height, crop_end - crop_start)
-        # mask = mask[:, crop_start:crop_end]
-    else:
-        crop_start = int(height * crop_dims[0])
-        crop_end = int(height - crop_start)
-        print("Cropping from height pixels: ", crop_start, crop_end)
-        print("Size after crop: ", crop_end - crop_start, width)
-        # mask = mask[crop_start:crop_end, :]
-
-    new_width = 425
-    new_height = 425
-    def center_crop(img, new_width=None, new_height=None):
+def center_crop(img, new_width=None, new_height=None):
         width = img.shape[1]
         height = img.shape[0]
 
@@ -91,8 +62,24 @@ def crop(mask, crop_dims):
 
         return center_cropped_img
 
+def crop(mask, crop_dims):
+    """ Crop dims is [top, bottom, left, right]
+
+    The cropped dim is in percentage, not pixels
+    get height/width of mask, and crop by height * crop_dim
+    """
     print("Original mask shape:", mask.shape)
-    mask = center_crop(mask, new_width=new_width, new_height=new_height)
+    height, width = mask.shape
+    top_crop = int(crop_dims[0] * height)
+    bottom_crop = height - int(crop_dims[1] * height)
+    left_crop = int(crop_dims[2] * width)
+    right_crop = width - int(crop_dims[3] * width)
+
+    mask = mask[top_crop:bottom_crop, left_crop:right_crop]
+    print("Cropped mask shape: ", mask.shape)
+    if mask.shape != (425, 425):
+        mask = cv2.resize(mask, dsize=(425, 425), interpolation=cv2.INTER_NEAREST)
+    # mask = center_crop(mask, new_width=new_width, new_height=new_height)
     print("New mask shape: ", mask.shape)
     return mask
 
@@ -119,7 +106,7 @@ def process_NSD():
         # Get NSD ID of MLVE stimulus
         nsd_id = meta_data["nsd_idx"]
         nsd_id_info = nsd_indexes.loc[nsd_indexes["nsdId"] == nsd_id]
-        print("Found NSD ID info: ", nsd_id_info)
+
         coco_split = nsd_id_info["cocoSplit"].values[0]
         coco_id = nsd_id_info["cocoId"].values[0]
         crop_box = str_to_float_array(nsd_id_info["cropBox"].values[0])
@@ -129,7 +116,7 @@ def process_NSD():
         meta_data["coco_id"] = int(coco_id)
         meta_data["cropBox"] = [float(x) for x in crop_box]
         pickle.dump(meta_data, open(meta_path,"wb"))
-
+        
         print("Creating mask")
         coco_anns = annotations[coco_split]
         masks = cocoID_to_mask(coco_anns, coco_id)
