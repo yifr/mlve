@@ -100,7 +100,7 @@ function buildAndRunExperiment(sessionTemplate) {
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
     "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with your Prolific ID and the subject line <i>Human experiment compensation for depth estimation experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
-      "<p>This experiment will work as follows: an image will show up on your screen, and two points will flash on that image. You need to determine <strong>if the two points are on the same object?</strong></p>",
+      "<p>This experiment will work as follows: an image will show up on your screen, and two points will flash on that image. You need to determine <strong>if the two points are on the same object?</strong></p><p>If the two points are on different objects, you will need to indicate which probe is closer to the camera.",
       "<p>The answer isn't always obvious, and might be difficult to determine from just one image. If you're not positive which is the correct answer, just go with your best bet.",
   ]
     if (expName.includes("gestalt")) {

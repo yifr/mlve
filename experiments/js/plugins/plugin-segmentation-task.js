@@ -83,13 +83,13 @@ var segmentationTrial = (function (jspsych) {
       stimulus_height: {
         type: jspsych.ParameterType.INT,
         pretty_name: "Image height",
-        default: 512,
+        default: null,
       },
       /** Set the image width in pixels */
       stimulus_width: {
         type: jspsych.ParameterType.INT,
         pretty_name: "Image width",
-        default: 512,
+        default: null,
       },
       /** Maintain the aspect ratio after setting width or height */
       maintain_aspect_ratio: {
