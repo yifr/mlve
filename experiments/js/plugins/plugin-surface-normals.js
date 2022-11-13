@@ -402,9 +402,9 @@ var surfaceNormalsTask = (function (jspsych) {
           trial.imageURL +
           '" width=' +
           imageWidth +
-          " height=" +
+          "px height=" +
           imageHeight +
-          ">";
+          "px>";
 
         const img = new Image(imageHeight, imageWidth);
 
@@ -414,9 +414,9 @@ var surfaceNormalsTask = (function (jspsych) {
           html +=
             '<canvas class="threejs_covering_canvas" id="threejs_covering_canvas" height=' +
             imageHeight +
-            " width=" +
+            "px width=" +
             imageWidth +
-            "></canvas>";
+            "px></canvas>";
           html += "</div></div>";
 
           // // display button to submit drawing when finished
