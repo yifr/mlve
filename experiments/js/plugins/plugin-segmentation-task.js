@@ -460,7 +460,7 @@ var segmentationTrial = (function (jspsych) {
         // gather the data to store for the trial
         if (segmentation_response == 0) {
           depth_response = choice;
-          depth_correct = depth_response == trial.correct_depth;
+          depth_correct = trial.correct_depth ? depth_response == trial.correct_depth : null;
           if (trial.debug){
             console.log("Correct depth answer: ", trial.correct_depth);
             console.log("Participant depth response: ", depth_response);
