@@ -16,14 +16,14 @@ var segmentationTrial = (function (jspsych) {
         default: undefined,
       },
       correct_segmentation: {
-        type: jspsych.ParameterType.HTML_STRING,
+        type: jspsych.ParameterType.INT,
         pretty_name: "Correct Segmentation Option",
-        default: "",
+        default: null,
       },
       correct_depth: {
-        type: jspsych.ParameterType.HTML_STRING,
+        type: jspsych.ParameterType.INT,
         pretty_name: "Correct Depth Ordering",
-        default: "",
+        default: null,
       },
       /** Array containing the label(s) for the button(s). */
       index: {
@@ -32,7 +32,7 @@ var segmentationTrial = (function (jspsych) {
         default: 0,
       },
       choices: {
-        type: jspsych.ParameterType.STRING,
+        type: jspsych.ParameterType.Array,
         pretty_name: "Choices",
         default: undefined,
         array: true,
@@ -134,19 +134,6 @@ var segmentationTrial = (function (jspsych) {
         console.log("Correct Answer: " + trial.correct_segmentation);
       }
 
-      function maybeSwapProbeColors() {
-        if (math.random() > 0.5) {
-          if (trial.correct_depth != null) {
-            var temp_depth = trial.correct_depth;
-            trial.correct_depth = trial.correct_depth == 0 ? 1 : 0;
-          }
-
-          var temp_probes = trial.probe_locations;
-          trial.probe_locations = [temp_probes[1], temp_probes[0]];
-        }
-      }
-      
-      maybeSwapProbeColors();
       if (trial.render_on_canvas) {
         var image_drawn = false;
         // first clear the display element (because the render_on_canvas method appends to display_element instead of overwriting it with .innerHTML)
@@ -179,16 +166,22 @@ var segmentationTrial = (function (jspsych) {
             var y = parseInt(y);
             ctx.moveTo(x, y)
             ctx.beginPath();
-            var radius = 7;
+            var radius = 5;
 
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.strokeWidth = 2;
+            ctx.strokeStyle = "#003300";
+            ctx.stroke();
             ctx.fillStyle = "rgba(70, 50, 100, 0.5)";
             ctx.fill();
             ctx.closePath();
 
             // Draw inner probe on canvas
             ctx.beginPath();
-            var radius = 4;
+            ctx.strokeWidth = 1;
+            ctx.strokeStyle = "#003300";
+            ctx.stroke()
+            var radius = 3;
             ctx.arc(x, y, radius, 0, 2 * Math.PI);
             if (color == "green") {
               ctx.fillStyle = "rgba(6, 255, 0, 0.5)";
@@ -474,7 +467,10 @@ var segmentationTrial = (function (jspsych) {
         // gather the data to store for the trial
         if (segmentation_response == 0) {
           depth_response = choice;
-          depth_correct = trial.correct_depth ? depth_response == trial.correct_depth : null;
+            if (trial.correct_depth != null) {
+                depth_correct = trial.correct_depth == depth_response;
+            }
+
           if (trial.debug){
             console.log("Correct depth answer: ", trial.correct_depth);
             console.log("Participant depth response: ", depth_response);
@@ -534,7 +530,7 @@ var segmentationTrial = (function (jspsych) {
         var btns = document.querySelectorAll(
           ".jspsych-image-button-response-button button"
         );
-          
+
         if (run_segmentation_check) {
           check_segmentation_response(choice);
         } else {
@@ -543,7 +539,7 @@ var segmentationTrial = (function (jspsych) {
           response.rt = rt;
           end_trial(choice);
         }
-        
+
       }
     }
   }
