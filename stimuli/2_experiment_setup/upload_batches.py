@@ -28,7 +28,7 @@ def main():
     exp_name = args.dataset + "-" + args.experiment_type
     if args.experiment_name_addons:
         exp_name = exp_name + "-" + args.experiment_name_addons
-    iter_name = args.iter_name
+
     metadata = {"proj_name": "mlve", "exp_name": exp_name, "iter_name": args.iter_name}
 
     print("Generating Experiment trials: ", metadata)

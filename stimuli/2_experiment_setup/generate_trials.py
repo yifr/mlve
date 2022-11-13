@@ -467,14 +467,16 @@ def two_point_segmentation_trial(args, image_idx,
         trial_data["probeIDs"] = probe_ids
         trial_data["correct_segmentation"] = 1 if trial_same_object else 0
 
-    if args.dataset not in SYNTHETIC_DATASETS and familiarization_trial:
+    if args.dataset == "nsd" and familiarization_trial:
+        print("Loading familiarization trials: ")
         fam_trials = json.load(open(f"additional/{args.dataset}_segmentation.json", "r"))
         probe_locations, correct_segmentation, correct_depth = fam_trials[str(image_idx)]
         trial_data["correct_segmentation"] = correct_segmentation
         trial_data["correct_depth"] = correct_depth 
-    elif not args.dataset == "nsd":
-        image_size = 512
-        probe_locations = generate_point_pair(ignore_pts=ignore_pts, image_size=image_size, min_radius=15, max_radius=100)
+
+    # elif not args.dataset == "nsd":
+    #     image_size = 512
+    #     probe_locations = generate_point_pair(ignore_pts=ignore_pts, image_size=image_size, min_radius=15, max_radius=100)
 
     trial_data["probeLocations"] = probe_locations
     trial_data["isDuplicate"] = False
