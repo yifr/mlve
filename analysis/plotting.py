@@ -34,7 +34,7 @@ def plot_accuracy(df, title, accuracy_key, target_key, errorbar=("ci", 95)):
     axs[0].set_ylim(0, 1)
     axs[1].set_ylim(0, 1)
     plt.suptitle(title, fontsize=24)
-    return fig
+    return fig, accuracy_by_target.mean()
 
 def plot_surface_normal_split_half(df, title):
     """
@@ -55,7 +55,7 @@ def plot_surface_normal_split_half(df, title):
     print("Minimum people per trial:", min_subs_per_point)
     if min_subs_per_point < 7:
         print("Not enough people to check split half.")
-        return
+        return None, None
     
     for x in trials:
         data.append([])
@@ -120,6 +120,47 @@ def angular_dist(v1, v2, use_degrees=True):
         return radians
     else:
         return degrees
+    
+def plot_average_response_angular_error(df, title, errorbar=("ci", 95)):
+    avg_response_error = []
+    avg_responses = []
+    true_directions = []
+    probe_ids = []
+    batch_key = [x for x in df.columns if "batch" in x][0]
+    for (url, batch), trials in df.groupby(["imageURL", batch_key]):
+        avg_response = np.array(trials["indicatorFinalDirection"].tolist()).mean(axis=0)
+        avg_responses.append(avg_response)
+        true_direction = trials["trueArrowDirection"].iloc[0]
+        true_directions.append(true_direction)
+        error = angular_dist(avg_response, true_direction)
+        avg_response_error.append(error)
+        probe_id = (url + "_" + str(batch))
+        probe_ids.append(probe_id)
+        
+    fig, axs = plt.subplots(1, 2, figsize=(16, 8))
+    tmp_df = pd.DataFrame({"averaged_response_error": avg_response_error, 
+                           "true_direction": true_directions,
+                           "averaged_response": avg_responses, 
+                           "probeID": probe_ids})
+    
+    ordering = tmp_df.groupby("probeID")["averaged_response_error"].mean().sort_values()
+    
+    sns.barplot(y="averaged_response_error", x="probeID", order=ordering.keys(),
+                 errorbar=errorbar, data=tmp_df, ax=axs[0], lw=0.)
+    
+    sns.boxplot(data=avg_response_error, ax=axs[1])
+    # axs[0].barplot(accuracy_by_target)
+    # axs[1].boxplot(accuracy_by_target)
+    
+    axs[0].set_xticks([], [])
+    axs[0].set_ylabel("Averaged Response - Angular Error", fontsize=18)
+    axs[0].set_xlabel(f"Probe Location")
+    axs[1].set_xticks([], [])
+    axs[1].set_xlabel("Mean Angular Error")
+    axs[0].set_ylim(0, 180)
+    axs[1].set_ylim(0, 180)
+    plt.suptitle(title, fontsize=24)
+    return fig, np.array(avg_response_error).mean()
 
 def plot_mean_angular_error(df, title, target_key, errorbar=("ci", 95)):
     df["angular_error"] = df.apply(lambda x: angular_dist(x["indicatorFinalDirection"], x["trueArrowDirection"]), axis=1)
@@ -139,7 +180,7 @@ def plot_mean_angular_error(df, title, target_key, errorbar=("ci", 95)):
     axs[0].set_ylim(0, 180)
     axs[1].set_ylim(0, 180)
     plt.suptitle(title, fontsize=24)
-    return fig
+    return fig, accuracy_by_target.mean()
 
     
 def plot_mean_angular_agreement(df, title):
