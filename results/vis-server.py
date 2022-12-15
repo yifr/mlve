@@ -70,6 +70,7 @@ def get_experiment_data():
     col = DB["results"]
     data = list(col.find({"imageURL": imageURL, "expName": expName}))
     app.logger.debug(f"Fetched {len(data)} records")
+    data.sort(key=lambda x: x["batchID"])
     return parse_json({"data": data})
 
 @app.route('/get_experiment_opts', methods=['GET'])
