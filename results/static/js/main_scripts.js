@@ -10,6 +10,7 @@ var currentWidth;
 var currentHeight;
 var numBatches;
 var batchIndex;
+var currentExperimentName;
 var nsd_dim;
 
 async function getExperimentData(imageURL, experiment) {
@@ -150,7 +151,16 @@ function renderTrial(batchID, ctx, modal){
                 $(gt_field).html(gt);
             }
         } else if (experiment_type == "segmentation") {
-            return
+            var left_point = probe_locations[0];
+            var right_point = probe_locations[1];
+            drawProbe(ctx, left_point[0], left_point[1], "red", image, width, height);
+            drawProbe(ctx, right_point[0], right_point[1], "green", image, width, height);
+            var newPlot = batchIndex > 0 ? false : true;
+            plotSegmentationTrialResults(trials, batchIndex, newPlot);
+            $(prompt_field).html("Are the dots on the same object or not?")
+            
+            var gt_field = $(modal).find(".gt")[0]
+            $(gt_field).html(gt ? "Same Object": "Different Objects");
         } else {
             return
             // Surface Normals
@@ -169,6 +179,8 @@ function loadExperimentData(modal_id, imageURL, experiment_name){
     currentCtx = ctx;
     var batchCount = $(modal).find(".batch-count")[0]
     batchIndex = 0;
+    $(modal).find(".current-experiment").text(experiment_name);
+
     getExperimentData(imageURL, experiment_name).then(function(responses) {
         trials = responses["data"]
         // Count number of batches
@@ -220,41 +232,26 @@ function loadVisModal(modal_id, imageURL) {
             // Add a new line to the list with experiment name
             const experiment_name = experiment_opts[i]
             if (i == 0) {
-                loadExperimentData(modal_id, imageURL, experiment_name);
-                $(modal).find(".current-experiment").text(experiment_name);
+                var loadExp = currentExperimentName ? currentExperimentName : experiment_name;
+                loadExperimentData(modal_id, imageURL, loadExp);
+                $(modal).find(".current-experiment").text(loadExp);
             }
             var new_line = $("<a class='dropdown-item'>" + experiment_name + "</a>");
             $(new_line).on("click", function() {
                 console.log("Loading experiment data for experiment: ", experiment_name, " and image: ", imageURL);
-                loadExperimentData(modal_id, imageURL, experiment_name);
+                currentExperimentName = experiment_name;
+                loadExperimentData(modal_id, imageURL, currentExperimentName);
             });
             experiment_list.append(new_line);
        }
     });
 }
 
-function nextImage() {
-    var modalID = currentModal.attr("id");
-    var modal_index = parseInt(modalID.split("-")[1]) + 1;
-    if (modal_index > 99) {
-        modal_index = -1;
-    }
-    var nextModalID = "#modal-" + (modal_index);
-    var imageURL = $(nextModalID).parent(".dataset-image").attr("id");
-    $(modalID).modal("toggle");
-    console.log(nextModalID + "-button");
-    $(nextModalID + "-button").click();
-    loadVisModal(nextModalID, imageURL);
-    // $("#" + modalID).modal("toggle");
-}
-
-function previousImage() {
-
-}
 
 $(document).ready(function() {
     function filterImages(dataset) {
         console.log("Filtering dataset: " + dataset)
+        currentExperimentName = null;
         images = $(".dataset-image");
         for (var i = 0; i < images.length; i++) {
             var image_id = images[i].id;
@@ -285,7 +282,7 @@ $(document).ready(function() {
         filterImages(dataset)
         current_dataset = selected;
     });
-
+    
     $(".next-response").on("click", function() {
         batchIndex = batchIndex + 1;
         if (batchIndex >= numBatches) {

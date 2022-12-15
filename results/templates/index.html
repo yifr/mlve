@@ -153,8 +153,8 @@
                                         </div>
                                         <div>
                                             <button class="btn btn-primary" type="button" data-toggle="modal" data-bs-toggle="modal"
-                                                data-bs-target="#{{ dataset }}-{{ ((loop.index - 1) + 100) % 101 }}" style="border-radius:5px"
-                                                onclick='loadVisModal("#{{ dataset }}-{{ ((loop.index - 1) + 100) % 101 }}", "{{ urls[dataset][((loop.index - 1) + 99) % 100] }}")'
+                                                data-bs-target="#{{ dataset }}-{{ [loop.index - 1, 1]|max }}" style="border-radius:5px"
+                                                onclick='loadVisModal("#{{ dataset }}-{{ [loop.index - 1, 1]|max }}", "{{ urls[dataset][[loop.index - 2, 0]|max] }}")'
                                                 id="{{ dataset }}-{{ loop.index }}-nextbutton">
                                                 <i class="bi bi-arrow-left"></i> Previous Image
                                             </button>

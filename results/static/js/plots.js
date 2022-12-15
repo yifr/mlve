@@ -43,3 +43,40 @@ function plotDepthTrialResults(data, batchID, newPlot){
         Plotly.react(`stat-results-${imageURL}`, [responses], layout);
     }
 }
+
+
+function plotSegmentationTrialResults(data, batchID, newPlot){
+    var imageURL = data[0]["imageURL"];
+    var responses = {x: ["Different", "Same"], y: [0, 0], type: 'bar'};
+    var correct = ["", ""];
+    var checkGT = true;
+    for (var i = 0; i < data.length; i ++ ) {
+        trial = data[i];
+        if (trial["batchID"] == batchID) {
+            if (checkGT) {
+                if (trial["gt"]) {
+                    correct[1] = "Correct Answer";
+                    responses["x"][1] = responses["x"][1] + " (Correct)"
+                } else {
+                    correct[0] = "Correct Answer";
+                    responses["x"][0] = responses["x"][0] + " (Correct)"
+                }
+                checkGT = false;
+            }
+            var resp = parseInt(trial["response"]);
+            responses["y"][resp] += 1;
+        }
+    }
+    var layout = {
+        title: 'Aggregate Responses for Probe Location #' + batchID,
+        autosize: false,
+        width: 500,
+        height: 500,
+    };
+    responses["text"] = correct;
+    if (newPlot) {
+        Plotly.newPlot(`stat-results-${imageURL}`, [responses], layout);
+    } else {
+        Plotly.react(`stat-results-${imageURL}`, [responses], layout);
+    }
+}
