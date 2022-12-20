@@ -211,7 +211,7 @@ def filter_cols(df, experiment_type):
 
         rename = {"indicatorFinalDirection": "response", 
                 "trueArrowDirection": "gt", 
-                "arrowPosition": "probeLocation",
+                "arrowPixelPosition": "probeLocation",
                 batch_key: "batchID", 
                 meta_key: "metadata",
                 }
@@ -294,7 +294,6 @@ def get_experiment_type(experiment):
 cleaned_db = conn["mlve_results"]
 cleaned_db.drop_collection("results")
 cleaned_col = cleaned_db["results"]
-
 
 total_records = 0
 for experiment in experiments:

@@ -12,6 +12,64 @@ var numBatches;
 var batchIndex;
 var currentExperimentName;
 var nsd_dim;
+var currentCamera;
+var currentScene;
+
+// Setup ThreeJS
+const metaCanvas = $("#meta-canvas")[0];
+const renderer = new THREE.WebGLRenderer({
+        metaCanvas,
+        alpha: true, // Necessary to make background transparent.
+    });
+// Set background to clear color
+renderer.setClearColor(0x000000, 0);
+renderer.setScissorTest(true);
+
+function renderSceneInfo() {
+    // Render the scene info to the modal
+    const canvas = $(currentModal).find("canvas")[0];
+    camera = currentCamera;
+    renderer.setSize(canvas.width, canvas.height);
+    var {left, right, top, bottom, width, height} = canvas.getBoundingClientRect();
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    var positiveYUpBottom = height - bottom;
+    renderer.setScissor(left, positiveYUpBottom, width, height);
+    renderer.setViewport(left, positiveYUpBottom, width, height);
+    renderer.render(currentScene, currentCamera);
+    update_threejs();
+}
+
+const update_threejs = () => {
+    requestAnimationFrame(update_threejs);
+    renderer.render(currentScene, currentCamera);
+}
+
+function setupScene(probeLocation, averageResponse) {
+    const scene = new THREE.Scene();
+    const canvas = $(currentModal).find("canvas")[0];
+    let cameraRightFulstrum = canvas.width / 100;
+    let cameraTopFulstrum = canvas.height / 100;
+
+    const camera = new THREE.OrthographicCamera(
+        -cameraRightFulstrum,
+        cameraRightFulstrum,
+        cameraTopFulstrum,
+        -cameraTopFulstrum,
+        1,
+        1000
+    );
+
+    camera.position.set(0, 0, 5);
+    scene.add(camera)
+    var position = new THREE.Vector3(0, 0, 0);
+    var indicator = new KoenderinkCircle(averageResponse, position, 0xff0000, true, 1.);
+    scene.add(indicator);
+    currentScene = scene;
+    currentCamera = camera;
+    renderSceneInfo();
+}
+
 
 async function getExperimentData(imageURL, experiment) {
     // Get data from server for this image URL
@@ -86,6 +144,9 @@ function flashExistingProbe() {
         console.log(currentCtx);
         flashProbe(currentCtx, left_point[0], left_point[1], "red", currentImage, currentWidth, currentHeight);
         flashProbe(currentCtx, right_point[0], right_point[1], "green", currentImage, currentWidth, currentHeight);
+    } else {
+        var probe_point = currentProbeLocation;
+        flashProbe(currentCtx, probe_point[0], probe_point[1], "red", currentImage, currentWidth, currentHeight);
     }
 }
 
@@ -162,8 +223,13 @@ function renderTrial(batchID, ctx, modal){
             var gt_field = $(modal).find(".gt")[0]
             $(gt_field).html(gt ? "Same Object": "Different Objects");
         } else {
-            return
             // Surface Normals
+            $(prompt_field).html("Which way is this point facing?")
+            $(currentModal).find(".results-plot").empty();
+    
+            drawProbe(ctx, probe_locations[0], probe_locations[1], "red", image, width, height);
+            plotSurfaceNormalTrialResults(trials, batchIndex, true);
+            // setupScene(probe_locations, averageResponse);
         }
     }
 }
@@ -306,4 +372,220 @@ $(document).ready(function() {
 
         renderTrial(batchIndex, currentCtx, currentModal);
     })
+
 })
+
+// const update_threejs = () => {
+//     // TODO: should these be switched?
+//     requestAnimationFrame(update_threejs);
+//     this.renderer.render(this.scene, this.camera);
+//   }
+  
+// var canvas = $("#threejs_covering_canvas")[0];
+//         this.scene.background = null;
+//         // The canvas will have canvas.width, canvas.height in pixels of order 100
+//         // Convert to integers e.g. 1000-by-500 image will become -10, 10, 5, -5,
+//         let cameraRightFulstrum = canvas.width / 100;
+//         let cameraTopFulstrum = canvas.height / 100;
+
+//         this.camera = new THREE.OrthographicCamera(
+//           -cameraRightFulstrum,
+//           cameraRightFulstrum,
+//           cameraTopFulstrum,
+//           -cameraTopFulstrum,
+//           1,
+//           1000
+//         );
+
+//         // camera.position.z = 5;
+//         this.camera.position.set(0, 0, 5);
+//         // this.camera.position.set(0,100,0);
+//         // this.camera.lookAt(this.scene.position);
+//         this.renderer = new THREE.WebGLRenderer({
+//                 canvas,
+//                 alpha: true, // Necessary to make background transparent.
+//               });
+//         // Set background to clear color
+//         this.renderer.setClearColor(0x000000, 0);
+
+//         var posX = trial.arrowPosition[0];
+//         var posY = trial.arrowPosition[1];
+//         var indicatorPosition = new THREE.Vector3(posX, -posY, 0);
+
+//         if (trial.randomizeArrowInitialDirection) {
+//           let randomDirection = new THREE.Vector3().random();
+//           // Ensure random direction is facing forward
+//           randomDirection.z = Math.abs(randomDirection.z);
+//           indicatorDirection
+//             .subVectors(randomDirection, indicatorPosition)
+//             .normalize();
+//         } else {
+//           // Look directly at the camera.
+//           indicatorDirection
+//             .subVectors(this.camera.position, indicatorPosition)
+//             .normalize();
+//         }
+
+//         // arrow = new THREE.ArrowHelper( arrowDirection, arrowPosition, arrowLength, 0xfffff00, arrowHeadLength, arrowHeadWidth);
+//         indicator = new KoenderinkCircle(
+//           indicatorDirection,
+//           indicatorPosition,
+//           INDICATOR_ON_COLOR,
+//           true,
+//           1.0,
+//           this.track
+//         );
+//         this.scene.add(indicator);
+
+class KoenderinkCircle extends THREE.Object3D {
+    constructor(dir, origin, on_color, createInnerRing, alphaval) {
+      super();
+      this.type = "KoenderinkCircle";
+      console.log("Creating KoenderinkCircle" , dir, origin);
+      this._axis = new THREE.Vector3();
+  
+      //LINE
+      //this._lineGeometry = new THREE.BufferGeometry();
+      //this._lineGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 2, 0],
+      //									   3));
+      //this.line = new THREE.Line( this._lineGeometry, new THREE.LineBasicMaterial( { color: 0xffff00,
+      //										     toneMapped: false,
+      //									             linewidth: 8 } ) );
+      //this.add( this.line )
+  
+      //CYLINDER
+      var llength = 1;
+      this._cylinderGeometry = new THREE.CylinderGeometry(
+          0.02,
+          0.02,
+          llength,
+          100
+        );
+      this.cylinder = new THREE.Mesh(
+        this._cylinderGeometry,
+        new THREE.MeshBasicMaterial({
+          color: on_color,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: alphaval,
+        })
+      );
+      this.cylinder.position.set(0, llength / 2, 0);
+      this.add(this.cylinder);
+  
+      //RING
+      // this._ringGeometry = new THREE.RingBufferGeometry( 0.5, 1, 100 );
+  
+      this._ringGeometry = new THREE.TorusGeometry(0.6, 0.04, 100, 100);
+      //this.ring = new THREE.Mesh( this._ringGeometry, new THREE.MeshNormalMaterial({side: THREE.DoubleSide}) );
+      this.ring = new THREE.Mesh(
+        this._ringGeometry,
+        new THREE.MeshBasicMaterial({
+          color: on_color,
+          side: THREE.DoubleSide,
+          transparent: true,
+          //shadowSide: THREE.FrontSide,
+          opacity: alphaval,
+        })
+      );
+      // Rotate the ring such that line is normal to plane the ring lies on.
+      this.ring.rotateX(Math.PI / 2);
+      this.add(this.ring);
+  
+      if (createInnerRing) {
+        this._ringGeometry2 = new THREE.RingBufferGeometry(0.2, 0.3, 100);
+        //this.ring = new THREE.Mesh( this._ringGeometry, new THREE.MeshNormalMaterial({side: THREE.DoubleSide}) );
+        this.ring2 = new THREE.Mesh(
+          this._ringGeometry2,
+          new THREE.MeshBasicMaterial({
+            color: on_color,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.25,
+          })
+        );
+        //Rotate the ring such that line is normal to plane the ring lies on.
+        this.ring2.rotateX(Math.PI / 2);
+        this.add(this.ring2);
+  
+        this._ringGeometry3 = new THREE.RingBufferGeometry(0.05, 0.15, 100);
+        //this.ring = new THREE.Mesh( this._ringGeometry, new THREE.MeshNormalMaterial({side: THREE.DoubleSide}) );
+        this.ring3 = new THREE.Mesh(
+          this._ringGeometry3,
+          new THREE.MeshBasicMaterial({
+            color: on_color,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.25,
+          })
+        );
+        //Rotate the ring such that line is normal to plane the ring lies on.
+        this.ring3.rotateX(Math.PI / 2);
+        this.add(this.ring3);
+      }
+  
+      this.position.copy(origin);
+      this.setDirection(dir);
+      //this.updateLineColor();
+    }
+  
+    getDirection() {
+      let dir = new THREE.Vector3();
+      this.ring.getWorldDirection(dir);
+      // For some reason, ring points in opposite direction.
+      // Multiply by -1 to get correct direction.
+      dir.multiplyScalar(-1);
+      return dir.normalize();
+    }
+  
+    setDirection(dir) {
+      // dir is assumed to be normalized
+  
+      if (dir.y > 0.99999) {
+        this.quaternion.set(0, 0, 0, 1);
+      } else if (dir.y < -0.99999) {
+        this.quaternion.set(1, 0, 0, 0);
+      } else {
+        this._axis.set(dir.z, 0, -dir.x).normalize();
+  
+        const radians = Math.acos(dir.y);
+  
+        this.quaternion.setFromAxisAngle(this._axis, radians);
+      }
+    }
+  
+    updateLineColor() {
+      // TODO: Why does color work correctly only on the front half, not the back half?
+      this.line.material.color.set(vecToSurfaceNormalRGB(this.getDirection()));
+    }
+  }
+  
+  class ResourceTracker {
+    constructor() {
+      this.resources = new Set();
+    }
+    track(resource) {
+      if (resource.dispose || resource instanceof THREE.Object3D) {
+        this.resources.add(resource);
+      }
+      return resource;
+    }
+    untrack(resource) {
+      this.resources.delete(resource);
+    }
+    dispose() {
+      for (const resource of this.resources) {
+        if (resource instanceof THREE.Object3D) {
+          if (resource.parent) {
+            resource.parent.remove(resource);
+          }
+        }
+        if (resource.dispose) {
+          resource.dispose();
+        }
+      }
+      this.resources.clear();
+    }
+  }
+  
+  
