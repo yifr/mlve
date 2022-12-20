@@ -97,6 +97,14 @@ function getAverageSurfaceNormalResponse(trials, batchIndex) {
     return avgResponse;
 }
 
+function meanAngularError(vec1, vec2) {
+    // compute mean angular error between two vectors
+    // vec1 and vec2 are THREE.Vector3 objects
+    var dot = vec1.dot(vec2);
+    var angle = Math.acos(dot);
+    return angle;
+}
+
 function plotSurfaceNormalTrialResults(trials, batchID, newPlot) {
     // Create a 3D cone plot with averaged surface normal response 
     // and ground truth surface normal if relevant
@@ -121,9 +129,13 @@ function plotSurfaceNormalTrialResults(trials, batchID, newPlot) {
         colorscale: [[0, 'rgb(0,0,0)'], [1, 'rgb(255, 0, 0)']]
     }];
 
+    avgError = "N/A";
     batchTrial = trials.filter(trial => trial["batchID"] == batchID)[0];
     if (batchTrial["gt"]) {
         var gt = batchTrial["gt"];
+        avgError = meanAngularError(averageResponse, new THREE.Vector3(gt[0], gt[1], gt[2]));
+        avgError = avgError.toArray();
+        
         var gt_data = {
             type: 'cone',
             name: "Ground Truth",
@@ -172,4 +184,5 @@ function plotSurfaceNormalTrialResults(trials, batchID, newPlot) {
     } else {
         Plotly.react(`stat-results-${imageURL}`, data, layout);
     }
+    return avgError;
 }
