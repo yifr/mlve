@@ -244,25 +244,15 @@ var segmentationTrial = (function (jspsych) {
             return ctx;
           }
           
-          function drawPlus(ctx, x, y) {
+          function drawFixationCross(ctx) {
             ctx.globalCompositeOperation = "source-over";
-            ctx.fillStyle = "black"
-            var x = parseInt(x);
-            var y = parseInt(y);
-            var radius = 15;
-            ctx.moveTo(x, y);
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2, true);
-            ctx.fill();
-            ctx.closePath();
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x, y + radius);
-            ctx.lineTo(x, y - radius);
-            ctx.lineTo(x + radius, y);
-            ctx.lineTo(x - radius, y);
-            ctx.stroke();
-            ctx.closePath();
+            // Draw a small 40x40 fixation cross
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "black";
+            ctx.fillRect(canvas.width / 2 - 1, canvas.height / 2 - 20, 2, 40);
+            ctx.fillRect(canvas.width / 2 - 20, canvas.height / 2 - 1, 40, 2);
+    
           }
 
           function clearProbe(ctx, x, y) {
@@ -307,12 +297,12 @@ var segmentationTrial = (function (jspsych) {
             // Draw points on canvas immediately
             drawFunc(ctx, point0[0], point0[1], trial.probe_color);
             drawFunc(ctx, point1[0], point1[1], trial.probe_color);
-
+            drawFixationCross(ctx);
             // Paint over image with white canvas after viewing time completes
             setTimeout(function () {
               ctx.fillStyle = "white";
               ctx.fillRect(0, 0, width, height);
-              drawPlus(ctx, canvas.width / 2, canvas.height / 2);
+              drawFixationCross(ctx);
             }, trial.viewing_time);
           } else {
             flashProbe(ctx, point0[0], point0[1], "red");
