@@ -133,7 +133,7 @@ function buildAndRunExperiment(sessionTemplate) {
           console.log(trial_data);
         }
         logTrialtoDB(trial_data);
-    }
+      }
     };
     trials.push(browser_check)
     if (virtual_chinrest) {
@@ -141,7 +141,12 @@ function buildAndRunExperiment(sessionTemplate) {
       "<p>That information allows us to calculate a rough estimate of how much of the image you should be able to see clearly on the screen.</p>",
       "<p>On the next page, you will go through two exercises to help us estimate how far away you are sitting from the computer.</p>"]
         instruction_pages.push(...additional_instruction_page)
-        trials.push(instruction_pages);
+        var instructions = {
+          type: jsPsychInstructions,
+          pages: instruction_pages,
+          show_clickable_nav: true,
+        };
+        trials.push(instructions);
         virtual_chinrest = {
             type: jsPsychVirtualChinrest,
             blindspot_reps: 3,
