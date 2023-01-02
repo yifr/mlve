@@ -849,7 +849,7 @@ def surface_normal_trial(args, image_idx,
     return trial_data, point
 
 
-def setup_experiment(args, n_images, n_batches, n_repeats=10, repeat_times=3, render_points=True):
+def setup_experiment(args, n_images, n_batches, n_repeats=10, repeat_times=3, render_points=False):
     if args.dataset not in SYNTHETIC_DATASETS and \
             not os.path.exists(f"additional/{args.dataset}_{args.experiment_type}.json"):
         print(f"Expected familiarization trial data for {args.dataset} at path: " + \
