@@ -107,6 +107,21 @@ var segmentationTrial = (function (jspsych) {
         pretty_name: "Viewing Time (ms)",
         default: -1,
       },
+      probe_shape: {
+        type: jspsych.ParameterType.STRING,
+        pretty_name: "Probe Shape",
+        default: "circle",
+      },
+      probe_size: {
+        type: jspsych.ParameterType.INT,
+        pretty_name: "Probe Size",
+        default: 5,
+      },
+      probe_color: {
+        type: jspsych.ParameterType.STRING,
+        pretty_name: "Probe Color",
+        default: "green",
+      },
       /**
        * If true, the image will be drawn onto a canvas element (prevents blank screen between consecutive images in some browsers).
        * If false, the image will be shown via an img element.
@@ -166,12 +181,37 @@ var segmentationTrial = (function (jspsych) {
           // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
           getHeightWidth(); // only possible to get width/height after image loads
           ctx.drawImage(img, 0, 0, width, height);
+          
+          function drawStar(ctx, x, y, color) {
+            ctx.globalCompositeOperation = "source-over";
+            var x = parseInt(x);
+            var y = parseInt(y);
+
+            var alpha = (2 * Math.PI) / 10; 
+            var radius = trial.probe_size;
+            ctx.beginPath();
+            for(var i = 11; i != 0; i--)
+            {
+                var r = radius*(i % 2 + 1)/2;
+                var omega = alpha * i;
+                ctx.lineTo((r * Math.sin(omega)) + x, (r * Math.cos(omega)) + y);
+            }
+            ctx.closePath();
+            if (color == "green") {
+              ctx.fillStyle = "rgba(6, 255, 0, 0.5)";
+            } else if (color == "red") {
+              ctx.fillStyle = "rgba(255, 6, 0, 0.5)";
+            } else if (color == "yellow") {
+              ctx.fillStyle = "rgba(0, 255, 255, 0.5)";
+            }
+
+            ctx.fill();
+          }
 
           function drawProbe(ctx, x, y, color) {
             ctx.globalCompositeOperation = "source-over";
 
             // Draw outer probe on canvas
-
             var x = parseInt(x);
             var y = parseInt(y);
             ctx.moveTo(x, y)
@@ -197,9 +237,32 @@ var segmentationTrial = (function (jspsych) {
               ctx.fillStyle = "rgba(6, 255, 0, 0.5)";
             } else if (color == "red") {
               ctx.fillStyle = "rgba(255, 6, 0, 0.5)";
+            } else if (color == "yellow") {
+              ctx.fillStyle = "rgba(0, 255, 255, 0.5)";
             }
             ctx.fill();
             return ctx;
+          }
+          
+          function drawPlus(ctx, x, y) {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.fillStyle = "black"
+            var x = parseInt(x);
+            var y = parseInt(y);
+            var radius = 15;
+            ctx.moveTo(x, y);
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2, true);
+            ctx.fill();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + radius);
+            ctx.lineTo(x, y - radius);
+            ctx.lineTo(x + radius, y);
+            ctx.lineTo(x - radius, y);
+            ctx.stroke();
+            ctx.closePath();
           }
 
           function clearProbe(ctx, x, y) {
@@ -214,41 +277,48 @@ var segmentationTrial = (function (jspsych) {
             ctx.fill();
             ctx.closePath();
           }
-
+          
+          if (trial.probe_shape == "star") {
+            var drawFunc = drawStar;
+          } else {
+            var drawFunc = drawProbe;
+          }
+          
           function flashProbe(ctx, x, y, color) {
-            drawProbe(ctx, x, y, color);
+            drawFunc(ctx, x, y, color);
             setTimeout(function () {
               clearProbe(ctx, x, y);
             }, 200);
             setTimeout(function () {
-              drawProbe(ctx, x, y, color);
+              drawFunc(ctx, x, y, color);
             }, 400);
             setTimeout(function () {
               clearProbe(ctx, x, y);
             }, 600);
             setTimeout(function () {
-              drawProbe(ctx, x, y, color);
+              drawFunc(ctx, x, y, color);
             }, 800);
           }
 
           var point0 = trial.probe_locations[0];
           var point1 = trial.probe_locations[1];
+
           if (trial.viewing_time > 0) {
             // Draw points on canvas immediately
-            drawProbe(ctx, point0[0], point0[1], "green");
-            drawProbe(ctx, point1[0], point1[1], "green");
+            drawFunc(ctx, point0[0], point0[1], trial.probe_color);
+            drawFunc(ctx, point1[0], point1[1], trial.probe_color);
 
             // Paint over image with white canvas after viewing time completes
             setTimeout(function () {
               ctx.fillStyle = "white";
               ctx.fillRect(0, 0, width, height);
+              drawPlus(ctx, canvas.width / 2, canvas.height / 2);
             }, trial.viewing_time);
           } else {
             flashProbe(ctx, point0[0], point0[1], "red");
             flashProbe(ctx, point1[0], point1[1], "green");
           }
         }
-
 
         // get/set image height and width - this can only be done after image loads because uses image's naturalWidth/naturalHeight properties
         const getHeightWidth = () => {

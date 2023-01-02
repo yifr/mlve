@@ -9,6 +9,10 @@ var iterName = urlParams.get("iterName");
 var batchId = urlParams.get("batchId")
 var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
 var viewing_time = parseInt(urlParams.get("viewing_time")) || -1;
+var probe_color = urlParams.get("probe_color") || "red";
+var probe_size = parseInt(urlParams.get("probe_size")) || 10;
+var probe_shape = urlParams.get("probe_shape") || "circle";
+
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
@@ -141,7 +145,7 @@ function buildAndRunExperiment(sessionTemplate) {
   trials.push(instructions);
 
   var fixation = {
-    type: jsPsychHtmlKeyboardResponse,
+    type: jsPsychCanvasHTMLButtonResponse,
     stimulus: '<p style="font-size: 128px;">+</p>',
     choices: [' '],
     prompt: "<p>Press the spacebar to continue.</p>",
@@ -160,6 +164,9 @@ function buildAndRunExperiment(sessionTemplate) {
       correct_depth: trialData.correct_depth,
       probe_locations: trialData.probeLocations,
       viewing_time: viewing_time,
+      probe_color: probe_color,
+      probe_size: probe_size,
+      probe_shape: probe_shape,
       practice_trial: true,
       debug: DEBUG_MODE,
     };
@@ -248,6 +255,9 @@ function buildAndRunExperiment(sessionTemplate) {
       probe_locations: trialData.probeLocations,
       viewing_time: viewing_time,
       practice_trial: false,
+      probe_color: probe_color,
+      probe_size: probe_size,
+      probe_shape: probe_shape,
       debug: DEBUG_MODE,
       on_finish: onFinish,
     };
