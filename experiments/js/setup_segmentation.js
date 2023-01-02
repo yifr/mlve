@@ -146,7 +146,16 @@ function buildAndRunExperiment(sessionTemplate) {
 
   var fixation = {
     type: jsPsychCanvasHTMLButtonResponse,
-    stimulus: '<p style="font-size: 128px;">+</p>',
+    stimulus: function(c) {
+      // Draw a small 40x40 fixation cross
+      ctx = c.getContext("2d");
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.fillStyle = "black";
+      ctx.fillRect(c.width / 2 - 1, c.height / 2 - 20, 2, 40);
+      ctx.fillRect(c.width / 2 - 20, c.height / 2 - 1, 40, 2);
+    },
+    canvas_size: [512, 512],
     choices: [' '],
     prompt: "<p>Press the spacebar to continue.</p>",
   };
