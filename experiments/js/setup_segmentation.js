@@ -9,6 +9,10 @@ var iterName = urlParams.get("iterName");
 var batchId = urlParams.get("batchId")
 var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
 var viewing_time = parseInt(urlParams.get("viewing_time")) || -1;
+var probe_color = urlParams.get("probe_color") || "red";
+var probe_size = parseInt(urlParams.get("probe_size")) || 10;
+var probe_shape = urlParams.get("probe_shape") || "circle";
+
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
@@ -141,16 +145,25 @@ function buildAndRunExperiment(sessionTemplate) {
   trials.push(instructions);
 
   var fixation = {
-    type: jsPsychHtmlKeyboardResponse,
-    stimulus: '<p style="font-size: 128px;">+</p>',
+    type: jsPsychCanvasKeyboardResponse,
+    stimulus: function(c) {
+      // Draw a small 40x40 fixation cross
+      ctx = c.getContext("2d");
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.fillStyle = "black";
+      ctx.fillRect(c.width / 2 - 1, c.height / 2 - 20, 2, 40);
+      ctx.fillRect(c.width / 2 - 20, c.height / 2 - 1, 40, 2);
+    },
+    canvas_size: [512, 512],
     choices: [' '],
     prompt: "<p>Press the spacebar to continue.</p>",
-  };   
+  };
 
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
-    console.log("correct choice:" + trialData.correct_segmentation, trialData)   
+    console.log("correct choice:" + trialData.correct_segmentation, trialData)
 
     var trial = {
       type: segmentationTrial,
@@ -160,6 +173,9 @@ function buildAndRunExperiment(sessionTemplate) {
       correct_depth: trialData.correct_depth,
       probe_locations: trialData.probeLocations,
       viewing_time: viewing_time,
+      probe_color: probe_color,
+      probe_size: probe_size,
+      probe_shape: probe_shape,
       practice_trial: true,
       debug: DEBUG_MODE,
     };
@@ -248,6 +264,9 @@ function buildAndRunExperiment(sessionTemplate) {
       probe_locations: trialData.probeLocations,
       viewing_time: viewing_time,
       practice_trial: false,
+      probe_color: probe_color,
+      probe_size: probe_size,
+      probe_shape: probe_shape,
       debug: DEBUG_MODE,
       on_finish: onFinish,
     };

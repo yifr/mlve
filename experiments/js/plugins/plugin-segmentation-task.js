@@ -107,6 +107,21 @@ var segmentationTrial = (function (jspsych) {
         pretty_name: "Viewing Time (ms)",
         default: -1,
       },
+      probe_shape: {
+        type: jspsych.ParameterType.STRING,
+        pretty_name: "Probe Shape",
+        default: "circle",
+      },
+      probe_size: {
+        type: jspsych.ParameterType.INT,
+        pretty_name: "Probe Size",
+        default: 5,
+      },
+      probe_color: {
+        type: jspsych.ParameterType.STRING,
+        pretty_name: "Probe Color",
+        default: "yellow",
+      },
       /**
        * If true, the image will be drawn onto a canvas element (prevents blank screen between consecutive images in some browsers).
        * If false, the image will be shown via an img element.
@@ -153,12 +168,22 @@ var segmentationTrial = (function (jspsych) {
             display_element.removeChild(display_element.firstChild);
           }
         }
+
         // create canvas element and image
         var canvas = document.createElement("canvas");
         canvas.id = "jspsych-image-button-response-stimulus";
         canvas.style.margin = "0";
         canvas.style.padding = "0";
         var ctx = canvas.getContext("2d");
+
+        function drawFixationCross(ctx) {
+          ctx.globalCompositeOperation = "source-over";
+          // Draw a small 40x40 fixation cross
+          ctx.fillStyle = "black";
+          ctx.fillRect(canvas.width / 2 - 1, canvas.height / 2 - 20, 2, 40);
+          ctx.fillRect(canvas.width / 2 - 20, canvas.height / 2 - 1, 40, 2);
+        }
+        drawFixationCross(ctx);
         var img = new Image();
 
         img.src = trial.stimulus;
@@ -167,11 +192,35 @@ var segmentationTrial = (function (jspsych) {
           getHeightWidth(); // only possible to get width/height after image loads
           ctx.drawImage(img, 0, 0, width, height);
 
+          function drawStar(ctx, x, y, color) {
+            ctx.globalCompositeOperation = "source-over";
+            var x = parseInt(x);
+            var y = parseInt(y);
+
+            var alpha = (2 * Math.PI) / 10;
+            var radius = trial.probe_size;
+            ctx.beginPath();
+            for(var i = 11; i != 0; i--)
+            {
+                var r = radius*(i % 2 + 1)/2;
+                var omega = alpha * i;
+                ctx.lineTo((r * Math.sin(omega)) + x, (r * Math.cos(omega)) + y);
+            }
+            ctx.closePath();
+            if (color == "green") {
+              ctx.fillStyle = "rgba(6, 255, 0, 0.5)";
+            } else if (color == "red") {
+              ctx.fillStyle = "rgba(255, 6, 0, 0.5)";
+            } else if (color == "yellow") {
+              ctx.fillStyle = "rgba(255, 255, 0, 1)";
+            }
+            ctx.fill();
+          }
+
           function drawProbe(ctx, x, y, color) {
             ctx.globalCompositeOperation = "source-over";
 
             // Draw outer probe on canvas
-
             var x = parseInt(x);
             var y = parseInt(y);
             ctx.moveTo(x, y)
@@ -197,6 +246,10 @@ var segmentationTrial = (function (jspsych) {
               ctx.fillStyle = "rgba(6, 255, 0, 0.5)";
             } else if (color == "red") {
               ctx.fillStyle = "rgba(255, 6, 0, 0.5)";
+            } else if (color == "yellow") {
+              ctx.fillStyle = "rgba(255, 255, 0, 0.5)";
+            } else {
+                ctx.fillStyle = color;
             }
             ctx.fill();
             return ctx;
@@ -215,40 +268,47 @@ var segmentationTrial = (function (jspsych) {
             ctx.closePath();
           }
 
+          if (trial.probe_shape == "star") {
+            var drawFunc = drawStar;
+          } else {
+            var drawFunc = drawProbe;
+          }
+
           function flashProbe(ctx, x, y, color) {
-            drawProbe(ctx, x, y, color);
+            drawFunc(ctx, x, y, color);
             setTimeout(function () {
               clearProbe(ctx, x, y);
             }, 200);
             setTimeout(function () {
-              drawProbe(ctx, x, y, color);
+              drawFunc(ctx, x, y, color);
             }, 400);
             setTimeout(function () {
               clearProbe(ctx, x, y);
             }, 600);
             setTimeout(function () {
-              drawProbe(ctx, x, y, color);
+              drawFunc(ctx, x, y, color);
             }, 800);
           }
 
           var point0 = trial.probe_locations[0];
           var point1 = trial.probe_locations[1];
+
           if (trial.viewing_time > 0) {
             // Draw points on canvas immediately
-            drawProbe(ctx, point0[0], point0[1], "red");
-            drawProbe(ctx, point1[0], point1[1], "green");
-
+            drawFunc(ctx, point0[0], point0[1], trial.probe_color);
+            drawFunc(ctx, point1[0], point1[1], trial.probe_color);
+            drawFixationCross(ctx);
             // Paint over image with white canvas after viewing time completes
             setTimeout(function () {
               ctx.fillStyle = "white";
               ctx.fillRect(0, 0, width, height);
+              drawFixationCross(ctx);
             }, trial.viewing_time);
           } else {
             flashProbe(ctx, point0[0], point0[1], "red");
             flashProbe(ctx, point1[0], point1[1], "green");
           }
         }
-
 
         // get/set image height and width - this can only be done after image loads because uses image's naturalWidth/naturalHeight properties
         const getHeightWidth = () => {
@@ -432,7 +492,7 @@ var segmentationTrial = (function (jspsych) {
         if (trial.debug) {
           console.log("Correct Segmentation: ", trial.correct_segmentation)
           console.log("Segmentation Response: ", segmentation_response);
-          console.log("Participant semgnetation correct? ", segmentation_correct);
+          console.log("Participant segmentation correct? ", segmentation_correct);
         }
         if (trial.confidence_slider) {
           segmentation_confidence = document.getElementById("confidence-slider").value;
@@ -498,7 +558,7 @@ var segmentationTrial = (function (jspsych) {
             console.log("Participant depth response: ", depth_response);
             console.log("Participant depth correct:" , depth_correct);
           }
-          if (trial.practice_trial) {
+          if (trial.practice_trial && trial.collect_depth_data) {
             if (!depth_correct) {
               var prompt = "No! The other color probe is actually closer. Please click the correct response to continue."
               display_element.querySelector("#prompt").innerHTML = prompt;
@@ -555,6 +615,9 @@ var segmentationTrial = (function (jspsych) {
         );
 
         if (run_segmentation_check) {
+          var end_time = performance.now();
+          var rt = Math.round(end_time - start_time);
+          response.rt = rt;
           check_segmentation_response(choice);
         } else {
           var end_time = performance.now();

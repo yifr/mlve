@@ -948,6 +948,26 @@ def repeat_trials(batches, n_repeats, repeat_times, n_attention_checks=5):
                 batch.append(repeat_trial)
     return batches
 
+def assign_time_constraints(trials, time_constraints):
+    """
+    Generates batches of trials with different time constraints
+    Sets up a within-subject split of time constraints,
+    so that each subject sees an even split of all available time constraints (but on different trials)
+    """
+    from collections import deque
+    time_constraints = deque(time_constraints)
+    n_constraints = len(time_constraints)
+    n_trials = len(trials)
+    trials_per_constraint = n_trials // n_constraints
+    batches = [[] for _ in range(n_constraints)]
+    for i, batch in enumerate(batches):
+        for j, trial in enumerate(trials):
+            time_constraint_idx = j // trials_per_constraint
+            trial["viewing_time"] = time_constraints[time_constraint_idx]
+            batch.append(trial)
+        time_constraints.rotate(1)
+    return batches
+
 def generate_experiment_trials(args):
     proj_name = "mlve"
     exp_name = args.dataset + "-" + args.experiment_type
@@ -969,10 +989,15 @@ def generate_experiment_trials(args):
 
         batches = new_batches
 
+    if args.experiment_type == "segmentation":
+        # Add time constraints
+        time_constraints = [200, 300, 400, 500]
+        batches = assign_time_constraints(batches[0], time_constraints)
+
     # Add repeat trials
     n_repeats = 10
     repeat_times = 3
-    batches = repeat_trials(batches, n_repeats, repeat_times)    
+    # batches = repeat_trials(batches, n_repeats, repeat_times)    
 
     creation_date = f"{datetime.datetime.now():%Y-%d-%m, %HH:%M:%S}"
     save_path = f"datasets/{exp_name}/{args.batch_dir}"
