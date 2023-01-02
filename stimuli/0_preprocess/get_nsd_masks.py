@@ -39,28 +39,6 @@ def str_to_float_array(str_arr):
     elements = [float(elem) for elem in elements]
     return elements
 
-def center_crop(img, new_width=None, new_height=None):
-        width = img.shape[1]
-        height = img.shape[0]
-
-        if new_width is None:
-            new_width = min(width, height)
-
-        if new_height is None:
-            new_height = min(width, height)
-
-        left = int(np.ceil((width - new_width) / 2))
-        right = width - int(np.floor((width - new_width) / 2))
-
-        top = int(np.ceil((height - new_height) / 2))
-        bottom = height - int(np.floor((height - new_height) / 2))
-
-        if len(img.shape) == 2:
-            center_cropped_img = img[top:bottom, left:right]
-        else:
-            center_cropped_img = img[top:bottom, left:right, ...]
-
-        return center_cropped_img
 
 def crop(mask, crop_dims):
     """ Crop dims is [top, bottom, left, right]
@@ -79,8 +57,7 @@ def crop(mask, crop_dims):
     print("Cropped mask shape: ", mask.shape)
     if mask.shape != (425, 425):
         mask = cv2.resize(mask, dsize=(425, 425), interpolation=cv2.INTER_NEAREST)
-    # mask = center_crop(mask, new_width=new_width, new_height=new_height)
-    print("New mask shape: ", mask.shape)
+
     return mask
 
 def process_NSD():
