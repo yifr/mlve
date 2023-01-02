@@ -118,8 +118,7 @@ function buildAndRunExperiment(sessionTemplate) {
     
     browser_check = {
       type: jsPsychBrowserCheck,
-      on_finish: function (data) {
-        var trial_data = JSON.parse(data);
+      on_finish: function (trial_data) {
         trial_data["gameid"] = gameid;
         trial_data["userID"] = prolificID;
         trial_data["batchID"] = batchId;
@@ -151,8 +150,7 @@ function buildAndRunExperiment(sessionTemplate) {
             type: jsPsychVirtualChinrest,
             blindspot_reps: 3,
             resize_units: "none",
-            on_finish: function (data) {
-                var trial_data = JSON.parse(data);
+            on_finish: function (trial_data) {
                 trial_data["gameid"] = gameid;
                 trial_data["userID"] = prolificID;
                 trial_data["batchID"] = batchId;
