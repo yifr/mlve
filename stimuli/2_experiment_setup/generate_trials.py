@@ -169,7 +169,7 @@ def sample_point_uniform(image_size, border_px=15, ignore_pts=[]):
         return (int(x), int(y))
 
 
-def sample_points_unbiased(mask, min_dist=20, max_dist=100, max_tries=20, background_id=0):
+def sample_points_unbiased(mask, min_dist=20, max_dist=100, max_tries=20, background_id=0, ignore_pts=[]):
     """
     Samples two points from image masks so that the distance between
     the points is uncorrelated to whether the two points are on the 
@@ -186,9 +186,10 @@ def sample_points_unbiased(mask, min_dist=20, max_dist=100, max_tries=20, backgr
         max_tries (int): maximum number of tries to find a set of
                          points that fit the constraints
         background_id (int): mask ID of the background
+        ignore_pts: (list): list of (x, y) tuples containing list of points already sampled
     
     Returns:
-        Set of three points (base, off, on) 
+        Set of three points (base, off, on) and the mask ID of the base point
         All points are stored as (x, y) pairs
         
         If no set of points can be found within the 
@@ -201,6 +202,11 @@ def sample_points_unbiased(mask, min_dist=20, max_dist=100, max_tries=20, backgr
         point_idx = np.random.choice(range(len(masked_points)))
         x0 = masked_points[point_idx][0]
         y0 = masked_points[point_idx][1]
+
+        while (x0, y0) in ignore_pts:
+            point_idx = np.random.choice(range(len(masked_points)))
+            x0 = masked_points[point_idx][0]
+            y0 = masked_points[point_idx][1]
 
         base_id = mask[y0, x0]
         dist = np.random.uniform(min_dist, max_dist)
@@ -225,14 +231,14 @@ def sample_points_unbiased(mask, min_dist=20, max_dist=100, max_tries=20, backgr
             off_point = off_object[np.random.choice(range(len(off_object)))]
             on_point = on_object[np.random.choice(range(len(on_object)))]
             base = (x0, y0)
-            return base, off_point, on_point
+            return base, off_point, on_point, base_id
         
         # Otherwise we haven't found a point and should 
         # sample again
         tries += 1
     
     # There's probably a better way to handle this case
-    return None, None, None
+    return None, None, None, None
 
 def object_localization_trial(args, image_idx,
                               familiarization_trial=False,
@@ -508,7 +514,13 @@ def two_point_segmentation_trial(args, image_idx,
         mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
         masks = np.array(Image.open(mask_path).convert("L"))
         trial_same_object = True if image_idx % 2 == 0 else False
-        probe_locations, probe_ids = generate_point_pair(ignore_pts=ignore_pts, trial_same_object=trial_same_object,  min_radius=25, max_radius=150, masks=masks)
+        base, off, on, probe_ids = sample_points_unbiased(masks, ignore_pts=ignore_pts)
+        if trial_same_object:
+            probe_locations = [base, on]
+        else:
+            probe_locations = [base, off]
+
+        #probe_locations, probe_ids = generate_point_pair(ignore_pts=ignore_pts, trial_same_object=trial_same_object,  min_radius=25, max_radius=150, masks=masks)
 
         # Get Depth
         if args.dataset != "nsd":
