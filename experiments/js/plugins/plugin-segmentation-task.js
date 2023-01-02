@@ -110,12 +110,12 @@ var segmentationTrial = (function (jspsych) {
       probe_shape: {
         type: jspsych.ParameterType.STRING,
         pretty_name: "Probe Shape",
-        default: "circle",
+        default: "star",
       },
       probe_size: {
         type: jspsych.ParameterType.INT,
         pretty_name: "Probe Size",
-        default: 5,
+        default: 10,
       },
       probe_color: {
         type: jspsych.ParameterType.STRING,
