@@ -8,6 +8,7 @@ var expName = urlParams.get("expName");
 var iterName = urlParams.get("iterName");
 var batchId = urlParams.get("batchId")
 var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
+var viewing_time = parseInt(urlParams.get("viewing_time")) || -1;
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
 
@@ -139,10 +140,18 @@ function buildAndRunExperiment(sessionTemplate) {
   }
   trials.push(instructions);
 
+  var fixation = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: '<p style="font-size: 128px;">+</p>',
+    choices: [' '],
+    prompt: "<p>Press the spacebar to continue.</p>",
+  };   
+
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
-    console.log("correct choice:" + trialData.correct_segmentation, trialData)
+    console.log("correct choice:" + trialData.correct_segmentation, trialData)   
+
     var trial = {
       type: segmentationTrial,
       stimulus: trialData.imageURL,
@@ -154,6 +163,7 @@ function buildAndRunExperiment(sessionTemplate) {
       debug: DEBUG_MODE,
     };
 
+    trials.push(fixation);
     trials.push(trial);
   }
 
@@ -240,6 +250,7 @@ function buildAndRunExperiment(sessionTemplate) {
       on_finish: onFinish,
     };
 
+    trials.push(fixation);
     trials.push(trial);
   }
 
