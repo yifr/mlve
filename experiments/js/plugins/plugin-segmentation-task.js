@@ -120,7 +120,7 @@ var segmentationTrial = (function (jspsych) {
       probe_color: {
         type: jspsych.ParameterType.STRING,
         pretty_name: "Probe Color",
-        default: "green",
+        default: "yellow",
       },
       /**
        * If true, the image will be drawn onto a canvas element (prevents blank screen between consecutive images in some browsers).
@@ -168,12 +168,22 @@ var segmentationTrial = (function (jspsych) {
             display_element.removeChild(display_element.firstChild);
           }
         }
+
         // create canvas element and image
         var canvas = document.createElement("canvas");
         canvas.id = "jspsych-image-button-response-stimulus";
         canvas.style.margin = "0";
         canvas.style.padding = "0";
         var ctx = canvas.getContext("2d");
+
+        function drawFixationCross(ctx) {
+          ctx.globalCompositeOperation = "source-over";
+          // Draw a small 40x40 fixation cross
+          ctx.fillStyle = "black";
+          ctx.fillRect(canvas.width / 2 - 1, canvas.height / 2 - 20, 2, 40);
+          ctx.fillRect(canvas.width / 2 - 20, canvas.height / 2 - 1, 40, 2);
+        }
+        drawFixationCross(ctx);
         var img = new Image();
 
         img.src = trial.stimulus;
@@ -181,13 +191,13 @@ var segmentationTrial = (function (jspsych) {
           // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
           getHeightWidth(); // only possible to get width/height after image loads
           ctx.drawImage(img, 0, 0, width, height);
-          
+
           function drawStar(ctx, x, y, color) {
             ctx.globalCompositeOperation = "source-over";
             var x = parseInt(x);
             var y = parseInt(y);
 
-            var alpha = (2 * Math.PI) / 10; 
+            var alpha = (2 * Math.PI) / 10;
             var radius = trial.probe_size;
             ctx.beginPath();
             for(var i = 11; i != 0; i--)
@@ -202,9 +212,8 @@ var segmentationTrial = (function (jspsych) {
             } else if (color == "red") {
               ctx.fillStyle = "rgba(255, 6, 0, 0.5)";
             } else if (color == "yellow") {
-              ctx.fillStyle = "rgba(0, 255, 255, 0.5)";
+              ctx.fillStyle = "rgba(255, 255, 0, 1)";
             }
-
             ctx.fill();
           }
 
@@ -238,21 +247,12 @@ var segmentationTrial = (function (jspsych) {
             } else if (color == "red") {
               ctx.fillStyle = "rgba(255, 6, 0, 0.5)";
             } else if (color == "yellow") {
-              ctx.fillStyle = "rgba(0, 255, 255, 0.5)";
+              ctx.fillStyle = "rgba(255, 255, 0, 0.5)";
+            } else {
+                ctx.fillStyle = color;
             }
             ctx.fill();
             return ctx;
-          }
-          
-          function drawFixationCross(ctx) {
-            ctx.globalCompositeOperation = "source-over";
-            // Draw a small 40x40 fixation cross
-            ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "black";
-            ctx.fillRect(canvas.width / 2 - 1, canvas.height / 2 - 20, 2, 40);
-            ctx.fillRect(canvas.width / 2 - 20, canvas.height / 2 - 1, 40, 2);
-    
           }
 
           function clearProbe(ctx, x, y) {
@@ -267,13 +267,13 @@ var segmentationTrial = (function (jspsych) {
             ctx.fill();
             ctx.closePath();
           }
-          
+
           if (trial.probe_shape == "star") {
             var drawFunc = drawStar;
           } else {
             var drawFunc = drawProbe;
           }
-          
+
           function flashProbe(ctx, x, y, color) {
             drawFunc(ctx, x, y, color);
             setTimeout(function () {
