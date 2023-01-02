@@ -46,7 +46,7 @@ def main():
         data["iterName"] = args.iter_name
         res = col.insert_one({"data": data})
 
-    print(f"Experiment URL: http://34.228.26.201:8080/{args.experiment_type}.html?projName=mlve&expName={exp_name}&iterName={args.iter_name}&debug=true")
+    print(f"Experiment URL: http://52.54.66.125:8080/{args.experiment_type}.html?projName=mlve&expName={exp_name}&iterName={args.iter_name}&debug=true")
 
 if __name__=="__main__":
     main()
