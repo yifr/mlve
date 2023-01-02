@@ -145,7 +145,7 @@ function buildAndRunExperiment(sessionTemplate) {
   trials.push(instructions);
 
   var fixation = {
-    type: jsPsychCanvasHTMLButtonResponse,
+    type: jsPsychCanvasKeyboardResponse,
     stimulus: function(c) {
       // Draw a small 40x40 fixation cross
       ctx = c.getContext("2d");
