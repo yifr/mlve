@@ -87,7 +87,7 @@ def points_in_circle(radius, x0=0, y0=0):
 
 def check_overlap(point, border_dist, mask, overlap_threshold=25):
     """
-    Check if a point is too close to the image border or if the probe overlaps too much 
+    Check if a point is too close to the image border or if the probe overlaps too much
     with the wrong object
     """
     width = mask.shape[0]
@@ -103,11 +103,11 @@ def check_overlap(point, border_dist, mask, overlap_threshold=25):
         if x_t > (width - border_dist) or y_t > (width - border_dist) \
                 or x_t < border_dist or y_t < border_dist:
             return True
-        
+
         if mask[y_t, x_t] != mask_val:
             overlaps += 1
             if overlaps > overlap_threshold:
-                return True 
+                return True
 
     return False
 
@@ -172,13 +172,13 @@ def sample_point_uniform(image_size, border_px=15, ignore_pts=[]):
 def sample_points_unbiased(mask, min_dist=20, max_dist=100, max_tries=20, background_id=0, ignore_pts=[]):
     """
     Samples two points from image masks so that the distance between
-    the points is uncorrelated to whether the two points are on the 
-    same object or different. 
-    
-    To do this, we sample an initial point on an object, 
-    and then choose two equidistant points such that 
-    one point is on the same object and one point is not. 
-    
+    the points is uncorrelated to whether the two points are on the
+    same object or different.
+
+    To do this, we sample an initial point on an object,
+    and then choose two equidistant points such that
+    one point is on the same object and one point is not.
+
     Params:
         mask (np.array): masks for a given image
         min_dist (int): minimum distance between points
@@ -187,12 +187,12 @@ def sample_points_unbiased(mask, min_dist=20, max_dist=100, max_tries=20, backgr
                          points that fit the constraints
         background_id (int): mask ID of the background
         ignore_pts: (list): list of (x, y) tuples containing list of points already sampled
-    
+
     Returns:
         Set of three points (base, off, on) and the mask ID of the base point
         All points are stored as (x, y) pairs
-        
-        If no set of points can be found within the 
+
+        If no set of points can be found within the
         max number of tries, returns an empty list
     """
     mask_y, mask_x = np.where(mask != background_id)
@@ -210,33 +210,33 @@ def sample_points_unbiased(mask, min_dist=20, max_dist=100, max_tries=20, backgr
 
         base_id = mask[y0, x0]
         dist = np.random.uniform(min_dist, max_dist)
-        
+
         # Generate a circle with center at (x0, y0)
         # and sort which points are on / off the initial point
-        radial_xs, radial_ys = points_on_radius(dist, x0, y0, n_points=20)
-    
+        radial_points = points_on_radius(dist, x0, y0, n_points=20)
+
         on_object = []
         off_object = []
-        for i, (px, py) in enumerate(zip(radial_xs, radial_ys)):
+        for i, (px, py) in enumerate(radial_points):
             if (px >= mask.shape[1] or px < 0 or py >= mask.shape[0] or py < 0):
                 continue
-                
+
             radial_id = mask[py, px]
             if radial_id == base_id:
                 on_object.append((px, py))
             else:
                 off_object.append((px, py))
-        
+
         if len(off_object) > 0 and len(on_object) > 0:
             off_point = off_object[np.random.choice(range(len(off_object)))]
             on_point = on_object[np.random.choice(range(len(on_object)))]
-            base = (x0, y0)
-            return base, off_point, on_point, base_id
-        
-        # Otherwise we haven't found a point and should 
+            base = (int(x0), int(y0))
+            return base, [int(p) for p in off_point], [int(p) for p in on_point], int(base_id)
+
+        # Otherwise we haven't found a point and should
         # sample again
         tries += 1
-    
+
     # There's probably a better way to handle this case
     return None, None, None, None
 
@@ -396,7 +396,7 @@ def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, ma
             masked_image = (masks == probe_id)
             y_opts, x_opts = np.where(masked_image) # get masked indices
             mask_points = [(int(x_opts[i]), int(y_opts[i])) for i in range(len(y_opts))]  # arrange them in (x,y) format
-            
+
             # Sample first point
             point_found = False
             for _ in range(len(mask_points)):
@@ -408,13 +408,13 @@ def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, ma
                 if not probe_overlap:
                     point_found = True
                     break
-            
+
             if not point_found:
                 if tries == max_tries:
                     print("UNABLE TO FIND A POINT PAIR")
 
                 overlap_threshold += 5
-                continue 
+                continue
 
             # Sample second point
             radius = np.random.randint(min_radius, max_radius)
@@ -426,7 +426,7 @@ def generate_point_pair(ignore_pts=[], trial_same_object=True, min_radius=25, ma
                 probe_overlap = check_overlap(point, 15, masks, overlap_threshold=overlap_threshold)
                 if probe_overlap:
                     overlap_threshold += 5
-                    continue 
+                    continue
 
                 if not trial_same_object and masks[py, px] != probe_id:
                     probe_opts.append(point)
@@ -501,7 +501,7 @@ def two_point_segmentation_trial(args, image_idx,
 
     trial_data = {}
     image_url = os.path.join(s3_dir, "images", f"image_{image_idx:03d}.png")
-    
+
     meta_path = os.path.join(image_dir, "meta", f"meta_{image_idx:03d}.pkl")
     with open(meta_path, "rb") as f:
         image_metadata = pickle.load(f)
@@ -549,7 +549,7 @@ def two_point_segmentation_trial(args, image_idx,
         fam_trials = json.load(open(f"additional/{args.dataset}_segmentation.json", "r"))
         probe_locations, correct_segmentation, correct_depth = fam_trials[str(image_idx)]
         trial_data["correct_segmentation"] = correct_segmentation
-        trial_data["correct_depth"] = correct_depth 
+        trial_data["correct_depth"] = correct_depth
 
     # elif not args.dataset == "nsd":
     #     image_size = 512
@@ -974,9 +974,9 @@ def generate_experiment_trials(args):
     if args.experiment_name_addons:
         exp_name = exp_name + "-" + args.experiment_name_addons
 
-    # Setup experiment    
+    # Setup experiment
     batches, familiarization_trials, attention_checks = setup_experiment(args, n_images=100, n_batches=args.n_batches)
-    
+
     if args.experiment_type == "surface-normals":
         # Split up batches in surface normal experiments so people only do 50 trials
         new_batches = []
@@ -997,7 +997,7 @@ def generate_experiment_trials(args):
     # Add repeat trials
     n_repeats = 10
     repeat_times = 3
-    # batches = repeat_trials(batches, n_repeats, repeat_times)    
+    # batches = repeat_trials(batches, n_repeats, repeat_times)
 
     creation_date = f"{datetime.datetime.now():%Y-%d-%m, %HH:%M:%S}"
     save_path = f"datasets/{exp_name}/{args.batch_dir}"
@@ -1007,7 +1007,7 @@ def generate_experiment_trials(args):
         for check in attention_checks:
             batch.append(check)
 
-        np.random.shuffle(batch)  
+        np.random.shuffle(batch)
         batch_id = batch[0]["batchIdx"]
         data = {"trials": batch,
                 "familiarization_trials": familiarization_trials,
