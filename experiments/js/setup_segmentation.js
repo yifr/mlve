@@ -159,6 +159,7 @@ function buildAndRunExperiment(sessionTemplate) {
       correct_segmentation: trialData.correct_segmentation,
       correct_depth: trialData.correct_depth,
       probe_locations: trialData.probeLocations,
+      viewing_time: viewing_time,
       practice_trial: true,
       debug: DEBUG_MODE,
     };
@@ -245,6 +246,7 @@ function buildAndRunExperiment(sessionTemplate) {
       correct_segmentation: trialData.correct_segmentation,
       correct_depth: trialData.correct_depth,
       probe_locations: trialData.probeLocations,
+      viewing_time: viewing_time,
       practice_trial: false,
       debug: DEBUG_MODE,
       on_finish: onFinish,

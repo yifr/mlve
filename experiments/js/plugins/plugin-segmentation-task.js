@@ -531,6 +531,7 @@ var segmentationTrial = (function (jspsych) {
           probe_locations: trial.probe_locations,
           true_segmentation: trial.correct_segmentation,
           true_depth: trial.correct_depth,
+          viewing_time: trial.viewing_time,
           choices: trial.choices,
         };
 
