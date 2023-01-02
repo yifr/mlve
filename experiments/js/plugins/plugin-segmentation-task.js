@@ -235,7 +235,7 @@ var segmentationTrial = (function (jspsych) {
           var point1 = trial.probe_locations[1];
           if (trial.viewing_time > 0) {
             // Draw points on canvas immediately
-            drawProbe(ctx, point0[0], point0[1], "red");
+            drawProbe(ctx, point0[0], point0[1], "green");
             drawProbe(ctx, point1[0], point1[1], "green");
 
             // Paint over image with white canvas after viewing time completes
@@ -432,7 +432,7 @@ var segmentationTrial = (function (jspsych) {
         if (trial.debug) {
           console.log("Correct Segmentation: ", trial.correct_segmentation)
           console.log("Segmentation Response: ", segmentation_response);
-          console.log("Participant semgnetation correct? ", segmentation_correct);
+          console.log("Participant segmentation correct? ", segmentation_correct);
         }
         if (trial.confidence_slider) {
           segmentation_confidence = document.getElementById("confidence-slider").value;
@@ -498,7 +498,7 @@ var segmentationTrial = (function (jspsych) {
             console.log("Participant depth response: ", depth_response);
             console.log("Participant depth correct:" , depth_correct);
           }
-          if (trial.practice_trial) {
+          if (trial.practice_trial && trial.collect_depth_data) {
             if (!depth_correct) {
               var prompt = "No! The other color probe is actually closer. Please click the correct response to continue."
               display_element.querySelector("#prompt").innerHTML = prompt;
@@ -555,6 +555,9 @@ var segmentationTrial = (function (jspsych) {
         );
 
         if (run_segmentation_check) {
+          var end_time = performance.now();
+          var rt = Math.round(end_time - start_time);
+          response.rt = rt;
           check_segmentation_response(choice);
         } else {
           var end_time = performance.now();

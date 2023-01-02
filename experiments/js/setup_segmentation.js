@@ -145,12 +145,12 @@ function buildAndRunExperiment(sessionTemplate) {
     stimulus: '<p style="font-size: 128px;">+</p>',
     choices: [' '],
     prompt: "<p>Press the spacebar to continue.</p>",
-  };   
+  };
 
   /******************** Familiarization Trials **********************/
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
-    console.log("correct choice:" + trialData.correct_segmentation, trialData)   
+    console.log("correct choice:" + trialData.correct_segmentation, trialData)
 
     var trial = {
       type: segmentationTrial,
