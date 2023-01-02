@@ -97,6 +97,16 @@ var segmentationTrial = (function (jspsych) {
         pretty_name: "Maintain aspect ratio",
         default: true,
       },
+      collect_depth_data: {
+        type: jspsych.ParameterType.BOOL,
+        pretty_name: "Collect Depth Data",
+        default: false,
+      },
+      viewing_time: {
+        type: jspsych.ParameterType.INT,
+        pretty_name: "Viewing Time (ms)",
+        default: -1,
+      },
       /**
        * If true, the image will be drawn onto a canvas element (prevents blank screen between consecutive images in some browsers).
        * If false, the image will be shown via an img element.
@@ -223,9 +233,20 @@ var segmentationTrial = (function (jspsych) {
 
           var point0 = trial.probe_locations[0];
           var point1 = trial.probe_locations[1];
-          flashProbe(ctx, point0[0], point0[1], "red");
-          flashProbe(ctx, point1[0], point1[1], "green");
+          if (trial.viewing_time > 0) {
+            // Draw points on canvas immediately
+            drawProbe(ctx, point0[0], point0[1], "red");
+            drawProbe(ctx, point1[0], point1[1], "green");
 
+            // Paint over image with white canvas after viewing time completes
+            setTimeout(function () {
+              ctx.fillStyle = "white";
+              ctx.fillRect(0, 0, width, height);
+            }, trial.viewing_time);
+          } else {
+            flashProbe(ctx, point0[0], point0[1], "red");
+            flashProbe(ctx, point1[0], point1[1], "green");
+          }
         }
 
 
@@ -435,28 +456,29 @@ var segmentationTrial = (function (jspsych) {
             );
             return;
           }
-
-          end_trial(null);
         }
 
-        if (segmentation_response == 0) {
-          prompt = "Which probe is closer to the camera?"
-          if (trial.practice_trial) {
-            prompt = "Correct! " + prompt;
+        if (trial.collect_depth_data) {
+          if (segmentation_response == 0) {
+            prompt = "Which probe is closer to the camera?"
+            if (trial.practice_trial) {
+              prompt = "Correct! " + prompt;
+            }
+              // enable all the buttons after a response
+              var btns = document.querySelectorAll(
+                ".jspsych-image-button-response-button button"
+              );
+            display_element.querySelector("#prompt").innerHTML = prompt;
+            if (trial.confidence_slider){
+              conf_slider.value = 5;
+            }
+            btns[0].innerHTML = "Red";
+            btns[1].innerHTML = "Green";
+            run_segmentation_check = false;
+            return;
           }
-            // enable all the buttons after a response
-            var btns = document.querySelectorAll(
-              ".jspsych-image-button-response-button button"
-            );
-          display_element.querySelector("#prompt").innerHTML = prompt;
-          if (trial.confidence_slider){
-            conf_slider.value = 5;
-          }
-          btns[0].innerHTML = "Red";
-          btns[1].innerHTML = "Green";
-          run_segmentation_check = false;
-          return;
         }
+
         end_trial(null);
       }
 
@@ -509,6 +531,7 @@ var segmentationTrial = (function (jspsych) {
           probe_locations: trial.probe_locations,
           true_segmentation: trial.correct_segmentation,
           true_depth: trial.correct_depth,
+          viewing_time: trial.viewing_time,
           choices: trial.choices,
         };
 

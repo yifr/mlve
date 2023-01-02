@@ -15,15 +15,15 @@ var nsd_dim;
 var currentCamera;
 var currentScene;
 
-// Setup ThreeJS
-const metaCanvas = $("#meta-canvas")[0];
-const renderer = new THREE.WebGLRenderer({
-        metaCanvas,
-        alpha: true, // Necessary to make background transparent.
-    });
-// Set background to clear color
-renderer.setClearColor(0x000000, 0);
-renderer.setScissorTest(true);
+// // Setup ThreeJS
+// const metaCanvas = $("#meta-canvas")[0];
+// const renderer = new THREE.WebGLRenderer({
+//         metaCanvas,
+//         alpha: true, // Necessary to make background transparent.
+//     });
+// // Set background to clear color
+// renderer.setClearColor(0x000000, 0);
+// renderer.setScissorTest(true);
 
 function renderSceneInfo() {
     // Render the scene info to the modal
@@ -150,6 +150,10 @@ function flashExistingProbe() {
     }
 }
 
+function trunc(num){
+    return Number.parseFloat(num).toFixed(3)
+}
+
 function renderTrial(batchID, ctx, modal){
     var width;
     var height;
@@ -205,11 +209,8 @@ function renderTrial(batchID, ctx, modal){
             $(prompt_field).html("Which dot is closer to the camera?")
             if (gt) {
                 var gt_field = $(modal).find(".gt")[0]
-                function trunc(num){
-                    return Number.parseFloat(num).toFixed(3)
-                }
                 gt = [trunc(gt[0]), trunc(gt[1])]
-                $(gt_field).html(gt);
+                $(gt_field).html("Left: " + gt[0] + ", Right: " + gt[1]);
             }
         } else if (experiment_type == "segmentation") {
             var left_point = probe_locations[0];
@@ -228,7 +229,9 @@ function renderTrial(batchID, ctx, modal){
             $(currentModal).find(".results-plot").empty();
     
             drawProbe(ctx, probe_locations[0], probe_locations[1], "red", image, width, height);
-            plotSurfaceNormalTrialResults(trials, batchIndex, true);
+            var avgError = plotSurfaceNormalTrialResults(trials, batchIndex, true);
+            var gt_field = $(modal).find(".gt")[0]
+            $(gt_field).html("Mean Angular Error: " + trunc(avgError))
             // setupScene(probe_locations, averageResponse);
         }
     }
@@ -372,8 +375,38 @@ $(document).ready(function() {
 
         renderTrial(batchIndex, currentCtx, currentModal);
     })
-
 })
+
+// Function to sort trials by score for a given dataset / experiment type pair
+// hits endpoint /sort_trials with params [dataset, experiment_type, order]
+function sort_trials() {
+    var dataset = $("#currentDataset").text();
+    var experiment_type = $("#sortExperimentType").text();
+    var order = $("#sort-order").text();
+
+    const response = fetch(`/sort_trials?` 
+                + new URLSearchParams({
+                    dataset: dataset,
+                    experiment_type: experiment_type, 
+                    order: order
+                })
+        ).then(function(data) {  
+            console.log(data);
+            var sorted = data["sorted"];
+            if (!sorted.length) {
+                return;
+            } else {
+                // Sort images on page based on sorted list
+                var images = [];
+                for (var i = 0; i < sorted.length; i++) {
+                    var image_id = sorted[i];
+                    var image = $("#" + image_id);
+                    images.push(image);
+                }
+                
+            }
+        });
+}
 
 // const update_threejs = () => {
 //     // TODO: should these be switched?

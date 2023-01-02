@@ -169,6 +169,77 @@ def sample_point_uniform(image_size, border_px=15, ignore_pts=[]):
         return (int(x), int(y))
 
 
+def sample_points_unbiased(mask, min_dist=20, max_dist=100, max_tries=20, background_id=0, ignore_pts=[]):
+    """
+    Samples two points from image masks so that the distance between
+    the points is uncorrelated to whether the two points are on the 
+    same object or different. 
+    
+    To do this, we sample an initial point on an object, 
+    and then choose two equidistant points such that 
+    one point is on the same object and one point is not. 
+    
+    Params:
+        mask (np.array): masks for a given image
+        min_dist (int): minimum distance between points
+        max_dist (int): maximum distance between points
+        max_tries (int): maximum number of tries to find a set of
+                         points that fit the constraints
+        background_id (int): mask ID of the background
+        ignore_pts: (list): list of (x, y) tuples containing list of points already sampled
+    
+    Returns:
+        Set of three points (base, off, on) and the mask ID of the base point
+        All points are stored as (x, y) pairs
+        
+        If no set of points can be found within the 
+        max number of tries, returns an empty list
+    """
+    mask_y, mask_x = np.where(mask != background_id)
+    masked_points = list(zip(mask_x, mask_y))
+    tries = 0
+    while tries < max_tries:
+        point_idx = np.random.choice(range(len(masked_points)))
+        x0 = masked_points[point_idx][0]
+        y0 = masked_points[point_idx][1]
+
+        while (x0, y0) in ignore_pts:
+            point_idx = np.random.choice(range(len(masked_points)))
+            x0 = masked_points[point_idx][0]
+            y0 = masked_points[point_idx][1]
+
+        base_id = mask[y0, x0]
+        dist = np.random.uniform(min_dist, max_dist)
+        
+        # Generate a circle with center at (x0, y0)
+        # and sort which points are on / off the initial point
+        radial_xs, radial_ys = points_on_radius(dist, x0, y0, n_points=20)
+    
+        on_object = []
+        off_object = []
+        for i, (px, py) in enumerate(zip(radial_xs, radial_ys)):
+            if (px >= mask.shape[1] or px < 0 or py >= mask.shape[0] or py < 0):
+                continue
+                
+            radial_id = mask[py, px]
+            if radial_id == base_id:
+                on_object.append((px, py))
+            else:
+                off_object.append((px, py))
+        
+        if len(off_object) > 0 and len(on_object) > 0:
+            off_point = off_object[np.random.choice(range(len(off_object)))]
+            on_point = on_object[np.random.choice(range(len(on_object)))]
+            base = (x0, y0)
+            return base, off_point, on_point, base_id
+        
+        # Otherwise we haven't found a point and should 
+        # sample again
+        tries += 1
+    
+    # There's probably a better way to handle this case
+    return None, None, None, None
+
 def object_localization_trial(args, image_idx,
                               familiarization_trial=False,
                               attention_check=False,
@@ -443,7 +514,13 @@ def two_point_segmentation_trial(args, image_idx,
         mask_path = os.path.join(image_dir, "masks", f"mask_{image_idx:03d}.png")
         masks = np.array(Image.open(mask_path).convert("L"))
         trial_same_object = True if image_idx % 2 == 0 else False
-        probe_locations, probe_ids = generate_point_pair(ignore_pts=ignore_pts, trial_same_object=trial_same_object,  min_radius=25, max_radius=150, masks=masks)
+        base, off, on, probe_ids = sample_points_unbiased(masks, ignore_pts=ignore_pts)
+        if trial_same_object:
+            probe_locations = [base, on]
+        else:
+            probe_locations = [base, off]
+
+        #probe_locations, probe_ids = generate_point_pair(ignore_pts=ignore_pts, trial_same_object=trial_same_object,  min_radius=25, max_radius=150, masks=masks)
 
         # Get Depth
         if args.dataset != "nsd":

@@ -101,7 +101,7 @@ function meanAngularError(vec1, vec2) {
     // compute mean angular error between two vectors
     // vec1 and vec2 are THREE.Vector3 objects
     var dot = vec1.dot(vec2);
-    var angle = Math.acos(dot);
+    var angle = Math.acos(dot) * 180 / Math.PI;
     return angle;
 }
 
@@ -134,7 +134,7 @@ function plotSurfaceNormalTrialResults(trials, batchID, newPlot) {
     if (batchTrial["gt"]) {
         var gt = batchTrial["gt"];
         avgError = meanAngularError(averageResponse, new THREE.Vector3(gt[0], gt[1], gt[2]));
-        avgError = avgError.toArray();
+        avgError = avgError;
         
         var gt_data = {
             type: 'cone',
