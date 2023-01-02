@@ -59,6 +59,41 @@ def index():
     return render_template('index.html', urls=urls)
 
 
+# Add endpoint to sort stimuli from worst to best 
+# by score (if exists) on a given experiment type
+@app.route('/sort_trials', methods=['GET'])
+def sort_trials():
+    exp_type = request.args.get('experiment_type')
+    dataset = request.args.get('dataset')
+    order = request.args.get('order')
+    app.logger.debug(f"Sorting trials for experiment type: {exp_type} and dataset: {dataset}")
+    col = DB["results"]
+    if dataset == "all":
+        data = list(col.find({"experiment_type": exp_type}))
+    else:
+        data = list(col.find({"experiment_type": exp_type, "dataset": dataset}))
+    
+    # For each image, get the average score over all the batches
+    # Then sort the images by average score
+    data = pd.DataFrame(data)
+    urls = data["imageURL"].unique()
+    scores = []
+    if data.iloc[0]["score"] is None:
+        return jsonify({"sorted": []})
+
+    for url in urls:
+        score = data[data["imageURL"] == url]["score"].mean()
+        scores.append((url, score))
+    
+    if exp_type == "surface-normals":
+        for i in range(len(scores)):
+            scores[i][1] = 1 - (score[i][1] / 180) # surface normal score is mean angular error, so best is 0, worst is 180
+
+    scores.sort(key=lambda x: x[1], reverse=order == "worst")
+    sorted_urls = [x[0] for x in scores]
+    return jsonify({"sorted": sorted_urls})
+
+
 def parse_json(data):
     return json.loads(json_util.dumps(data))
 

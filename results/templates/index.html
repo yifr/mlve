@@ -57,9 +57,9 @@
     {% for dataset in urls %}
         {% for url in urls[dataset] %}
             {% if (loop.index - 1) % 4 == 0 %}
-            <div class="row">
+            <div class="row" id="row-{{ loop.index }}">
                 {% endif %}
-                <div class="col-3">
+                <div class="col-3" data-sort="{{ dataset }}-sort-{{ loop.index }}">
                     <div class="dataset-image" id="{{ url }}">
                         <p style="margin-top: 5px; margin-bottom:0px"> {{ dataset }} Image #{{loop.index}} </p>
 
