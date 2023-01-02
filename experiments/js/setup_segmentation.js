@@ -12,7 +12,7 @@ var viewing_time = parseInt(urlParams.get("viewing_time")) || -1;
 var probe_color = urlParams.get("probe_color") || "red";
 var probe_size = parseInt(urlParams.get("probe_size")) || 10;
 var probe_shape = urlParams.get("probe_shape") || "circle";
-var virtual_chinrest = urlParams.get("virtual_chinrest") || "false";
+var virtual_chinrest = urlParams.get("virtual_chinrest") || null;
 
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
@@ -106,7 +106,7 @@ function buildAndRunExperiment(sessionTemplate) {
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
     "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with the subject line <i>Human experiment compensation for segmentation estimation experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
-      "<p>This experiment will work as follows: an image will briefly flash on your screen, with two yellow stars drawn on that image. You need to determine <strong>if the two stars are on the same object?</strong></p><p>Before each trial, there will be a fixation cross in the middle of the screen.</p>" + 
+      "<p>This experiment will work as follows: an image will briefly flash on your screen, with two yellow stars drawn on that image. You need to determine <strong>if the two stars are on the same object?</strong></p><p>Before each trial, there will be a fixation cross in the middle of the screen.</p>" +
       "<p>When you are ready to start the trial you'll press the space bar. Make sure you keep your eyes on the fixation cross for the duration of the trial.</p>",
       "<p>Because the image will only be presented on the screen for a fraction of a second, you might not feel confident you know the correct answer. That's ok! If you're not positive whether the two yellow stars were on the same object or different objects, just go with your best bet.</p>",
   ]
@@ -115,7 +115,7 @@ function buildAndRunExperiment(sessionTemplate) {
         var additional_instruction_page = ["<p>During the experiment, the pictures you will look at will be images of objects camouflaged against the background. The objects in question are complex, un-familiar looking 3D shapes, \n and when they're not camouflaged, look like these shapes: <br><br> \n<img height=450, width=800, src='" + example_shapes + "'></img></p><p><strong>Note: </strong>These are just some of the shapes -- the actual experiment will contain even more of these un-familiar shapes.</p>"]
         instruction_pages.push(...additional_instruction_page)
     }
-    
+
     browser_check = {
       type: jsPsychBrowserCheck,
       on_finish: function (trial_data) {
@@ -126,8 +126,7 @@ function buildAndRunExperiment(sessionTemplate) {
         trial_data["iterName"] = iterName;
         trial_data["projName"] = projName;
         trial_data["inputID"] = inputID;
-        trial_data["trial_type"] = "virtual_chinrest";
-  
+
         if (DEBUG_MODE) {
           console.log(trial_data);
         }
@@ -136,7 +135,7 @@ function buildAndRunExperiment(sessionTemplate) {
     };
     trials.push(browser_check)
     if (virtual_chinrest) {
-        var additional_instruction_page = ["<p>Because this experiment is studying visual perception, it's helpful for us to get a sense of how far away you are sitting from the computer.</p>" + 
+        var additional_instruction_page = ["<p>Because this experiment is studying visual perception, it's helpful for us to get a sense of how far away you are sitting from the computer.</p>" +
       "<p>That information allows us to calculate a rough estimate of how much of the image you should be able to see clearly on the screen.</p>",
       "<p>On the next page, you will go through two exercises to help us estimate how far away you are sitting from the computer.</p>"]
         instruction_pages.push(...additional_instruction_page)
@@ -150,6 +149,7 @@ function buildAndRunExperiment(sessionTemplate) {
             type: jsPsychVirtualChinrest,
             blindspot_reps: 3,
             resize_units: "none",
+            item_path: "js/jspsych/examples/img/card.png",
             on_finish: function (trial_data) {
                 trial_data["gameid"] = gameid;
                 trial_data["userID"] = prolificID;
@@ -159,7 +159,7 @@ function buildAndRunExperiment(sessionTemplate) {
                 trial_data["projName"] = projName;
                 trial_data["inputID"] = inputID;
                 trial_data["trial_type"] = "virtual_chinrest";
-          
+
                 if (DEBUG_MODE) {
                   console.log(trial_data);
                 }
@@ -171,7 +171,7 @@ function buildAndRunExperiment(sessionTemplate) {
     }
 
     instruction_pages.push(...[
-        "<p>There will be some practice trials on the next page to get you familiar with the experiment setup (you will receive feedback if you select the incorrect answer), and then the real experiment will begin. Good luck!</p>"
+        "<p>There will be 5 practice trials on the next page to get you familiar with the experiment setup. If you select the incorrect answer on the practice trials, you will receive feedback, and won't be able to progress until you click the correct answer. Don't worry about getting the wrong answer on these trials -- they don't count!</p><p>Throughout the experiment, the images will appear for different durations of time. In the practice trials, we'll start at the longest possible viewing time and gradually get faster, so you get a sense of how it might feel during the experiment.</p>"
   ]);
 
   var preload = {
@@ -220,7 +220,7 @@ function buildAndRunExperiment(sessionTemplate) {
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
     console.log("correct choice:" + trialData.correct_segmentation, trialData)
-
+    var viewing_times = [500, 400, 300, 250, 200]
     var trial = {
       type: segmentationTrial,
       stimulus: trialData.imageURL,
@@ -228,7 +228,7 @@ function buildAndRunExperiment(sessionTemplate) {
       correct_segmentation: trialData.correct_segmentation,
       correct_depth: trialData.correct_depth,
       probe_locations: trialData.probeLocations,
-      viewing_time: trialData.viewing_time,
+      viewing_time: viewing_times[i],
       probe_color: probe_color,
       probe_size: probe_size,
       probe_shape: probe_shape,
