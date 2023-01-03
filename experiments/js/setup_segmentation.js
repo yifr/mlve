@@ -98,9 +98,47 @@ function buildAndRunExperiment(sessionTemplate) {
 
   var trials = [];
 
+
   var experimentTrials = sessionTemplate.data["trials"];
   var familiarizationTrials = sessionTemplate.data["familiarization_trials"];
   var metadata = sessionTemplate.data["metadata"];
+
+  var preload = {
+    type: jsPsychPreload,
+    auto_preload: true,
+    on_start: function () {
+      document.body.style.backgroundColor = "#fff";
+    },
+  };
+
+  var consent = {
+    type: jsPsychExternalHtml,
+    url: "consent.html",
+    cont_btn: "start",
+  };  
+
+  browser_check = {
+    type: jsPsychBrowserCheck,
+    on_finish: function (trial_data) {
+      trial_data["gameid"] = gameid;
+      trial_data["userID"] = prolificID;
+      trial_data["batchID"] = batchId;
+      trial_data["expName"] = expName;
+      trial_data["iterName"] = iterName;
+      trial_data["projName"] = projName;
+      trial_data["inputID"] = inputID;
+
+      if (DEBUG_MODE) {
+        console.log(trial_data);
+      }
+      logTrialtoDB(trial_data);
+    }
+  };
+  if (!DEBUG_MODE) {
+    trials.push(consent)
+  }
+  trials.push(preload)
+  trials.push(browser_check)
 
   var instruction_pages = [
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
@@ -116,24 +154,6 @@ function buildAndRunExperiment(sessionTemplate) {
         instruction_pages.push(...additional_instruction_page)
     }
 
-    browser_check = {
-      type: jsPsychBrowserCheck,
-      on_finish: function (trial_data) {
-        trial_data["gameid"] = gameid;
-        trial_data["userID"] = prolificID;
-        trial_data["batchID"] = batchId;
-        trial_data["expName"] = expName;
-        trial_data["iterName"] = iterName;
-        trial_data["projName"] = projName;
-        trial_data["inputID"] = inputID;
-
-        if (DEBUG_MODE) {
-          console.log(trial_data);
-        }
-        logTrialtoDB(trial_data);
-      }
-    };
-    trials.push(browser_check)
     if (virtual_chinrest) {
         var additional_instruction_page = ["<p>Because this experiment is studying visual perception, it's helpful for us to get a sense of how far away you are sitting from the computer.</p>" +
       "<p>That information allows us to calculate a rough estimate of how much of the image you should be able to see clearly on the screen.</p>",
@@ -174,19 +194,7 @@ function buildAndRunExperiment(sessionTemplate) {
         "<p>There will be 5 practice trials on the next page to get you familiar with the experiment setup. If you select the incorrect answer on the practice trials, you will receive feedback, and won't be able to progress until you click the correct answer. Don't worry about getting the wrong answer on these trials -- they don't count!</p><p>Throughout the experiment, the images will appear for different durations of time. In the practice trials, we'll start at the longest possible viewing time and gradually get faster, so you get a sense of how it might feel during the experiment.</p>"
   ]);
 
-  var preload = {
-    type: jsPsychPreload,
-    auto_preload: true,
-    on_start: function () {
-      document.body.style.backgroundColor = "#fff";
-    },
-  };
-
-  var consent = {
-    type: jsPsychExternalHtml,
-    url: "consent.html",
-    cont_btn: "start",
-  };
+  
 
   var instructions = {
     type: jsPsychInstructions,
