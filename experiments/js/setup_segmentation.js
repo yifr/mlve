@@ -153,7 +153,9 @@ function buildAndRunExperiment(sessionTemplate) {
         var additional_instruction_page = ["<p>During the experiment, the pictures you will look at will be images of objects camouflaged against the background. The objects in question are complex, un-familiar looking 3D shapes, \n and when they're not camouflaged, look like these shapes: <br><br> \n<img height=450, width=800, src='" + example_shapes + "'></img></p><p><strong>Note: </strong>These are just some of the shapes -- the actual experiment will contain even more of these un-familiar shapes.</p>"]
         instruction_pages.push(...additional_instruction_page)
     }
-
+    if (expName.includes("tdw")) {
+      instruction_pages.push("<p>In this experiment, you should consider the carpet to be a distinct object. So if two stars are touching the carpet, they are on the same surface, so it counts as the same object. If one star is touching the carpet and one star the floor - they are on different objects</p>")
+    }
     if (virtual_chinrest) {
         var additional_instruction_page = ["<p>Because this experiment is studying visual perception, it's helpful for us to get a sense of how far away you are sitting from the computer.</p>" +
       "<p>That information allows us to calculate a rough estimate of how much of the image you should be able to see clearly on the screen.</p>",
