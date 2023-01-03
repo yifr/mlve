@@ -9,9 +9,9 @@ var iterName = urlParams.get("iterName");
 var batchId = urlParams.get("batchId")
 var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
 var viewing_time = parseInt(urlParams.get("viewing_time")) || -1;
-var probe_color = urlParams.get("probe_color") || "red";
+var probe_color = urlParams.get("probe_color") || "yellow";
 var probe_size = parseInt(urlParams.get("probe_size")) || 10;
-var probe_shape = urlParams.get("probe_shape") || "circle";
+var probe_shape = urlParams.get("probe_shape") || "star";
 var virtual_chinrest = urlParams.get("virtual_chinrest") || null;
 
 var inputID = null; // ID unique to the session served
@@ -144,9 +144,9 @@ function buildAndRunExperiment(sessionTemplate) {
     "<p>Welcome to our experiment! To continue reading the instructions please hit the right arrow key.</p>",
     "<p>Welcome to this experiment. This experiment should take a total of <strong>15 minutes</strong>. </br></br> You will be compensated at a base rate of $15/hour for a total of $3.75, which you will receive as long as you complete the study.</p>",
     "<p>We take your compensation and time seriously! The main experimenter's email for this experiment is <a href='mailto:yyf@mit.edu'>yyf@mit.edu</a>. </br></br> Please write this down now, and email us with the subject line <i>Human experiment compensation for segmentation estimation experiment</i> if you have problems submitting this task, or if it takes much more time than expected.</p>",
-      "<p>This experiment will work as follows: an image will briefly flash on your screen, with two yellow stars drawn on that image. You need to determine <strong>if the two stars are on the same object?</strong></p><p>Before each trial, there will be a fixation cross in the middle of the screen.</p>" +
+      "<p>This experiment will work as follows: an image will briefly flash on your screen, with two yellow stars drawn on that image. You need to determine <strong>if the two stars are on the same object or not</strong>.</p><p>For the purposes of this experiment, you should consider a star to be touching an object if the center of the star is on that object (so if just the very tip of the star is on an object, you should assume that star is actually touching something different).</p><p>Before each trial, there will be a fixation cross in the middle of the screen.</p>" +
       "<p>When you are ready to start the trial you'll press the space bar. Make sure you keep your eyes on the fixation cross for the duration of the trial.</p>",
-      "<p>Because the image will only be presented on the screen for a fraction of a second, you might not feel confident you know the correct answer. That's ok! If you're not positive whether the two yellow stars were on the same object or different objects, just go with your best bet.</p>",
+      "<p>Because the image will only be presented on the screen for a fraction of a second, you might not feel confident you know the correct answer.</p><p>That's ok! If you're not positive whether the two yellow stars were on the same object or different objects, just go with your best bet.</p>",
   ]
     if (expName.includes("gestalt")) {
     var example_shapes = "https://mlve-v1.s3.us-east-2.amazonaws.com/gestalt_shapegen/examples/shapegen_stims.gif"
@@ -157,7 +157,7 @@ function buildAndRunExperiment(sessionTemplate) {
     if (virtual_chinrest) {
         var additional_instruction_page = ["<p>Because this experiment is studying visual perception, it's helpful for us to get a sense of how far away you are sitting from the computer.</p>" +
       "<p>That information allows us to calculate a rough estimate of how much of the image you should be able to see clearly on the screen.</p>",
-      "<p>On the next page, you will go through two exercises to help us estimate how far away you are sitting from the computer.</p>"]
+      "<p>On the next page, you will go through two exercises to help us estimate how far away you are sitting from the computer.</p><p>Please try to complete these trials while sitting at the same distance you plan on sitting for the remainder of the experiment.</p>"]
         instruction_pages.push(...additional_instruction_page)
         var instructions = {
           type: jsPsychInstructions,
@@ -187,12 +187,11 @@ function buildAndRunExperiment(sessionTemplate) {
             }
         };
         trials.push(virtual_chinrest);
-        instruction_pages = ["<p>Great! Thank you for your help.</p>"];
+        instruction_pages = ["<p>Great! Thank you for your help.</p>", "<p>As a quick reminder, in this experiment you will be deciding whether two yellow stars are on the same object or not.</p>"];
     }
 
     instruction_pages.push(...[
-        "<p>There will be 5 practice trials on the next page to get you familiar with the experiment setup. If you select the incorrect answer on the practice trials, you will receive feedback, and won't be able to progress until you click the correct answer. Don't worry about getting the wrong answer on these trials -- they don't count!</p><p>Throughout the experiment, the images will appear for different durations of time. In the practice trials, we'll start at the longest possible viewing time and gradually get faster, so you get a sense of how it might feel during the experiment.</p>"
-  ]);
+        "<p>There will be 5 practice trials on the next page to get you familiar with the experiment setup. If you select the incorrect answer on the practice trials, you will receive feedback, and won't be able to progress until you click the correct answer. Don't worry about getting the wrong answer on these trials -- they don't count!</p><p>Throughout the experiment, the images will appear for different durations of time. In the practice trials, we'll start at the longest possible viewing time and gradually get faster, so you get a sense of how it might feel during the experiment.</p><p>And remember, try and keep your eyes centered on the fixation cross during each trial.</p>" ]);
 
   
 
@@ -252,8 +251,8 @@ function buildAndRunExperiment(sessionTemplate) {
   trials.push({
     type: jsPsychInstructions,
     pages: [
-      "Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct. \
-      Click 'Start' to begin the experiment.",
+      "<p>Great job! The experiment will begin on the next page. From here on out, you won't receive any feedback on  which is the correct. \
+      Click 'Start' to begin the experiment.</p>",
     ],
     allow_backward: false,
     show_clickable_nav: true,
@@ -286,7 +285,7 @@ function buildAndRunExperiment(sessionTemplate) {
     if (index == Math.floor(experimentTrials.length / 2)) {
       var progressTrial = {
         type: jsPsychInstructions,
-        pages: ["<p>You're halfway through the experiment! Great job so far! Give your eyes a moment to rest, and enjoy this picture of some Japanese Macaques resting in a hot spring while you do.</p> <img src='https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/misc/jm_3.jpg' height=683, width=1024></img>"],
+        pages: ["<p>You're halfway through the experiment! Great job so far! Give your eyes a moment to rest, and enjoy this picture of some Japanese Macaques resting in a hot spring while you do.</p><p>Remember, try and focus on the fixation cross during trials as much as possible!</p> <img src='https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/misc/jm_3.jpg' height=683, width=1024></img>"],
         show_clickable_nav: true,
         button_label_next: "Continue",
         allow_backward: false,
@@ -326,7 +325,7 @@ function buildAndRunExperiment(sessionTemplate) {
       correct_segmentation: trialData.correct_segmentation,
       correct_depth: trialData.correct_depth,
       probe_locations: trialData.probeLocations,
-      viewing_time: viewing_time,
+      viewing_time: trialData.viewing_time,
       practice_trial: false,
       probe_color: probe_color,
       probe_size: probe_size,
