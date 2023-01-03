@@ -171,8 +171,7 @@ function buildAndRunExperiment(sessionTemplate) {
     }
 
     instruction_pages.push(...[
-        "<p>There will be 5 practice trials on the next page to get you familiar with the experiment setup. If you select the incorrect answer on the practice trials, you will receive feedback, and won't be able to progress until you click the correct answer. Don't worry about getting the wrong answer on these trials -- they don't count!</p><p>Throughout the experiment, the images will appear for different durations of time. In the practice trials, we'll start at the longest possible viewing time and gradually get faster, so you get a sense of how it might feel during the experiment.</p>"
-  ]);
+        "<p>There will be 5 practice trials on the next page to get you familiar with the experiment setup. If you select the incorrect answer on the practice trials, you will receive feedback, and won't be able to progress until you click the correct answer. Don't worry about getting the wrong answer on these trials -- they don't count!</p><p>Throughout the experiment, the images will appear for different durations of time. In the practice trials, we'll start at the longest possible viewing time and gradually get faster, so you get a sense of how it might feel during the experiment.</p><p>And remember, try and keep your eyes centered on the fixation cross during each trial.</p>" ]);
 
   var preload = {
     type: jsPsychPreload,
@@ -278,7 +277,7 @@ function buildAndRunExperiment(sessionTemplate) {
     if (index == Math.floor(experimentTrials.length / 2)) {
       var progressTrial = {
         type: jsPsychInstructions,
-        pages: ["<p>You're halfway through the experiment! Great job so far! Give your eyes a moment to rest, and enjoy this picture of some Japanese Macaques resting in a hot spring while you do.</p> <img src='https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/misc/jm_3.jpg' height=683, width=1024></img>"],
+        pages: ["<p>You're halfway through the experiment! Great job so far! Give your eyes a moment to rest, and enjoy this picture of some Japanese Macaques resting in a hot spring while you do.</p><p>Remember, try and focus on the fixation cross during trials as much as possible!</p> <img src='https://mlve-v1.s3.us-east-2.amazonaws.com/attention_checks/misc/jm_3.jpg' height=683, width=1024></img>"],
         show_clickable_nav: true,
         button_label_next: "Continue",
         allow_backward: false,
