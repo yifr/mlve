@@ -193,18 +193,12 @@ function buildAndRunExperiment(sessionTemplate) {
     instruction_pages.push(...[
         "<p>There will be 5 practice trials on the next page to get you familiar with the experiment setup. If you select the incorrect answer on the practice trials, you will receive feedback, and won't be able to progress until you click the correct answer. Don't worry about getting the wrong answer on these trials -- they don't count!</p><p>Throughout the experiment, the images will appear for different durations of time. In the practice trials, we'll start at the longest possible viewing time and gradually get faster, so you get a sense of how it might feel during the experiment.</p><p>And remember, try and keep your eyes centered on the fixation cross during each trial.</p>" ]);
 
-  
-
   var instructions = {
     type: jsPsychInstructions,
     pages: instruction_pages,
     show_clickable_nav: true,
   };
 
-  trials.push(preload);
-  if (!DEBUG_MODE) {
-    trials.push(consent);
-  }
   trials.push(instructions);
 
   var fixation = {
