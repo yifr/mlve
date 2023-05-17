@@ -252,7 +252,7 @@ def filter_cols(df, experiment_type):
         df = df.rename(columns=rename)
         if not "gt" in df.columns:
             df["gt"] = None
-            df["correct"] = None
+            df["score"] = None
 
     # Drop irrelevant columns 
     # ID: Obscured user ID, imageURL: url, gt: ground truth if exists, response: user response, score: correctness score, batchID: batch ID
