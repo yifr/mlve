@@ -1,7 +1,7 @@
 import os
 import sys
 from tqdm import tqdm
-
+import scipy
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -36,7 +36,7 @@ def plot_accuracy(df, title, accuracy_key, target_key, errorbar=("ci", 95)):
     plt.suptitle(title, fontsize=24)
     return fig, accuracy_by_target.mean()
 
-def plot_surface_normal_split_half(df, title):
+def plot_surface_normal_split_half(df, title, measure="correlation"):
     """
     Returns split half and spearman brown corrected split half
     """
@@ -79,7 +79,10 @@ def plot_surface_normal_split_half(df, title):
             vec0 = np.mean(data[:,inds[:n_subs_half],:], axis=1)
             vec1 = np.mean(data[:, inds[n_subs_half:], :], axis=1)
             for dim in range(3):
-                stat = np.corrcoef(vec1[:,dim], vec0[:,dim])[0][1]
+                if measure == "correlation":
+                    stat = np.corrcoef(vec1[:,dim], vec0[:,dim])[0][1]
+                else:
+                    stat = 1 - scipy.spatial.distance.cosine(vec1[:, dim], vec0[:, dim]) #np.corrcoef(vec1[:,dim], vec0[:,dim])[0][1]
                 split_halfs_by_n[i0, i, dim] = stat
                 split_halfs_by_n_sb[i0, i, dim] = (2*stat) / (1+stat)
 
@@ -234,7 +237,7 @@ def plot_mean_angular_agreement(df, title):
     plt.suptitle(title)
     return fig
 
-def plot_split_half(df, target_key, title):
+def plot_split_half(df, target_key, title, measure="correlation"):
     # Find batch with greatest number of participants
     get_batch_key = lambda x: [k for k in x if "batch" in k][0]
     batch_key = get_batch_key(df.columns)
@@ -273,8 +276,10 @@ def plot_split_half(df, target_key, title):
             inds = np.random.choice(range(min_subs_per_point), int(n_subs_half*2), replace=False)
             vec0 = np.mean(data[:,inds[:n_subs_half]], axis=1)
             vec1 = np.mean(data[:, inds[n_subs_half:]], axis=1)
-            
-            stat = np.corrcoef(vec1[:], vec0[:])[0][1]
+            if measure == "correlation":
+                stat = np.corrcoef(vec1[:], vec0[:])[0][1]
+            else:
+                stat = 1 - scipy.spatial.distance.cosine(vec1[:], vec0[:]) #np.corrcoef(vec1[:], vec0[:])[0][1]
             split_halfs_by_n_sb[i0, i] = (2*stat) / (1+stat)
 
     fig = plt.figure(figsize=(12,12))
