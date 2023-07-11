@@ -402,9 +402,9 @@ var surfaceNormalsTask = (function (jspsych) {
           trial.imageURL +
           '" width=' +
           imageWidth +
-          " height=" +
+          "px height=" +
           imageHeight +
-          ">";
+          "px>";
 
         const img = new Image(imageHeight, imageWidth);
 
@@ -414,9 +414,9 @@ var surfaceNormalsTask = (function (jspsych) {
           html +=
             '<canvas class="threejs_covering_canvas" id="threejs_covering_canvas" height=' +
             imageHeight +
-            " width=" +
+            "px width=" +
             imageWidth +
-            "></canvas>";
+            "px></canvas>";
           html += "</div></div>";
 
           // // display button to submit drawing when finished
@@ -444,6 +444,10 @@ var surfaceNormalsTask = (function (jspsych) {
             var threejs_outer_container = document.getElementById("threejs_outer_container");
             threejs_outer_container.style.height = 425;
             threejs_outer_container.style.width = 425;
+          } else {
+            var threejs_outer_container = document.getElementById("threejs_outer_container");
+            threejs_outer_container.style.height = 512;
+            threejs_outer_container.style.width = 512;
           }
           if (trial.trialType == "unsupervised") {
             if (trial.confidence_slider) {

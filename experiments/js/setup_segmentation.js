@@ -11,7 +11,7 @@ var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
 var viewing_time = parseInt(urlParams.get("viewing_time")) || -1;
 var probe_color = urlParams.get("probe_color") || "yellow";
 var probe_size = parseInt(urlParams.get("probe_size")) || 10;
-var probe_shape = urlParams.get("probe_shape") || "star";
+var probe_shape = urlParams.get("probe_shape") || "dot";
 var virtual_chinrest = urlParams.get("virtual_chinrest") || null;
 
 var inputID = null; // ID unique to the session served
@@ -115,7 +115,7 @@ function buildAndRunExperiment(sessionTemplate) {
     type: jsPsychExternalHtml,
     url: "consent.html",
     cont_btn: "start",
-  };  
+  };
 
   browser_check = {
     type: jsPsychBrowserCheck,
@@ -223,7 +223,15 @@ function buildAndRunExperiment(sessionTemplate) {
   for (var i = 0; i < familiarizationTrials.length; i++) {
     var trialData = familiarizationTrials[i];
     console.log("correct choice:" + trialData.correct_segmentation, trialData)
-    var viewing_times = [500, 400, 300, 250, 200]
+    var viewing_times = -1//[500, 400, 300, 250, 200]
+    if (viewing_time > -1) {
+      viewing_times = [500, 400, 300, 250, 200]
+    } else {
+      viewing_times = [-1, -1, -1, -1, -1]
+    }
+    if (trialData.correct_segmentation == null) {
+      trialData.correct_segmentation = trialData.correctChoice;
+    }
     var trial = {
       type: segmentationTrial,
       stimulus: trialData.imageURL,
@@ -236,6 +244,7 @@ function buildAndRunExperiment(sessionTemplate) {
       probe_size: probe_size,
       probe_shape: probe_shape,
       practice_trial: true,
+      prompt: "<p id='prompt'>Are the dots on the same object?</p>",
       debug: DEBUG_MODE,
     };
 
@@ -312,6 +321,10 @@ function buildAndRunExperiment(sessionTemplate) {
       }
       logTrialtoDB(trial_data);
     };
+
+    if (trialData.correct_segmentation == null) {
+      trialData.correct_segmentation = trialData.correctChoice;
+    }
 
     var trial = {
       type: segmentationTrial,

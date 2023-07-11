@@ -6,6 +6,8 @@ var sessionID = urlParams.get("SESSION_ID"); // ID unique to the particular subm
 var projName = urlParams.get("projName");
 var expName = urlParams.get("expName");
 var iterName = urlParams.get("iterName");
+var stim_duration = urlParams.get("stimDuration");
+var 
 var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");

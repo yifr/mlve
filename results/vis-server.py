@@ -4,7 +4,7 @@ import json
 import pymongo
 import numpy as np
 import pandas as pd
-import logging 
+import logging
 from bson import json_util
 
 sys.path.append("../")
@@ -21,18 +21,18 @@ Backend Server for Visualizations:
  - For a given url, participant ID, condition, etc. we want to return trial data
  - Backend should filter data based on given parameters and return relevant trial information
  - Filters in db include:
-        "ID": obscured user ID, 
-        "imageURL": image URL, 
-        "gt": ground truth answer (if exists), 
-        "response": user response, 
-        "score": accuracy / correct (if exists), 
-        "probeLocation": probe location(s), 
-        "batchID": batch ID, 
-        "expName": experiment name, 
+        "ID": obscured user ID,
+        "imageURL": image URL,
+        "gt": ground truth answer (if exists),
+        "response": user response,
+        "score": accuracy / correct (if exists),
+        "probeLocation": probe location(s),
+        "batchID": batch ID,
+        "expName": experiment name,
         "iterationName": iteration name (not super useful),
 
  - Front end design is something like:
-    Image URL > experiment type (expName) > ID / probeLocation / batchID 
+    Image URL > experiment type (expName) > ID / probeLocation / batchID
 """
 
 template_dir = 'templates'
@@ -55,11 +55,11 @@ def index():
         elif "tdw" in url:
             filtered_urls["TDW"].append(url)
 
-    urls = filtered_urls 
+    urls = filtered_urls
     return render_template('index.html', urls=urls)
 
 
-# Add endpoint to sort stimuli from worst to best 
+# Add endpoint to sort stimuli from worst to best
 # by score (if exists) on a given experiment type
 @app.route('/sort_trials', methods=['GET'])
 def sort_trials():
@@ -72,7 +72,7 @@ def sort_trials():
         data = list(col.find({"experiment_type": exp_type}))
     else:
         data = list(col.find({"experiment_type": exp_type, "dataset": dataset}))
-    
+
     # For each image, get the average score over all the batches
     # Then sort the images by average score
     data = pd.DataFrame(data)
@@ -84,7 +84,7 @@ def sort_trials():
     for url in urls:
         score = data[data["imageURL"] == url]["score"].mean()
         scores.append((url, score))
-    
+
     if exp_type == "surface-normals":
         for i in range(len(scores)):
             scores[i][1] = 1 - (score[i][1] / 180) # surface normal score is mean angular error, so best is 0, worst is 180
@@ -107,6 +107,10 @@ def get_experiment_data():
     app.logger.debug(f"Fetched {len(data)} records")
     data.sort(key=lambda x: x["batchID"])
     return parse_json({"data": data})
+
+@app.route("/grid_grouping", methods=["GET"])
+def serve_grid_grouping_results():
+    return render_template('grid_grouping.html')
 
 @app.route('/get_experiment_opts', methods=['GET'])
 def get_experiment_opts():

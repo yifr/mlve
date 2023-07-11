@@ -110,7 +110,7 @@ var segmentationTrial = (function (jspsych) {
       probe_shape: {
         type: jspsych.ParameterType.STRING,
         pretty_name: "Probe Shape",
-        default: "star",
+        default: "probe",
       },
       probe_size: {
         type: jspsych.ParameterType.INT,
@@ -488,6 +488,9 @@ var segmentationTrial = (function (jspsych) {
       const check_segmentation_response = (choice) => {
         // Check if the segmentation question was answered correctly
         segmentation_response = choice;
+          if (trial.correct_segmentation == null) {
+              trial.correct_segmentation = trial.correctChoice;
+          }
         segmentation_correct = choice == trial.correct_segmentation;
         if (trial.debug) {
           console.log("Correct Segmentation: ", trial.correct_segmentation)
