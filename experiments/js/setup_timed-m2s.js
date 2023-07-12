@@ -6,8 +6,8 @@ var sessionID = urlParams.get("SESSION_ID"); // ID unique to the particular subm
 var projName = urlParams.get("projName");
 var expName = urlParams.get("expName");
 var iterName = urlParams.get("iterName");
-var stim_duration = urlParams.get("stimDuration");
-var 
+var stimulus_duration = urlParams.get("stimDuration");
+var choice_duration = urlParams.get("choiceDuration");
 var DEBUG_MODE = urlParams.get("debug") == "true" ? true : false;
 var inputID = null; // ID unique to the session served
 // var platform = urlParams.get("platform");
@@ -156,7 +156,8 @@ function buildAndRunExperiment(sessionTemplate) {
       stimulus: trialData.img_sample,
       choices: choices,
       correct_choice: gt_first ? 0 : 1,
-      // probe_location: trialData.probe_location,
+      stimulus_duration: stimulus_duration,
+      choice_duration: choice_duration,
       button_html: "<img style='border: 1px black solid' height='400px' width='400px' src=%choice%></img>",
       practice_trial: true,
       debug: DEBUG_MODE,

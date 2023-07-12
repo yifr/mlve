@@ -10,11 +10,22 @@ var m2sTrial = (function (jspsych) {
         pretty_name: "Stimulus",
         default: undefined,
       },
-
+      choices: {
+        type: jspsych.ParameterType.STRING,
+        pretty_name: "Choices",
+        default: undefined,
+        array: true,
+      },
       correct_choice: {
         type: jspsych.STRING,
         pretty_name: "Which option is correct",
         default: undefined,
+      },
+      /** How long to show the stimulus. */
+      stimulus_duration: {
+        type: jspsych.ParameterType.INT,
+        pretty_name: "Stimulus duration of main sample",
+        default: null,
       },
       /** Set the image height in pixels */
       stimulus_height: {
@@ -34,15 +45,9 @@ var m2sTrial = (function (jspsych) {
         pretty_name: "Trial Index",
         default: 0,
       },
-      choices: {
-        type: jspsych.ParameterType.STRING,
-        pretty_name: "Choices",
-        default: undefined,
-        array: true,
-      },
       practice_trial: {
         type: jspsych.ParameterType.BOOL,
-        pretty_name: "Instructions",
+        pretty_name: "Whether or not it's a practice trial",
         default: false,
       },
       /** The HTML for creating button. Can create own style. Use the "%choice%" string to indicate where the label from the choices parameter should be inserted. */
@@ -51,12 +56,6 @@ var m2sTrial = (function (jspsych) {
         pretty_name: "Button HTML",
         default: '<button class="jspsych-btn">%choice%</button>',
         array: true,
-      },
-      /** How long to show the stimulus. */
-      stimulus_duration: {
-        type: jspsych.ParameterType.INT,
-        pretty_name: "Stimulus duration of main sample",
-        default: null,
       },
       /* How long to show the choice stimuli */
       choice_duration: {
