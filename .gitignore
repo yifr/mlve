@@ -1,6 +1,10 @@
 ## ignoring by default
 .DS_Store
 .ipynb_checkpoints/
+*.pkl
+*.hdf5
+*.json
+*.mp4
 *.pdf
 *.png
 *.jpeg
@@ -164,3 +168,5 @@ venv.bak/
 experiments/static/media/
 experiments/manager
 **/datasets/**
+
+.vscode
