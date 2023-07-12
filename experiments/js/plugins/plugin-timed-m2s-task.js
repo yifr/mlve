@@ -108,6 +108,7 @@ var m2sTrial = (function (jspsych) {
 
       // Create canvas element for stimulus
       const canvas = document.createElement('canvas');
+      canvas.id = "jspsych-image-button-response-stimulus";
       canvas.width = trial.stimulus_width;
       canvas.height = trial.stimulus_height;
       container.appendChild(canvas);
@@ -118,61 +119,58 @@ var m2sTrial = (function (jspsych) {
       stimulusImage.src = trial.stimulus;
       stimulusImage.onload = function () {
         ctx.drawImage(stimulusImage, 0, 0);
-      };
-
-      // Record start time
-      const startTime = performance.now();
-
-
-      // Timeout for stimulus presentation
-      setTimeout(function () {
-        fixation.style.display = 'none';
-        canvas.style.display = 'none';
-
-        // Create container for choice stimuli
-        const choiceContainer = document.createElement('div');
-        choiceContainer.style.display = 'flex';
-        choiceContainer.style.justifyContent = 'center';
-        display_element.appendChild(choiceContainer);
-
-        // Create canvas elements for choice stimuli
-        trial.choices.forEach((choice) => {
-          const choiceCanvas = document.createElement('canvas');
-          choiceCanvas.width = trial.choice_width;
-          choiceCanvas.height = trial.choice_height;
-          choiceCanvas.style.margin = '10px';
-          choiceContainer.appendChild(choiceCanvas);
-
-          const choiceCtx = choiceCanvas.getContext('2d');
-          const choiceImage = new Image();
-          choiceImage.src = choice;
-          choiceImage.onload = function () {
-            choiceCtx.drawImage(choiceImage, 0, 0);
-          };
-        });
-
-        // Timeout for choice stimuli presentation
+        
+        // Timeout for stimulus presentation
         setTimeout(function () {
-          // Mask out choice stimuli
-          choiceContainer.style.display = 'none';
+          // Record start time
+          const startTime = performance.now();
+          fixation.style.display = 'none';
+          canvas.style.display = 'none';
 
-          // Log response on click
-          trial.choices.forEach((choice, index) => {
-            const choiceCanvas = choiceContainer.children[index];
-            choiceCanvas.addEventListener('click', function () {
-              const response = {
-                rt: performance.now() - startTime,
-                choice: index,
-                correct: index === trial.correct_choice,
-              };
+          // Create container for choice stimuli
+          const choiceContainer = document.createElement('div');
+          choiceContainer.style.display = 'flex';
+          choiceContainer.style.justifyContent = 'center';
+          display_element.appendChild(choiceContainer);
 
-              plugin.jsPsych.finishTrial(response);
-            });
+          // Create canvas elements for choice stimuli
+          trial.choices.forEach((choice) => {
+            const choiceCanvas = document.createElement('canvas');
+            choiceCanvas.width = trial.choice_width;
+            choiceCanvas.height = trial.choice_height;
+            choiceCanvas.style.margin = '10px';
+            choiceContainer.appendChild(choiceCanvas);
+
+            const choiceCtx = choiceCanvas.getContext('2d');
+            const choiceImage = new Image();
+            choiceImage.src = choice;
+            choiceImage.onload = function () {
+              choiceCtx.drawImage(choiceImage, 0, 0);
+            };
           });
-        }, trial.choice_duration);
-      }, trial.stimulus_duration);
-    }
 
+          // Timeout for choice stimuli presentation
+          setTimeout(function () {
+            // Mask out choice stimuli
+            choiceContainer.style.display = 'none';
+
+            // Log response on click
+            trial.choices.forEach((choice, index) => {
+              const choiceCanvas = choiceContainer.children[index];
+              choiceCanvas.addEventListener('click', function () {
+                const response = {
+                  rt: performance.now() - startTime,
+                  choice: index,
+                  correct: index === trial.correct_choice,
+                };
+
+                plugin.jsPsych.finishTrial(response);
+              });
+            });
+          }, trial.choice_duration);
+        }, trial.stimulus_duration);
+      }
+    }
   }
   ImageButtonResponsePlugin.info = info;
 

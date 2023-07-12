@@ -124,6 +124,7 @@ io.on("connection", function (socket) {
     var exp_name = data.exp_name;
     var iter_name = data.iter_name;
     var batch_id = data.batch_id;
+    console.log(batch_id);
     initializeWithTrials(socket, proj_name, exp_name, iter_name, batch_id);
   });
 
