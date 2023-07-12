@@ -118,9 +118,36 @@ var m2sTrial = (function (jspsych) {
           // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
           getHeightWidth(); // only possible to get width/height after image loads
           ctx.drawImage(img, 0, 0, width, height);
-           image_drawn = true;
-        }
 
+
+        // get/set image height and width - this can only be done after image loads because uses image's naturalWidth/naturalHeight properties
+        const getHeightWidth = () => {
+          if (trial.stimulus_height !== null) {
+            height = trial.stimulus_height;
+            if (trial.stimulus_width == null && trial.maintain_aspect_ratio) {
+              width =
+                img.naturalWidth * (trial.stimulus_height / img.naturalHeight);
+            }
+          } else {
+            height = img.naturalHeight;
+          }
+          if (trial.stimulus_width !== null) {
+            width = trial.stimulus_width;
+            if (trial.stimulus_height == null && trial.maintain_aspect_ratio) {
+              height =
+                img.naturalHeight * (trial.stimulus_width / img.naturalWidth);
+            }
+          } else if (
+            !(trial.stimulus_height !== null && trial.maintain_aspect_ratio)
+          ) {
+            // if stimulus width is null, only use the image's natural width if the width value wasn't set
+            // in the if statement above, based on a specified height and maintain_aspect_ratio = true
+            width = img.naturalWidth;
+          }
+          canvas.height = height;
+          canvas.width = width;
+        };
+        getHeightWidth(); // call now, in case image loads immediately (is cached)
         // create buttons
         var buttons = [];
         if (Array.isArray(trial.button_html)) {
@@ -282,6 +309,7 @@ var m2sTrial = (function (jspsych) {
           stimulus: trial.stimulus,
           response: response.button,
           correct: correct,
+          // probe_location: trial.probe_location,
           correct_choice: trial.correct_choice,
           choices: trial.choices,
         };
