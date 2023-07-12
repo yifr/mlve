@@ -168,10 +168,10 @@ function omit(obj, props) {
   }
 }
 
-function checkPreviousParticipant(userID, callback) {
+function checkPreviousParticipant(userID, dbname, callback) {
   const p = { userID : userID};
   const postData = {
-    dbname: "mlve_outputs", // TODO: don't hardcode this?
+    dbname: dbname,
     query: p,
     projection: { _id: 1 },
   };

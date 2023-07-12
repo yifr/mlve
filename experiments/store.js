@@ -160,7 +160,7 @@ function serve() {
       if (batch_id != null) {
           console.log("Serving batch: ", batch_id)
           collection.aggregate([
-            { $match: { "data.metadata.batch_idx": parseInt(batch_id)} }, // only serve the iteration we want
+            { $match: { "data.metadata.batch": parseInt(batch_id)} }, // only serve the iteration we want
             { $limit: 1 }
           ]).toArray((err, results) => {
             if (err) {
