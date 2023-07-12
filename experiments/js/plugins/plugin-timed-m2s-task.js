@@ -91,86 +91,248 @@ var m2sTrial = (function (jspsych) {
     }
 
     trial(display_element, trial) {
-      const plugin = this;
+      var height, width;
+      var html;
+      if (trial.debug) {
+        console.log("Correct Answer: " + trial.correct_choice);
+      }
+      if (trial.render_on_canvas) {
+        var image_drawn = false;
+        // first clear the display element (because the render_on_canvas method appends to display_element instead of overwriting it with .innerHTML)
+        if (display_element.hasChildNodes()) {
+          // can't loop through child list because the list will be modified by .removeChild()
+          while (display_element.firstChild) {
+            display_element.removeChild(display_element.firstChild);
+          }
+        }
+        // create canvas element and image
+        var canvas = document.createElement("canvas");
+        canvas.id = "jspsych-image-button-response-stimulus";
+        canvas.style.margin = "0";
+        canvas.style.padding = "0";
+        var ctx = canvas.getContext("2d");
+        var img = new Image();
 
-      // Create container div
-      const container = document.createElement('div');
-      container.style.display = 'flex';
-      container.style.justifyContent = 'center';
-      container.style.alignItems = 'center';
-      display_element.appendChild(container);
+        img.src = trial.stimulus;
+        img.onload = () => {
+          // if image wasn't preloaded, then it will need to be drawn whenever it finishes loading
+          getHeightWidth(); // only possible to get width/height after image loads
+          ctx.drawImage(img, 0, 0, width, height);
+           image_drawn = true;
+        }
 
-      // Create fixation cross
-      const fixation = document.createElement('div');
-      fixation.style.fontSize = '48px';
-      fixation.innerHTML = '+';
-      container.appendChild(fixation);
-
-      // Create canvas element for stimulus
-      const canvas = document.createElement('canvas');
-      canvas.width = trial.stimulus_width;
-      canvas.height = trial.stimulus_height;
-      container.appendChild(canvas);
-
-      // Draw the stimulus on the canvas
-      const ctx = canvas.getContext('2d');
-      const stimulusImage = new Image();
-      stimulusImage.src = trial.stimulus;
-      stimulusImage.onload = function () {
-        ctx.drawImage(stimulusImage, 0, 0);
-      };
-
-      // Record start time
-      const startTime = performance.now();
-
-
-      // Timeout for stimulus presentation
-      setTimeout(function () {
-        fixation.style.display = 'none';
-        canvas.style.display = 'none';
-
-        // Create container for choice stimuli
-        const choiceContainer = document.createElement('div');
-        choiceContainer.style.display = 'flex';
-        choiceContainer.style.justifyContent = 'center';
-        display_element.appendChild(choiceContainer);
-
-        // Create canvas elements for choice stimuli
-        trial.choices.forEach((choice) => {
-          const choiceCanvas = document.createElement('canvas');
-          choiceCanvas.width = trial.choice_width;
-          choiceCanvas.height = trial.choice_height;
-          choiceCanvas.style.margin = '10px';
-          choiceContainer.appendChild(choiceCanvas);
-
-          const choiceCtx = choiceCanvas.getContext('2d');
-          const choiceImage = new Image();
-          choiceImage.src = choice;
-          choiceImage.onload = function () {
-            choiceCtx.drawImage(choiceImage, 0, 0);
-          };
-        });
-
-        // Timeout for choice stimuli presentation
-        setTimeout(function () {
-          // Mask out choice stimuli
-          choiceContainer.style.display = 'none';
-
-          // Log response on click
-          trial.choices.forEach((choice, index) => {
-            const choiceCanvas = choiceContainer.children[index];
-            choiceCanvas.addEventListener('click', function () {
-              const response = {
-                rt: performance.now() - startTime,
-                choice: index,
-                correct: index === trial.correct_choice,
-              };
-
-              plugin.jsPsych.finishTrial(response);
-            });
+        // create buttons
+        var buttons = [];
+        if (Array.isArray(trial.button_html)) {
+          if (trial.button_html.length == trial.choices.length) {
+            buttons = trial.button_html;
+          } else {
+            console.error(
+              "Error in image-button-response plugin. The length of the button_html array does not equal the length of the choices array"
+            );
+          }
+        } else {
+          for (var i = 0; i < trial.choices.length; i++) {
+            buttons.push(trial.button_html);
+          }
+        }
+        var btngroup_div = document.createElement("div");
+        btngroup_div.id = "jspsych-image-button-response-btngroup";
+        html = "";
+        for (var i = 0; i < trial.choices.length; i++) {
+          var str = buttons[i].replace(/%choice%/g, trial.choices[i]);
+          html +=
+            '<div class="jspsych-image-button-response-button" style="display: inline-block; margin:' +
+            trial.margin_vertical +
+            " " +
+            trial.margin_horizontal +
+            '" id="jspsych-image-button-response-button-' +
+            i +
+            '" data-choice="' +
+            i +
+            '">' +
+            str +
+            "</div>";
+        }
+        btngroup_div.innerHTML = html;
+        // add canvas to screen and draw image
+        display_element.insertBefore(canvas, null);
+        if (img.complete && Number.isFinite(width) && Number.isFinite(height)) {
+          // if image has loaded and width/height have been set, then draw it now
+          // (don't rely on img onload function to draw image when image is in the cache, because that causes a delay in the image presentation)
+          ctx.drawImage(img, 0, 0, width, height);
+          image_drawn = true;
+        }
+        // add buttons to screen
+        display_element.insertBefore(btngroup_div, canvas.nextElementSibling);
+        // add prompt if there is one
+        if (trial.prompt !== null) {
+          display_element.insertAdjacentHTML("beforeend", trial.prompt);
+        }
+      } else {
+        // display stimulus as an image element
+        html =
+          '<img src="' +
+          trial.stimulus +
+          '" id="jspsych-image-button-response-stimulus">';
+        //display buttons
+        var buttons = [];
+        if (Array.isArray(trial.button_html)) {
+          if (trial.button_html.length == trial.choices.length) {
+            buttons = trial.button_html;
+          } else {
+            console.error(
+              "Error in image-button-response plugin. The length of the button_html array does not equal the length of the choices array"
+            );
+          }
+        } else {
+          for (var i = 0; i < trial.choices.length; i++) {
+            buttons.push(trial.button_html);
+          }
+        }
+        html += '<div id="jspsych-image-button-response-btngroup">';
+        for (var i = 0; i < trial.choices.length; i++) {
+          var str = buttons[i].replace(/%choice%/g, trial.choices[i]);
+          html +=
+            '<div class="jspsych-image-button-response-button" style="display: inline-block; margin:' +
+            trial.margin_vertical +
+            " " +
+            trial.margin_horizontal +
+            '" id="jspsych-image-button-response-button-' +
+            i +
+            '" data-choice="' +
+            i +
+            '">' +
+            str +
+            "</div>";
+        }
+        html += "</div>";
+        // add prompt
+        if (trial.prompt !== null) {
+          html += trial.prompt;
+        }
+        // update the page content
+        display_element.innerHTML = html;
+        // set image dimensions after image has loaded (so that we have access to naturalHeight/naturalWidth)
+        var img = display_element.querySelector(
+          "#jspsych-image-button-response-stimulus"
+        );
+        if (trial.stimulus_height !== null) {
+          height = trial.stimulus_height;
+          if (trial.stimulus_width == null && trial.maintain_aspect_ratio) {
+            width =
+              img.naturalWidth * (trial.stimulus_height / img.naturalHeight);
+          }
+        } else {
+          height = img.naturalHeight;
+        }
+        if (trial.stimulus_width !== null) {
+          width = trial.stimulus_width;
+          if (trial.stimulus_height == null && trial.maintain_aspect_ratio) {
+            height =
+              img.naturalHeight * (trial.stimulus_width / img.naturalWidth);
+          }
+        } else if (
+          !(trial.stimulus_height !== null && trial.maintain_aspect_ratio)
+        ) {
+          // if stimulus width is null, only use the image's natural width if the width value wasn't set
+          // in the if statement above, based on a specified height and maintain_aspect_ratio = true
+          width = img.naturalWidth;
+        }
+        img.style.height = height.toString() + "px";
+        img.style.width = width.toString() + "px";
+      }
+      // start timing
+      var start_time = performance.now();
+      for (var i = 0; i < trial.choices.length; i++) {
+        display_element
+          .querySelector("#jspsych-image-button-response-button-" + i)
+          .addEventListener("click", (e) => {
+            var btn_el = e.currentTarget;
+            var choice = btn_el.getAttribute("data-choice"); // don't use dataset for jsdom compatibility
+            after_response(choice);
           });
-        }, trial.choice_duration);
-      }, trial.stimulus_duration);
+      }
+      // store response
+      var response = {
+        rt: null,
+        button: null,
+      };
+      // function to end trial when it is time
+      const end_trial = () => {
+        // kill any remaining setTimeout handlers
+        this.jsPsych.pluginAPI.clearAllTimeouts();
+        // gather the data to store for the trial
+        var correct = response.button == trial.correct_choice;
+        if (trial.practice_trial) {
+          if (!correct) {
+            var prompt =
+              "Good try! The correct answer is actually the other shape! Click the correct shape to continue.";
+            display_element.querySelector("#prompt").innerHTML = prompt;
+            return;
+          }
+        }
+        if (trial.debug) {
+          console.log("Correct: " + correct);
+        }
+
+        var trial_data = {
+          rt: response.rt,
+          index: trial.index,
+          stimulus: trial.stimulus,
+          response: response.button,
+          correct: correct,
+          correct_choice: trial.correct_choice,
+          choices: trial.choices,
+        };
+
+        // clear the display
+        display_element.innerHTML = "";
+        // move on to the next trial
+        this.jsPsych.finishTrial(trial_data);
+      };
+      // function to handle responses by the subject
+      function after_response(choice) {
+        // measure rt
+        var end_time = performance.now();
+        var rt = Math.round(end_time - start_time);
+        response.button = parseInt(choice);
+        response.rt = rt;
+        // after a valid response, the stimulus will have the CSS class 'responded'
+        // which can be used to provide visual feedback that a response was recorded
+        display_element.querySelector(
+          "#jspsych-image-button-response-stimulus"
+        ).className += " responded";
+        // disable all the buttons after a response
+        var btns = document.querySelectorAll(
+          ".jspsych-image-button-response-button button"
+        );
+        for (var i = 0; i < btns.length; i++) {
+          //btns[i].removeEventListener('click');
+          btns[i].setAttribute("disabled", "disabled");
+        }
+        if (trial.response_ends_trial) {
+          end_trial();
+        }
+      }
+      // hide image if timing is set
+      if (trial.stimulus_duration !== null) {
+        this.jsPsych.pluginAPI.setTimeout(() => {
+          display_element.querySelector(
+            "#jspsych-image-button-response-stimulus"
+          ).style.visibility = "hidden";
+        }, trial.stimulus_duration);
+      }
+      // end trial if time limit is set
+      if (trial.trial_duration !== null) {
+        this.jsPsych.pluginAPI.setTimeout(() => {
+          end_trial();
+        }, trial.trial_duration);
+      } else if (trial.response_ends_trial === false) {
+        console.warn(
+          "The experiment may be deadlocked. Try setting a trial duration or set response_ends_trial to true."
+        );
+      }
     }
 
   }
